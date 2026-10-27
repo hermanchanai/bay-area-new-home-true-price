@@ -5,10 +5,11 @@
  "fetch_date": "2026-10-27",
  "page_sha256": "3479ec266489479f714f47e3ded0b6d8a58d4988ad011269b5c6185882bad04c",
  "homes": [],
- "plans": [],
+ "plans": null,
  "incentive_kinds": [
   [
-   "arm_promo"
+   "arm_promo",
+   "unquantified"
   ]
  ]
 }

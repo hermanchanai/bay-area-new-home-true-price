@@ -61,10 +61,6 @@
  "incentive_kinds": [
   [
    "price_cut"
-  ],
-  [
-   "perm_rate",
-   "unquantified"
   ]
  ]
 }

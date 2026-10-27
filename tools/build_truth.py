@@ -26,6 +26,7 @@ from tools.preprocess_page import PRE, RAW, latest_date
 ROOT = Path(__file__).resolve().parent.parent
 TRUTH = ROOT / "eval" / "truth"
 CASH = ["flat_cash", "closing_credit"]  # "flex cash your way" is either, by the builder's own wording
+ARM_WITH_RATE = r"\d\.\d+%[^|\n]{0,40}7/6 ARM|7/6 ARM[^|\n]{0,40}\d\.\d+%"
 
 
 def money(s: str) -> int:
@@ -49,7 +50,7 @@ def _tm_blobs(html: str) -> list[dict]:
 
 
 def tm_truth(html: str, text: str) -> dict:
-    homes, plans = [], []
+    homes, plans, has_plans = [], [], False
     for d in _tm_blobs(html):
         if "availableHomesTotal" in d and isinstance(d.get("homes"), list):
             for h in d["homes"]:
@@ -57,6 +58,7 @@ def tm_truth(html: str, text: str) -> dict:
                               "was_price": h.get("wasPrice") or None, "beds": h.get("bed"),
                               "baths": baths(h.get("fullBath") or 0, h.get("halfBath")), "sqft": h.get("sqft")})
         if isinstance(d.get("floorplans"), list):
+            has_plans = True
             for p in d["floorplans"]:
                 sp = p.get("specs") or {}
                 plans.append({"name": p["name"].strip(), "beds_max": int(sp["maxBed"]) if sp.get("maxBed") else None,
@@ -66,10 +68,13 @@ def tm_truth(html: str, text: str) -> dict:
     if any(h["was_price"] and h["price"] and h["was_price"] > h["price"] for h in homes):
         kinds.append(["price_cut"])
     if re.search(r"7/6 ARM", text):
-        kinds.append(["arm_promo"])
+        # a banner naming the loan with no rate on the page is "unquantified" by the extraction rules
+        rate = re.search(ARM_WITH_RATE, text) or re.search(r"\d\.\d+% APR", text)  # offers fine print
+        kinds.append(["arm_promo"] if rate else ["arm_promo", "unquantified"])
     if re.search(r"(?i)flex cash", text):
         kinds.append(CASH)
-    return {"homes": homes, "plans": plans, "incentive_kinds": kinds}
+    # plans only in prose ("The Residence 1 plan features ...") can't be labelled without a model
+    return {"homes": homes, "plans": plans if has_plans else None, "incentive_kinds": kinds}
 
 
 # --- Trumark: card text in the preprocessed page ----------------------------------------------
@@ -99,61 +104,77 @@ def trumark_truth(html: str, text: str) -> dict:
                                    "baths": baths(int(ba.split()[0]), half.group(1) if half else 0), "sqft": sqft})
     plans, pl = [], _section(text, "Floor Plans")
     for i, line in enumerate(pl):
-        if line.startswith("From $") and i > 0:
-            rest = pl[i + 1:i + 6]
-            sq = next((x for x in rest if x.endswith("Sq. Ft.")), None)
-            bd = next((x for x in rest if re.search(r"Beds?$", x)), None)
-            plans.append({"name": pl[i - 1], "from_price": money(line),
-                          "sqft_min": money(sq.split("-")[0]) if sq else None,
-                          "beds_max": int(re.findall(r"\d+", bd)[-1]) if bd else None})
+        if not line.endswith("Sq. Ft.") or i < 1:
+            continue
+        priced = pl[i - 1].startswith("From $")  # "Temporarily Sold Out!" plans show no price
+        bd = next((x for x in pl[i + 1:i + 4] if re.search(r"Beds?$", x)), None)
+        plans.append({"name": pl[i - 2] if priced else pl[i - 1], "from_price": money(pl[i - 1]) if priced else None,
+                      "sqft_min": money(line.split("-")[0]),
+                      "beds_max": int(re.findall(r"\d+", bd)[-1]) if bd else None})
     homes = list(homes.values())
+    own = re.split(r"(?m)^#+ Around the Area", text)[0]  # later sections are other communities' cards
     kinds = []
-    if any(h["was_price"] for h in homes):
+    if any(h["was_price"] for h in homes) or "savings!" in own:
         kinds.append(["price_cut"])
-    if re.search(r"(?i)note rate", text):
+    if re.search(r"(?i)note rate", own):
         kinds.append(["perm_rate", "unquantified"])  # its fine print (structure, term) is not on the page
     return {"homes": homes, "plans": plans, "incentive_kinds": kinds}
 
 
 # --- Pulte: QMI cards (each card appears twice, gallery + grid) -------------------------------
 
+_ADDR = re.compile(r"^\d+ [A-Za-z0-9 .,#'-]+$")  # townhome units: "400 Mexico Terrace, Unit 9"
+
+
+def _pulte_card(lines: list[str], i: int) -> str | None:
+    """The card's street address if a home card starts at line i, in either Pulte layout."""
+    if not _ADDR.match(lines[i]) or i + 1 >= len(lines):
+        return None
+    if re.match(r"^[A-Za-z .'-]+, CA \d{5}$", lines[i + 1]):              # "Dublin, CA 94568"
+        return lines[i].title()
+    if (lines[i].endswith(" ,") and i + 3 < len(lines) and re.match(r"^[A-Za-z .'-]+ ,$", lines[i + 1])
+            and lines[i + 2] == "CA" and re.match(r"^\d{5}$", lines[i + 3])):  # "Mountain House ," / "CA" / ZIP
+        return lines[i].removesuffix(" ,")
+    return None
+
+
 def pulte_truth(html: str, text: str) -> dict:
     lines, homes = text.splitlines(), {}
-    city_line = re.compile(r"^[A-Za-z .'-]+, CA \d{5}$")
-    addr_line = re.compile(r"^\d+ [A-Za-z0-9 .,#'-]+$")  # townhome units: "400 Mexico Terrace, Unit 9"
-    for i in range(len(lines) - 1):
-        if not (addr_line.match(lines[i]) and city_line.match(lines[i + 1])):
+    for i in range(len(lines)):
+        address = _pulte_card(lines, i)
+        if not address:
             continue
         price = was = None
         got = {}
         for line_no in range(i + 2, min(i + 80, len(lines))):
             x = lines[line_no]
-            if addr_line.match(x) and line_no + 1 < len(lines) and city_line.match(lines[line_no + 1]):
+            if _pulte_card(lines, line_no):
                 break  # ran into the next card
             if price is None and re.fullmatch(r"\$[\d,]+", x):
                 price = money(x)
             elif x.startswith("Was $"):
                 was = money(x)
-            elif x in ("Sq. Ft.", "Beds", "Baths") and x not in got:
-                got[x] = lines[line_no - 1]
+            elif x.lower() in ("sq. ft.", "beds", "baths") and x.lower() not in got:
+                got[x.lower()] = lines[line_no - 1]
             if len(got) == 3:
                 break
         if price is None or len(got) < 3:
             continue
-        address = lines[i].title()
         homes.setdefault(address, {"address": address, "price": price, "was_price": was,
-                                   "beds": int(got["Beds"]), "baths": float(got["Baths"]),
-                                   "sqft": money(got["Sq. Ft."])})
+                                   "beds": int(got["beds"]), "baths": float(got["baths"]),
+                                   "sqft": money(got["sq. ft."])})
     homes = list(homes.values())
     kinds = []
     if any(h["was_price"] for h in homes):
         kinds.append(["price_cut"])
-    if re.search(r"\d\.\d+%[^|\n]{0,40}7/6 ARM|7/6 ARM[^|\n]{0,40}\d\.\d+%", text):
+    if re.search(ARM_WITH_RATE, text):
         kinds.append(["arm_promo"])
     if re.search(r"(?i)flex cash", text):
         kinds.append(CASH)
     if re.search(r"\$2,000\* incentive", text):
         kinds.append(["flat_cash"])
+    if re.search(r"Appliance Package|(?i:paid HOA dues)", text):  # washer/dryer/fridge; HOA months: no $ on page
+        kinds.append(["unquantified"])
     return {"homes": homes, "plans": None, "incentive_kinds": kinds}
 
 

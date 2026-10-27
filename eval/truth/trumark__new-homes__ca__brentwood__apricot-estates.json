@@ -42,6 +42,12 @@
    "from_price": 1290000,
    "sqft_min": 4397,
    "beds_max": 5
+  },
+  {
+   "name": "Residence 1",
+   "from_price": null,
+   "sqft_min": 3019,
+   "beds_max": 4
   }
  ],
  "incentive_kinds": [

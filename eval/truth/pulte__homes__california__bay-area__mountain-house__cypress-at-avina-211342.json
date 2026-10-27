@@ -4,9 +4,37 @@
  "builder": "pulte",
  "fetch_date": "2026-10-27",
  "page_sha256": "ad591db23e8a6a234332575d7783ac06f31ca0f1b9efcf917dfe51f34618109e",
- "homes": [],
+ "homes": [
+  {
+   "address": "337 E Beatrice Avenue",
+   "price": 789925,
+   "was_price": 1089925,
+   "beds": 5,
+   "baths": 3.0,
+   "sqft": 2689
+  },
+  {
+   "address": "361 E Beatrice Avenue",
+   "price": 793146,
+   "was_price": 1093146,
+   "beds": 5,
+   "baths": 3.0,
+   "sqft": 2689
+  },
+  {
+   "address": "325 E Beatrice Avenue MOD",
+   "price": 955872,
+   "was_price": 1280872,
+   "beds": 5,
+   "baths": 3.0,
+   "sqft": 2689
+  }
+ ],
  "plans": null,
  "incentive_kinds": [
+  [
+   "price_cut"
+  ],
   [
    "arm_promo"
   ],
@@ -16,6 +44,9 @@
   ],
   [
    "flat_cash"
+  ],
+  [
+   "unquantified"
   ]
  ]
 }

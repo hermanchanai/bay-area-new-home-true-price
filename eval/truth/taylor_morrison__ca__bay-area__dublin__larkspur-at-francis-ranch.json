@@ -38,7 +38,8 @@
  ],
  "incentive_kinds": [
   [
-   "arm_promo"
+   "arm_promo",
+   "unquantified"
   ]
  ]
 }
