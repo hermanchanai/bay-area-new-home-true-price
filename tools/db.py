@@ -17,7 +17,7 @@ def connect(path: Path | str = DB_PATH) -> sqlite3.Connection:
     """Open the DB with foreign keys on and every migration applied."""
     if str(path) != ":memory:":
         Path(path).parent.mkdir(parents=True, exist_ok=True)
-    conn = sqlite3.connect(path)
+    conn = sqlite3.connect(path, timeout=60)  # pulls can run side by side; wait out each other's writes
     conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA foreign_keys = ON")
     migrate(conn)

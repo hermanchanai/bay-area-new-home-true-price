@@ -26,7 +26,9 @@ Every model call in the product goes to a Meta model. The code itself was writte
 | Schema (`migrations/001_init.sql`, `tools/db.py`) | done |
 | Incentive pricing (`tools/price_incentives.py`) | done, 17 unit tests |
 | Market rate (`tools/fetch_market_rate.py`, FRED MORTGAGE30US) | done |
-| Assessor pulls, builder fetch, extraction, floor plans, agent, map | next |
+| Assessor pulls (`tools/pull_assessor.py`): Alameda, Contra Costa, San Joaquin | done, 155k parcels + 14.5k priced Alameda sales |
+| Builder page fetch (`tools/fetch_builder_pages.py`): Taylor Morrison, Pulte, Trumark | done, 41 communities |
+| Extraction, floor plans, parcel linking, agent, map | next |
 
 ## How incentives become dollars
 
@@ -65,3 +67,9 @@ building period.
   - Repo scaffold, SQLite schema (13 tables), incentive pricing engine. Its unit tests were written
     first and seen failing (17 failed against a stub) before the code went in.
   - FRED market-rate fetcher. First pull: 2026-10-22, 7.32%.
+- **2026-10-27:**
+  - Assessor pulls from public ArcGIS layers: Alameda 80,524 parcels plus 41,603 transfers
+    (14,520 with a single-parcel price), Contra Costa 61,689, San Joaquin 12,951. Every run checks
+    its row count against the server's count.
+  - Builder page fetcher (robots.txt read with our own User-Agent, 2 s per host): Taylor Morrison
+    11 communities, Pulte 12, Trumark 18, with zero errors and zero robots refusals.

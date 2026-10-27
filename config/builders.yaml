@@ -1,0 +1,34 @@
+# How to find each builder's community pages. Patterns run over the raw page text, so they also
+# catch paths inside embedded JSON. `expected_communities` = selling communities in our four
+# counties per the 2026-10-26 roster; finding fewer than 60% of it fails the fetch.
+#
+# Discovery: fetch `start` pages -> if `city_pattern`, fetch each in-scope city page -> collect
+# `community_pattern` matches whose city is in config/cities.yaml -> fetch each community page.
+# `extra_pages` are fetched as-is (e.g. a region-wide available-homes list).
+
+user_agent: "Mozilla/5.0 (compatible; bay-area-new-home-true-price/0.1; +https://github.com/hermanchanai)"
+delay_s: 2.0
+
+builders:
+  - key: taylor_morrison
+    name: Taylor Morrison
+    site: https://www.taylormorrison.com
+    start: [https://www.taylormorrison.com/ca/bay-area]
+    community_pattern: '/ca/bay-area/(?P<city>[a-z0-9-]+)/(?P<slug>[a-z0-9-]+)'
+    expected_communities: 6
+
+  - key: pulte
+    name: Pulte Homes
+    site: https://www.pulte.com
+    start: [https://www.pulte.com/homes/california/bay-area]
+    city_pattern: '/homes/california/bay-area/(?P<city>[a-z0-9-]+)(?=["/?#\s]|$)'
+    community_pattern: '/homes/california/bay-area/(?P<city>[a-z0-9-]+)/(?P<slug>[a-z0-9-]+-\d+)'
+    expected_communities: 11
+
+  - key: trumark
+    name: Trumark Homes
+    site: https://trumarkhomes.com
+    start: [https://trumarkhomes.com/new-homes/ca/northern-california/neighborhoods/]
+    community_pattern: '/new-homes/ca/(?P<city>[a-z0-9-]+)/(?P<slug>[a-z0-9-]+)/'
+    extra_pages: [https://trumarkhomes.com/new-homes/ca/northern-california/available-homes/]
+    expected_communities: 16

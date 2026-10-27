@@ -1,0 +1,9 @@
+# City / place slugs (as builders write them in URLs) -> county key. Only these four counties are in scope.
+alameda: [alameda, albany, berkeley, castro-valley, dublin, emeryville, fremont, hayward, livermore, newark,
+          oakland, piedmont, pleasanton, san-leandro, san-lorenzo, sunol, union-city]
+contra_costa: [alamo, antioch, bay-point, brentwood, byron, clayton, concord, danville, discovery-bay,
+               el-cerrito, el-sobrante, hercules, lafayette, martinez, moraga, oakley, orinda, pinole,
+               pittsburg, pleasant-hill, richmond, san-pablo, san-ramon, walnut-creek]
+santa_clara: [campbell, cupertino, gilroy, los-altos, los-gatos, milpitas, monte-sereno, morgan-hill,
+              mountain-view, palo-alto, san-jose, san-martin, santa-clara, saratoga, sunnyvale]
+san_joaquin: [escalon, french-camp, lathrop, lodi, manteca, mountain-house, ripon, stockton, tracy]
