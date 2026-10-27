@@ -53,6 +53,11 @@ def test_compact_json_drops_extensionless_image_urls_and_colors():
     assert got == {"price": 2200000, "floorPlanSrc": "https://cdn.example/api/public/content/plan2?v=1"}
 
 
+def test_compact_json_decodes_html_entities():
+    assert json.loads(compact_json({"d": "valid 10/19/26 (&ldquo;Promotion&rdquo;) &amp; more"})) == \
+        {"d": "valid 10/19/26 (“Promotion”) & more"}
+
+
 def test_visible_text_drops_chrome_keeps_fine_print():
     t = preprocess(PAGE, url="u").text
     assert "## Available Homes" in t

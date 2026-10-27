@@ -10,6 +10,7 @@ forms, buttons and scripts dropped; footers stay, because incentive fine print l
 Writes .tmp/pre/<date>/<builder>/<page>.md.
 """
 import argparse
+import html as htmllib
 import json
 import logging
 import re
@@ -59,7 +60,7 @@ def _clean(value, key: str = ""):
         out = [v for v in (_clean(v, key) for v in value) if v is not None]
         return out or None
     if isinstance(value, str):
-        s = value.strip()
+        s = htmllib.unescape(value).strip()
         if not s or s.lower().startswith(("<style", "<svg", "<script")):
             return None
         is_image = IMAGE_URL.search(s) or (IMAGE_KEY.search(key) and re.match(r"https?://", s))
