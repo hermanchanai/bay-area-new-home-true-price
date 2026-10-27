@@ -28,7 +28,11 @@ Every model call in the product goes to a Meta model. The code itself was writte
 | Market rate (`tools/fetch_market_rate.py`, FRED MORTGAGE30US) | done |
 | Assessor pulls (`tools/pull_assessor.py`): Alameda, Contra Costa, San Joaquin | done, 155k parcels + 14.5k priced Alameda sales |
 | Builder page fetch (`tools/fetch_builder_pages.py`): Taylor Morrison, Pulte, Trumark | done, 41 communities |
-| Extraction, floor plans, parcel linking, agent, map | next |
+| Page preprocessing (`tools/preprocess_page.py`) | done: 0.1–5 MB of HTML → 3k–31k tokens per page |
+| Model client (`tools/llm.py`): cache, cost ledger, budget guard | done |
+| Truth labels (`tools/build_truth.py`, no model): 43 pages, 133 homes, 76 plans | done |
+| Extraction (`tools/extract_listing.py`) + eval (`tools/eval_extraction.py`) | built; first Muse Spark run pending |
+| Floor plans, parcel linking, agent, map | next |
 
 ## How incentives become dollars
 
@@ -73,3 +77,5 @@ building period.
     its row count against the server's count.
   - Builder page fetcher (robots.txt read with our own User-Agent, 2 s per host): Taylor Morrison
     11 communities, Pulte 12, Trumark 18, with zero errors and zero robots refusals.
+  - Muse Spark client with disk cache, cost ledger and a hard budget guard; page preprocessor;
+    model-free truth labels for 43 pages; extractor with JSON-schema output; eval with a 90% gate.
