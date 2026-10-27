@@ -1,0 +1,42 @@
+# Model providers, prices and spend caps. tools/llm.py reads this; nothing here is a secret.
+# Prices are USD per 1M tokens, from https://dev.meta.ai/docs/pricing-rate-limits (read 2026-10-27).
+# A model without a price is refused: the budget guard can't bound a call it can't price.
+
+providers:
+  meta:
+    base_url: https://api.meta.ai/v1
+    key_env: META_API_KEY
+    # Hard cap on cumulative spend recorded in llm_calls, of the $150 event credit.
+    cap_usd: 120
+    models:
+      muse-spark-1.3: {input: 1.25, cached_input: 0.15, output: 4.25}
+      # Same model; "contributor" mode lets Meta train on the request. We only send public
+      # builder pages, so that's acceptable here, and it's 12x cheaper. 150 RPM limit.
+      muse-spark-1.3-contributor: {input: 0.10, cached_input: 0.002, output: 0.20}
+  baseten:
+    base_url: https://inference.baseten.co/v1
+    key_env: BASETEN_API_KEY
+    cap_usd: 0          # set once partner credits land
+    models:
+      meta-models/muse-spark-open-1026: {}   # price unknown until the credit email arrives
+
+# Per-purpose defaults. Reasoning tokens bill as output, so effort is a cost lever.
+purposes:
+  extract:
+    provider: meta
+    model: muse-spark-1.3-contributor
+    reasoning_effort: low
+    max_completion_tokens: 32000
+  escalate:
+    provider: meta
+    model: muse-spark-1.3
+    reasoning_effort: medium
+    max_completion_tokens: 32000
+  ping:
+    provider: meta
+    model: muse-spark-1.3-contributor
+    reasoning_effort: minimal
+    max_completion_tokens: 200
+
+# Pre-call input estimate: characters per token (low = conservative = higher estimate).
+chars_per_token: 3.0
