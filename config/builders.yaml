@@ -34,3 +34,151 @@ builders:
     community_pattern: '/new-homes/ca/(?P<city>[a-z0-9-]+)/(?P<slug>[a-z0-9-]+)/'
     extra_pages: [https://trumarkhomes.com/new-homes/ca/northern-california/available-homes/]
     expected_communities: 16
+
+  # --- added 2026-10-27 (Day 3). `city_from_page`: the URL doesn't name the city, so each candidate
+  # page is fetched and its own address (JSON-LD addressLocality, or `page_city_pattern`) decides
+  # scope; out-of-scope pages are deleted and logged as kind "out_of_scope".
+  - key: lennar
+    name: Lennar
+    site: https://www.lennar.com
+    start: [https://www.lennar.com/new-homes/california/san-francisco-bay-area]
+    # middle level = master-plan pages (River Islands, Tracy Hills ...), which list their sub-communities
+    city_pattern: '/new-homes/california/san-francisco-bay-area/(?P<city>[a-z0-9-]+)/[a-z0-9-]+(?=["/?#\s\\]|$)'
+    # a master plan or one of its sub-communities; never a plan/home page ("residence-...")
+    community_pattern: '/new-homes/california/san-francisco-bay-area/(?P<city>[a-z0-9-]+)/(?P<slug>(?!residence-)[a-z0-9-]+(?:/(?!residence-)[a-z0-9-]+)?)(?=["/?#\s\\]|$)'
+    expected_communities: 27
+
+  - key: kb
+    name: KB Home
+    site: https://www.kbhome.com
+    start: [https://www.kbhome.com/new-homes-bay-area-north, https://www.kbhome.com/new-homes-bay-area-south,
+            https://www.kbhome.com/new-homes-central-valley]
+    # JSON-LD ItemList: each Place has the community URL and its city
+    community_pattern: '"url":"https://www\.kbhome\.com(?P<path>/new-homes-[a-z-]+/(?P<slug>[a-z0-9-]+))","address":\{[^}]*"addressLocality":"(?P<city>[^"]+)"'
+    expected_communities: 16
+
+  - key: toll
+    name: Toll Brothers
+    site: https://www.tollbrothers.com
+    start: [https://www.tollbrothers.com/luxury-homes-for-sale/California]
+    community_pattern: '/luxury-homes-for-sale/California/(?P<slug>[A-Za-z0-9-]+(?:/[A-Za-z0-9-]+)?)(?=["/?#\s\\]|$)'
+    city_from_page: true
+    expected_communities: 10
+
+  - key: meritage
+    name: Meritage Homes
+    site: https://www.meritagehomes.com
+    start: [https://www.meritagehomes.com/sitemap.xml]   # the region page renders its list client-side
+    community_pattern: '/state/ca/bay-area/(?P<slug>[a-z0-9-]+)(?=<)'
+    city_from_page: true
+    expected_communities: 8
+
+  - key: tri_pointe
+    name: Tri Pointe Homes
+    site: https://www.tripointehomes.com
+    start: [https://www.tripointehomes.com/ca/bay-area]
+    community_pattern: '/ca/bay-area/(?P<slug>[a-z0-9-]+)(?=["/?#\s\\]|$)'
+    city_from_page: true
+    extra_pages: [https://www.tripointehomes.com/ca/bay-area/the-value-of-now-sales-event]
+    expected_communities: 7
+
+  - key: shea
+    name: Shea Homes
+    site: https://www.sheahomes.com
+    start: [https://www.sheahomes.com/new-homes/california/bay-area]
+    community_pattern: '/new-homes/california/bay-area/(?P<city>[a-z0-9-]+)/(?P<slug>[a-z0-9-]+)(?=["/?#\s\\]|$)'
+    expected_communities: 6
+
+  - key: summerhill
+    name: SummerHill Homes
+    site: https://www.summerhillhomes.com
+    start: [https://www.summerhillhomes.com/]
+    community_pattern: 'href="(?P<path>/(?P<city>[a-z0-9-]+)/(?P<slug>[a-z0-9-]+))/?"'
+    expected_communities: 6
+
+  - key: denova
+    name: DeNova Homes
+    site: https://www.denovahomes.com
+    start: [https://www.denovahomes.com/new-homes/available/]
+    community_pattern: '/new-homes/ca/(?P<city>[a-z0-9-]+)/(?P<slug>[a-z0-9-]+)(?=["/?#\s\\]|$)'
+    expected_communities: 5
+
+  - key: kiper
+    name: Kiper Homes
+    site: https://www.kiperhomes.com
+    start: [https://www.kiperhomes.com/new-home-communities]
+    community_pattern: '/new-home-communities/(?P<city>[a-z0-9-]+)/(?P<slug>[a-z0-9-]+)(?=["/?#\s\\]|$)'
+    expected_communities: 5
+
+  - key: city_ventures
+    name: City Ventures
+    site: https://cityventures.com
+    start: [https://cityventures.com/new-homes/ca/norcal]
+    community_pattern: '/new-homes/ca/(?P<city>[a-z0-9-]+)/(?P<slug>[a-z0-9-]+)(?=["/?#\s\\]|$)'
+    expected_communities: 4
+
+  - key: century
+    name: Century Communities
+    site: https://www.centurycommunities.com
+    start: [https://www.centurycommunities.com/find-your-new-home/california/northern-california-metro/]
+    city_pattern: '/find-your-new-home/california/northern-california-metro/(?P<city>[a-z0-9-]+)(?=["/?#\s\\]|$)'
+    community_pattern: '/find-your-new-home/california/northern-california-metro/(?P<city>[a-z0-9-]+)/(?P<slug>[a-z0-9-]+)(?=["/?#\s\\]|$)'
+    expected_communities: 3
+
+  - key: discovery
+    name: Discovery Homes
+    site: https://www.discoveryhomes.com
+    start: [https://www.discoveryhomes.com/]
+    community_pattern: '/(?P<city>[a-z0-9-]+)-ca/(?P<slug>[a-z0-9-]+)(?=["/?#\s\\]|$)'
+    expected_communities: 3
+
+  - key: woodside
+    name: Woodside Homes
+    site: https://www.woodsidehomes.com
+    start: [https://www.woodsidehomes.com/findmyhome/northern-california/tracy]
+    community_pattern: '/findmyhome/northern-california/(?P<city>[a-z0-9-]+)/(?P<slug>[a-z0-9-]+)(?=["/?#\s\\]|$)'
+    expected_communities: 3
+
+  - key: signature
+    name: Signature Homes
+    site: https://sighomes.com
+    start: [https://www.sighomes.com/]
+    community_pattern: 'href="https://sighomes\.com(?P<path>/(?P<slug>[a-z0-9-]+)/)">[^<]* at River Islands<'
+    city_from_page: true
+    page_city_pattern: '(?P<city>Lathrop|Mountain House|Tracy|Manteca|Stockton),? (?:CA|California)'
+    expected_communities: 2
+
+  - key: brookfield
+    name: Brookfield Residential
+    site: https://www.brookfieldresidential.com
+    start: [https://www.brookfieldresidential.com/new-homes/california/south-bay]
+    community_pattern: '/new-homes/california/south-bay/(?P<city>[a-z0-9-]+)/(?P<slug>[a-z0-9-]+)(?=["/?#\s\\]|$)'
+    expected_communities: 1
+
+  - key: ponderosa
+    name: Ponderosa Homes
+    site: https://www.ponderosahomes.com
+    start: [https://www.ponderosahomes.com/northern-california/]
+    community_pattern: '/northern-california/(?P<slug>[a-z0-9-]+?-in-(?P<city>[a-z-]+))/'
+    expected_communities: 1
+
+  # Skipped (logged, never worked around): their pages carry no community data without running the
+  # site's JavaScript. D.R. Horton also shows a Turnstile challenge, which we never solve.
+  - key: fcb
+    name: FCB Homes
+    site: https://www.fcbhomes.com
+    enabled: false
+    skip_reason: "Vue app; no community data in the HTML (2026-10-27)"
+    expected_communities: 4
+  - key: dr_horton
+    name: D.R. Horton
+    site: https://www.drhorton.com
+    enabled: false
+    skip_reason: "JS-rendered; Turnstile challenge (2026-10-27)"
+    expected_communities: 1
+  - key: richmond_american
+    name: Richmond American
+    site: https://www.richmondamerican.com
+    enabled: false
+    skip_reason: "JS-rendered; no community links in the HTML (2026-10-27)"
+    expected_communities: 2

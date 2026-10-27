@@ -51,3 +51,28 @@ def test_placeholder_name_drops_pulte_id():
 
 def test_floor():
     assert floor_ok(4, 6) and not floor_ok(3, 6)
+
+
+def test_find_paths_path_group_and_city_names_become_slugs():
+    # KB lists communities in JSON-LD: the URL and the city name sit apart, so the regex names `path`
+    text = ('{"@type":"Place","url":"https://www.kbhome.com/new-homes-central-valley/sendero-at-griffin-park",'
+            '"address":{"@type":"PostalAddress","streetAddress":"2826 Midas Ave.","addressLocality":"Mountain House"}}')
+    pat = (r'"url":"https://www\.kbhome\.com(?P<path>/new-homes-[a-z-]+/(?P<slug>[a-z0-9-]+))",'
+           r'"address":\{[^}]*"addressLocality":"(?P<city>[^"]+)"')
+    got = find_paths(text, pat)
+    assert [(g["path"], g["slug"], g["city"]) for g in got] == [
+        ("/new-homes-central-valley/sendero-at-griffin-park", "sendero-at-griffin-park", "mountain-house")]
+
+
+def test_city_slug():
+    from tools.fetch_builder_pages import city_slug
+    assert city_slug("Mountain House") == "mountain-house" == city_slug("Mountain-House")
+    assert city_slug("San Jose ") == "san-jose" and city_slug(None) is None
+
+
+def test_page_city_reads_the_community_pages_own_address():
+    from tools.fetch_builder_pages import page_city
+    html = '<script type="application/ld+json">{"address":{"addressLocality": "Lathrop","postalCode":"95330"}}</script>'
+    assert page_city(html) == "lathrop"
+    assert page_city("<html>no address</html>") is None
+    assert page_city('{"city":"Tracy"}', r'"city":"(?P<city>[^"]+)"') == "tracy"

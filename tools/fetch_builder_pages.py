@@ -52,14 +52,31 @@ def robots_from_response(status: int, text: str, robots_url: str) -> urllib.robo
     return rp
 
 
+PAGE_CITY = r'"addressLocality"\s*:\s*"(?P<city>[^"]+)"'
+
+
+def city_slug(name: str | None) -> str | None:
+    """'Mountain House' / 'Mountain-House' -> 'mountain-house' (the form config/cities.yaml uses)."""
+    return re.sub(r"[^a-z0-9]+", "-", name.lower()).strip("-") if name else None
+
+
 def find_paths(text: str, pattern: str) -> list[dict]:
-    """Unique regex matches (named groups) in page text, first-seen order."""
+    """Unique regex matches (named groups) in page text, first-seen order. The URL path is the
+    `path` group when the pattern has one (e.g. a JSON-LD record), else the whole match."""
     seen, out = set(), []
     for m in re.finditer(pattern, text):
-        if m.group(0) not in seen:
-            seen.add(m.group(0))
-            out.append({"path": m.group(0), **m.groupdict()})
+        g = m.groupdict()
+        path = g.get("path") or m.group(0)
+        if path not in seen:
+            seen.add(path)
+            out.append({**g, "path": path, "city": city_slug(g.get("city"))})
     return out
+
+
+def page_city(text: str, pattern: str = PAGE_CITY) -> str | None:
+    """City of a community page, from its own address (for sites whose URLs don't name the city)."""
+    m = re.search(pattern, text)
+    return city_slug(m.group("city")) if m else None
 
 
 def in_scope(matches: list[dict], city_county: dict[str, str]) -> list[dict]:
@@ -142,15 +159,32 @@ def fetch_builder(b: dict, cfg: dict, city_county: dict, conn=None, out_root: Pa
 
     pages = [save(u, "start") for u in b["start"]]
     if b.get("city_pattern"):
-        cities = {m["city"]: m for t in pages for m in in_scope(find_paths(t, b["city_pattern"]), city_county)}
-        pages = [save(urljoin(b["site"], m["path"]), "city", {"city": c}) for c, m in sorted(cities.items())]
-    communities = {}
+        # middle level: city pages (Pulte) or master-plan pages (Lennar), keyed by path since a city can hold several
+        mids = {m["path"]: m for t in pages for m in in_scope(find_paths(t, b["city_pattern"]), city_county)}
+        pages = [save(urljoin(b["site"], path), "city", {"city": m["city"]}) for path, m in sorted(mids.items())]
+    communities, unplaced = {}, {}
     for t in pages:
-        for m in in_scope(find_paths(t, b["community_pattern"]), city_county):
+        found = find_paths(t, b["community_pattern"])
+        for m in found:
             url = urljoin(b["site"], m["path"]).rstrip("/") + ("/" if m["path"].endswith("/") else "")
-            communities.setdefault(url, m)
+            if m.get("city") in city_county:
+                communities.setdefault(url, {**m, "county": city_county[m["city"]]})
+            elif b.get("city_from_page") and not m.get("city"):
+                unplaced.setdefault(url, m)
     for url, m in communities.items():
         save(url, "community", {"city": m["city"], "county": m["county"], "slug": m["slug"]})
+    for url, m in unplaced.items():  # the URL doesn't name the city: read it from the page, keep only in-scope
+        if url in communities:
+            continue
+        text = save(url, "community", {"slug": m["slug"]})
+        rec, city = manifest[-1], page_city(text, b.get("page_city_pattern", PAGE_CITY))
+        rec["city"] = city
+        if city in city_county:
+            rec["county"] = city_county[city]
+            communities[url] = rec
+        elif rec["file"]:
+            (out_dir / rec["file"]).unlink()
+            rec.update(kind="out_of_scope", file=None)
     for u in b.get("extra_pages", []):
         save(u, "extra")
 
@@ -183,7 +217,8 @@ if __name__ == "__main__":
     ap.add_argument("--builder", required=True)
     args = ap.parse_args()
     cfg, city_county = load_config()
-    todo = cfg["builders"] if args.builder == "all" else [b for b in cfg["builders"] if b["key"] == args.builder]
+    todo = ([b for b in cfg["builders"] if b.get("enabled", True)] if args.builder == "all"
+            else [b for b in cfg["builders"] if b["key"] == args.builder])
     if not todo:
         raise SystemExit(f"unknown builder {args.builder}")
     failed = False
