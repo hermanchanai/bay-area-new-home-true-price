@@ -140,9 +140,9 @@ def targets(date: str, builders: list[str] | None, truth_pages: bool) -> list[di
         if not bdir.is_dir() or (builders and bdir.name not in builders):
             continue
         for rec in json.loads((bdir / "manifest.json").read_text()):
-            stem = rec["file"].removesuffix(".html")
-            if rec.get("status") != 200 or rec["kind"] not in ("community", "extra"):
+            if rec.get("status") != 200 or rec["kind"] not in ("community", "extra") or not rec.get("file"):
                 continue
+            stem = rec["file"].removesuffix(".html")
             if wanted is not None and f"{bdir.name}/{stem}" not in wanted:
                 continue
             out.append({"builder": bdir.name, "stem": stem, "url": rec["url"], "kind": rec["kind"]})

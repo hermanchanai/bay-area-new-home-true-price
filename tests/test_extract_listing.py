@@ -75,3 +75,16 @@ def test_route_still_failing_goes_to_review_with_the_fewer_errors_record():
     out = route(extract, "page text")
     assert out["needs_review"] and out["model"] == "model-extract"
     assert [i["rule"] for i in out["issues"] if i["severity"] == "error"] == ["address_not_on_page", "price_not_on_page"]
+
+
+def test_targets_skip_rows_without_a_file(tmp_path, monkeypatch):
+    import json
+    from tools import extract_listing as el
+    bdir = tmp_path / "2026-10-27" / "meritage"
+    bdir.mkdir(parents=True)
+    (bdir / "manifest.json").write_text(json.dumps([
+        {"url": "https://x.com/a", "kind": "community", "status": 200, "file": "a.html"},
+        {"url": "https://x.com/bay-view", "kind": "community", "status": 404, "file": None},
+        {"url": "https://x.com/folsom", "kind": "out_of_scope", "status": 200, "file": None}]))
+    monkeypatch.setattr(el, "RAW", tmp_path)
+    assert [t["stem"] for t in el.targets("2026-10-27", ["meritage"], False)] == ["a"]
