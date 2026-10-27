@@ -69,15 +69,18 @@ builders:
     name: Meritage Homes
     site: https://www.meritagehomes.com
     start: [https://www.meritagehomes.com/sitemap.xml]   # the region page renders its list client-side
-    community_pattern: '/state/ca/bay-area/(?P<slug>[a-z0-9-]+)(?=<)'
+    # community slugs start with a letter; "2875-dawson-creek-st" etc. are single-home pages
+    community_pattern: '/state/ca/bay-area/(?P<slug>[a-z][a-z0-9-]*)(?=<)'
     city_from_page: true
+    page_city_pattern: '<input id="city" type="hidden" value="(?P<city>[^"]+)"'  # no JSON-LD address
     expected_communities: 8
 
   - key: tri_pointe
     name: Tri Pointe Homes
     site: https://www.tripointehomes.com
-    start: [https://www.tripointehomes.com/ca/bay-area]
-    community_pattern: '/ca/bay-area/(?P<slug>[a-z0-9-]+)(?=["/?#\s\\]|$)'
+    # the region page links only its featured communities; the communities sitemap has all of them
+    start: [https://www.tripointehomes.com/sitemap-communities.xml]
+    community_pattern: '/ca/bay-area/(?P<slug>[a-z0-9-]+)/?(?=<)'
     city_from_page: true
     extra_pages: [https://www.tripointehomes.com/ca/bay-area/the-value-of-now-sales-event]
     expected_communities: 7
