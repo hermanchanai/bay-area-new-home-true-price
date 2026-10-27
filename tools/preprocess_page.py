@@ -182,7 +182,7 @@ def run(date: str, builders: list[str] | None = None) -> list[dict]:
         out_dir = PRE / date / bdir.name
         out_dir.mkdir(parents=True, exist_ok=True)
         for rec in manifest:
-            if rec.get("status") != 200:
+            if rec.get("status") != 200 or not rec.get("file"):  # out_of_scope pages are deleted
                 continue
             html = (bdir / rec["file"]).read_text(errors="replace")
             doc = preprocess(html, rec["url"])

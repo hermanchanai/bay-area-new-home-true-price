@@ -85,3 +85,17 @@ def test_chunk_splits_on_section_boundaries_under_limit():
 def test_chunk_hard_splits_a_single_oversized_section():
     parts = chunk("## Big\n" + "y" * 1000, max_chars=300)
     assert len(parts) >= 4 and all(len(p) <= 300 for p in parts)
+
+
+def test_run_skips_out_of_scope_records_without_a_file(tmp_path, monkeypatch):
+    import json
+    from tools import preprocess_page as pp
+    bdir = tmp_path / "raw" / "2026-10-27" / "toll"
+    bdir.mkdir(parents=True)
+    (bdir / "c.html").write_text("<html><body><main><h1>Regency</h1><p>From $700,000</p></main></body></html>")
+    (bdir / "manifest.json").write_text(json.dumps([
+        {"url": "https://x.com/c", "kind": "community", "status": 200, "file": "c.html"},
+        {"url": "https://x.com/folsom", "kind": "out_of_scope", "status": 200, "file": None}]))
+    monkeypatch.setattr(pp, "RAW", tmp_path / "raw")
+    monkeypatch.setattr(pp, "PRE", tmp_path / "pre")
+    assert [s["file"] for s in pp.run("2026-10-27", ["toll"])] == ["c.html"]

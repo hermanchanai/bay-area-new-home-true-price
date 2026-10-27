@@ -6,9 +6,19 @@
 **Run:** `.venv/bin/python -m tools.fetch_builder_pages --builder all`, or a builder key from
 `config/builders.yaml`. Exits 1 if any builder falls below its floor.
 
-**How discovery works:** start page → (optional) in-scope city pages → community paths found
+**How discovery works:** start page → (optional) middle pages → community paths found
 by regex in the raw page text (embedded JSON included) → keep only cities listed in
 `config/cities.yaml` → fetch each community page, plus any `extra_pages`.
+- Middle pages (`city_pattern`) are city pages (Pulte, Century) or master-plan pages (Lennar's River
+  Islands, Tracy Hills ...), keyed by path because one city can hold several master plans.
+- A regex `path` group picks the URL out of a longer match (KB's JSON-LD: URL and city are apart).
+  City names are turned into slugs ("Mountain House" → `mountain-house`).
+- `city_from_page: true` (Toll, Meritage, Tri Pointe, Signature): the URL doesn't name the city, so each
+  candidate page is fetched and its own address decides (JSON-LD `addressLocality`, or
+  `page_city_pattern`). Out-of-scope pages are deleted and logged as kind `out_of_scope`.
+- `enabled: false` + `skip_reason`: builders whose pages carry no data without running the site's
+  JavaScript (FCB, Richmond American) or that show a bot challenge (D.R. Horton). Skipped, never
+  worked around.
 
 **Politeness (non-negotiable)**
 - robots.txt is read with our own User-Agent. 4xx means no robots file, so allow; 5xx means disallow
