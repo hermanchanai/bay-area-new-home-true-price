@@ -122,3 +122,4 @@ def test_eval_skips_unlabelled_incentive_kinds(tmp_path, monkeypatch):
     conn.execute("CREATE TABLE eval_results (page_id, field, expected, got, match, run_at, run_id, model)")
     r = ev.evaluate("m", conn=conn)
     assert r["summary"]["home_recall"] == (1, 1) and "incentive_kind_precision" not in r["summary"]
+    assert r["passed"]  # unmeasured metrics (kinds not labelled) are not failures

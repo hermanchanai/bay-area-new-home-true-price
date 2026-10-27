@@ -103,3 +103,9 @@ def test_stitched_quote_across_a_photo_carousel():
     captions = "\n".join(f"Photo caption {n} with a few words" for n in range(10))
     page = f"$100,000 in Savings\n{captions}\nOxford\n1486 PRAIRIE OAK AVE\nMANTECA, CA 95337\n$890,316\n"
     assert evidence_found("$100,000 in Savings Oxford 1486 PRAIRIE OAK AVE", page)
+
+
+def test_home_quote_drift_is_a_warning_when_address_and_price_check_out():
+    # homes are verified field by field (address, price on the page); a paraphrased quote isn't a fabrication
+    got = validate(rec([home(evidence="1607 Walsh Avenue $1,234,500 Available Now")]), PAGE)
+    assert [(i["rule"], i["severity"]) for i in got] == [("evidence_not_on_page", "warn")]

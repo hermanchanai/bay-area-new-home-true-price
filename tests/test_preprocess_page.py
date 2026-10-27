@@ -99,3 +99,16 @@ def test_run_skips_out_of_scope_records_without_a_file(tmp_path, monkeypatch):
     monkeypatch.setattr(pp, "RAW", tmp_path / "raw")
     monkeypatch.setattr(pp, "PRE", tmp_path / "pre")
     assert [s["file"] for s in pp.run("2026-10-27", ["toll"])] == ["c.html"]
+
+
+def test_inline_js_json_arrays_are_kept():
+    # KB: quick move-ins live in `var LocalQMIs = [...]` inside a plain <script>, not in a JSON script tag
+    from tools.preprocess_page import preprocess
+    qmi = [{"homesite": "004", "address": "1234 Veranda Lane", "price": "1199990", "bedrooms": "3",
+            "bathrooms": "3.5", "size": "1657", "style": "Multi-Family/Townhome", "stories": "3"}] * 2
+    html = ("<html><head><script>var utag_data = " + json.dumps({"page_name": "x" * 400}) + ";\n"
+            "var LocalQMIs = " + json.dumps(qmi) + ";\nvar notJson = [a, b];\n"
+            "FloorPlanList[i].size = 1;</script></head><body><main>Veranda</main></body></html>")
+    text = preprocess(html, "https://x.com/veranda").text
+    assert "## EMBEDDED DATA: js:LocalQMIs" in text and "1234 Veranda Lane" in text
+    assert "utag_data" not in text and "page_name" not in text

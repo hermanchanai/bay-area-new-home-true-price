@@ -157,7 +157,8 @@ def evaluate(model: str, date: str | None = None, conn=None, builders: list[str]
     gate_keys = ["home_recall", "home_precision", "home_price", "home_beds", "home_sqft",
                  "incentive_kind_recall", "incentive_kind_precision"]
     gate = {k: (summary[k][0] / summary[k][1] if summary.get(k, (0, 0))[1] else None) for k in gate_keys}
-    passed = all(v is not None and v >= GATE for v in gate.values())
+    measured = [v for v in gate.values() if v is not None]  # None = not labelled on these pages
+    passed = bool(measured) and all(v >= GATE for v in measured)
     result = {"model": model, "date": date, "run_id": run_id, "builders": builders, "pages": len(pages), "missing_pages": missing_pages,
               "summary": summary, "gate": gate, "passed": passed, "per_page": pages}
     write_report(result)

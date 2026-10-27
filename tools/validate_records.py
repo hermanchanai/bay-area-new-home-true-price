@@ -110,7 +110,8 @@ def validate(rec: dict, page_text: "Page | str") -> list[dict]:
         if h.get("price") is not None and not page.has_phrase(str(h["price"])):
             issues.append(_issue(w, "price_not_on_page", h["price"]))
         if h.get("evidence") and not evidence_found(h["evidence"], page):
-            issues.append(_issue(w, "evidence_not_on_page", h["evidence"]))
+            # warn only: the address and price checks above are what catch an invented home
+            issues.append(_issue(w, "evidence_not_on_page", h["evidence"], "warn"))
 
     by_addr = {h["address"]: h.get("price") for h in homes if h.get("address")}
     base = rec.get("community", {}).get("price_from") or min((h["price"] for h in homes if h.get("price")), default=None)

@@ -78,10 +78,37 @@ def compact_json(obj) -> str:
     return json.dumps(cleaned, separators=(",", ":"), ensure_ascii=False) if cleaned is not None else ""
 
 
+JS_ASSIGN = re.compile(r"(?:\bvar|\blet|\bconst|\bwindow\.)\s*([A-Za-z_$][\w$]*)\s*=\s*(?=[\[{])")
+JS_NOISE = re.compile(r"(?i)(datalayer|utag|analytics|gtm|tracking|settings|legal|config|defaults|validators|keys)")
+JS_MIN_CHARS = 200
+
+
+def _js_blobs(code: str) -> list[tuple[str, object]]:
+    """JSON literals assigned to variables in plain scripts (KB: `var LocalQMIs = [...]`)."""
+    out, dec = [], json.JSONDecoder()
+    for m in JS_ASSIGN.finditer(code):
+        if JS_NOISE.search(m.group(1)):
+            continue
+        try:
+            obj, end = dec.raw_decode(code, m.end())
+        except json.JSONDecodeError:
+            continue
+        if end - m.end() >= JS_MIN_CHARS:
+            out.append((f"js:{m.group(1)}", obj))
+    return out
+
+
 def _blobs(soup: BeautifulSoup) -> list[tuple[str, str]]:
     seen, out = set(), []
     for s in soup.find_all("script"):
         typ = (s.get("type") or "").lower()
+        if typ in ("", "text/javascript", "application/javascript") and not s.get("src"):
+            for label, obj in _js_blobs(s.string or s.get_text() or ""):
+                text = compact_json(obj)
+                if text and text not in seen:
+                    seen.add(text)
+                    out.append((label, text))
+            continue
         if s.get("id") == "__NEXT_DATA__":
             label = "__NEXT_DATA__"
         elif s.has_attr("data-fed-ref"):
