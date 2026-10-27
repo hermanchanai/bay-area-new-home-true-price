@@ -1,0 +1,19 @@
+{
+ "page": "lennar/new-homes__california__san-francisco-bay-area__lathrop__river-islands__driftway",
+ "url": "https://www.lennar.com/new-homes/california/san-francisco-bay-area/lathrop/river-islands/driftway",
+ "builder": "lennar",
+ "fetch_date": "2026-10-27",
+ "page_sha256": "a6bbdd15cedeefbbda290b5822602802c37c3ae00b0ed1429a327398231f4f01",
+ "homes": [
+  {
+   "address": "3139 Workman Avenue",
+   "price": 565880,
+   "was_price": 608077,
+   "beds": 4,
+   "baths": 3.0,
+   "sqft": 1907
+  }
+ ],
+ "plans": null,
+ "incentive_kinds": null
+}

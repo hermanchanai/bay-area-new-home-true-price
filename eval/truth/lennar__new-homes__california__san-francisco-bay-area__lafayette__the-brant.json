@@ -1,0 +1,83 @@
+{
+ "page": "lennar/new-homes__california__san-francisco-bay-area__lafayette__the-brant",
+ "url": "https://www.lennar.com/new-homes/california/san-francisco-bay-area/lafayette/the-brant",
+ "builder": "lennar",
+ "fetch_date": "2026-10-27",
+ "page_sha256": "5a4498e2101637a1cf21ba2c9f075cd63542ff049bb6b755aafc81925e45206e",
+ "homes": [
+  {
+   "address": "3664 Mt. Diablo Blvd. #E313",
+   "price": 858880,
+   "was_price": 988880,
+   "beds": 1,
+   "baths": 1.5,
+   "sqft": 962
+  },
+  {
+   "address": "3664 Mt. Diablo Blvd. #E215",
+   "price": 1099880,
+   "was_price": 1125880,
+   "beds": 1,
+   "baths": 1.5,
+   "sqft": 1083
+  },
+  {
+   "address": "3664 Mt. Diablo Blvd. #E111",
+   "price": 846880,
+   "was_price": 1038880,
+   "beds": 1,
+   "baths": 1.5,
+   "sqft": 1088
+  },
+  {
+   "address": "3664 Mt. Diablo Blvd. #E110",
+   "price": 1319880,
+   "was_price": 1403880,
+   "beds": 2,
+   "baths": 2.0,
+   "sqft": 1457
+  },
+  {
+   "address": "3664 Mt. Diablo Blvd. #E302",
+   "price": 1725880,
+   "was_price": 1810880,
+   "beds": 2,
+   "baths": 2.0,
+   "sqft": 1482
+  },
+  {
+   "address": "3664 Mt. Diablo Blvd. #E311",
+   "price": 1599880,
+   "was_price": 1618880,
+   "beds": 2,
+   "baths": 2.5,
+   "sqft": 1640
+  },
+  {
+   "address": "3664 Mt. Diablo Blvd. #E208",
+   "price": 1695880,
+   "was_price": 1775880,
+   "beds": 3,
+   "baths": 2.5,
+   "sqft": 1865
+  },
+  {
+   "address": "3664 Mt. Diablo Blvd. #E211",
+   "price": 1699880,
+   "was_price": 1776880,
+   "beds": 2,
+   "baths": 2.5,
+   "sqft": 1873
+  },
+  {
+   "address": "3664 Mt. Diablo Blvd. #E104",
+   "price": 1899880,
+   "was_price": 1957880,
+   "beds": 3,
+   "baths": 3.0,
+   "sqft": 2016
+  }
+ ],
+ "plans": null,
+ "incentive_kinds": null
+}

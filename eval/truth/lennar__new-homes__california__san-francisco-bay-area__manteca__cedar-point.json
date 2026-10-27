@@ -1,0 +1,115 @@
+{
+ "page": "lennar/new-homes__california__san-francisco-bay-area__manteca__cedar-point",
+ "url": "https://www.lennar.com/new-homes/california/san-francisco-bay-area/manteca/cedar-point",
+ "builder": "lennar",
+ "fetch_date": "2026-10-27",
+ "page_sha256": "2833966ea827a148b71f48aebb78118c8ea48974969402dd94f6d7c6fd4e503a",
+ "homes": [
+  {
+   "address": "2147 Trojan Street",
+   "price": 686253,
+   "was_price": 699891,
+   "beds": 5,
+   "baths": 3.0,
+   "sqft": 2948
+  },
+  {
+   "address": "2003 Wildcat Street",
+   "price": 605529,
+   "was_price": 617487,
+   "beds": 4,
+   "baths": 3.0,
+   "sqft": 2252
+  },
+  {
+   "address": "1979 Wildcat Street",
+   "price": 618757,
+   "was_price": 630894,
+   "beds": 4,
+   "baths": 3.0,
+   "sqft": 2387
+  },
+  {
+   "address": "1991 Wildcat Street",
+   "price": 634093,
+   "was_price": 646611,
+   "beds": 5,
+   "baths": 3.0,
+   "sqft": 2555
+  },
+  {
+   "address": "1082 Bruin Road",
+   "price": 499999,
+   "was_price": 515999,
+   "beds": 3,
+   "baths": 2.0,
+   "sqft": 1245
+  },
+  {
+   "address": "2095 Wizard Street",
+   "price": 529382,
+   "was_price": 539659,
+   "beds": 3,
+   "baths": 2.5,
+   "sqft": 1618
+  },
+  {
+   "address": "2090 Wizard Street",
+   "price": 538279,
+   "was_price": 548997,
+   "beds": 3,
+   "baths": 2.5,
+   "sqft": 1847
+  },
+  {
+   "address": "904 Jazz Way",
+   "price": 558498,
+   "was_price": 569455,
+   "beds": 3,
+   "baths": 2.5,
+   "sqft": 1878
+  },
+  {
+   "address": "830 Jazz Way",
+   "price": 589233,
+   "was_price": 600611,
+   "beds": 4,
+   "baths": 3.0,
+   "sqft": 2064
+  },
+  {
+   "address": "866 Jazz Way",
+   "price": 599529,
+   "was_price": 611227,
+   "beds": 4,
+   "baths": 3.0,
+   "sqft": 2230
+  },
+  {
+   "address": "893 Commodore Lane",
+   "price": 648652,
+   "was_price": 661390,
+   "beds": 4,
+   "baths": 3.0,
+   "sqft": 2648
+  },
+  {
+   "address": "2167 Cyclone Drive",
+   "price": 668666,
+   "was_price": 681664,
+   "beds": 5,
+   "baths": 3.0,
+   "sqft": 2749
+  },
+  {
+   "address": "2143 Cyclone Drive",
+   "price": 680870,
+   "was_price": 694168,
+   "beds": 5,
+   "baths": 3.5,
+   "sqft": 2924
+  }
+ ],
+ "plans": null,
+ "incentive_kinds": null
+}

@@ -82,3 +82,43 @@ def test_tm_page_without_floorplan_data_leaves_plans_unlabelled():
     fp = {"floorplans": [{"name": "Plan A", "specs": {"maxBed": 3, "minSqFt": 1500}, "isPrice": 900000}]}
     assert tm_truth(_tm_html(fp), "")["plans"] == [
         {"name": "Plan A", "beds_max": 3, "sqft_min": 1500, "from_price": 900000}]
+
+
+def _lennar_html(*homesites):
+    state = {f"HomesiteType:h_{n}": h for n, h in enumerate(homesites)}
+    state["PlanType:p_1"] = {"name": "Residence 1"}
+    nd = {"props": {"pageProps": {"initialApolloState": state}}}
+    return f'<script id="__NEXT_DATA__" type="application/json">{json.dumps(nd)}</script>'
+
+
+def test_lennar_truth_reads_homesites_on_this_page_only():
+    from tools.build_truth import lennar_truth
+    base = "/new-homes/california/san-francisco-bay-area/mountain-house/lakeshore/lugano"
+    own = {"address": "1130 N. Salvin Court", "price": 771074, "wasPrice": 857074, "beds": 4, "baths": 3,
+           "halfBaths": 1, "sqft": 1829, "status": "UNDER_CONSTRUCTION", "url": base + "/residence-1/25207519032"}
+    other = {**own, "address": "9 Elsewhere Way", "url": "/new-homes/california/san-francisco-bay-area/tracy/x/y/1"}
+    text = f"# SOURCE https://www.lennar.com{base}\n## PAGE TEXT\n"
+    t = lennar_truth(_lennar_html(own, other), text)
+    assert t["homes"] == [{"address": "1130 N. Salvin Court", "price": 771074, "was_price": 857074,
+                           "beds": 4, "baths": 3.5, "sqft": 1829}]
+    assert t["plans"] is None and t["incentive_kinds"] is None   # not labelled for Lennar
+
+
+def test_eval_skips_unlabelled_incentive_kinds(tmp_path, monkeypatch):
+    from tools import eval_extraction as ev
+    truth = {"page": "lennar/p", "url": "u", "builder": "lennar", "fetch_date": "2026-10-27", "page_sha256": "x",
+             "homes": [{"address": "1 A St", "price": 1, "was_price": None, "beds": 1, "baths": 1.0, "sqft": 1}],
+             "plans": None, "incentive_kinds": None}
+    (tmp_path / "truth").mkdir()
+    (tmp_path / "truth" / "lennar__p.json").write_text(json.dumps(truth))
+    out = tmp_path / "extract" / "2026-10-27" / "m" / "lennar"
+    out.mkdir(parents=True)
+    (out / "p.json").write_text(json.dumps({"homes": truth["homes"], "plans": [], "incentives": [{"kind": "flat_cash"}]}))
+    monkeypatch.setattr(ev, "TRUTH", tmp_path / "truth")
+    monkeypatch.setattr(ev, "EXTRACT", tmp_path / "extract")
+    monkeypatch.setattr(ev, "REPORTS", tmp_path / "reports")
+    import sqlite3
+    conn = sqlite3.connect(":memory:")
+    conn.execute("CREATE TABLE eval_results (page_id, field, expected, got, match, run_at, run_id, model)")
+    r = ev.evaluate("m", conn=conn)
+    assert r["summary"]["home_recall"] == (1, 1) and "incentive_kind_precision" not in r["summary"]

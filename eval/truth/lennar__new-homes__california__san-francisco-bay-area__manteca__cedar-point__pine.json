@@ -1,0 +1,35 @@
+{
+ "page": "lennar/new-homes__california__san-francisco-bay-area__manteca__cedar-point__pine",
+ "url": "https://www.lennar.com/new-homes/california/san-francisco-bay-area/manteca/cedar-point/pine",
+ "builder": "lennar",
+ "fetch_date": "2026-10-27",
+ "page_sha256": "32d36d9f8de5372dc0b490ca465136fafb12149bdeb70b3210cc8a00048428b0",
+ "homes": [
+  {
+   "address": "893 Commodore Lane",
+   "price": 648652,
+   "was_price": 661390,
+   "beds": 4,
+   "baths": 3.0,
+   "sqft": 2648
+  },
+  {
+   "address": "2167 Cyclone Drive",
+   "price": 668666,
+   "was_price": 681664,
+   "beds": 5,
+   "baths": 3.0,
+   "sqft": 2749
+  },
+  {
+   "address": "2143 Cyclone Drive",
+   "price": 680870,
+   "was_price": 694168,
+   "beds": 5,
+   "baths": 3.5,
+   "sqft": 2924
+  }
+ ],
+ "plans": null,
+ "incentive_kinds": null
+}

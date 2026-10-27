@@ -1,0 +1,59 @@
+{
+ "page": "lennar/new-homes__california__san-francisco-bay-area__san-ramon__iron-horse-village",
+ "url": "https://www.lennar.com/new-homes/california/san-francisco-bay-area/san-ramon/iron-horse-village",
+ "builder": "lennar",
+ "fetch_date": "2026-10-27",
+ "page_sha256": "2321fde8c523841d698dd33435a416954d2e3c433a6e0a69cf5b2f426bd7ef1d",
+ "homes": [
+  {
+   "address": "805 Spur Track Court",
+   "price": 1557880,
+   "was_price": 1572415,
+   "beds": 4,
+   "baths": 3.5,
+   "sqft": 2593
+  },
+  {
+   "address": "813 Spur Track Court",
+   "price": 1617880,
+   "was_price": 1632808,
+   "beds": 4,
+   "baths": 3.5,
+   "sqft": 2723
+  },
+  {
+   "address": "801 Spur Track Court",
+   "price": 1708880,
+   "was_price": 1724357,
+   "beds": 5,
+   "baths": 3.5,
+   "sqft": 2967
+  },
+  {
+   "address": "2025 Bolster Loop",
+   "price": 837880,
+   "was_price": 845850,
+   "beds": 3,
+   "baths": 3.0,
+   "sqft": 1366
+  },
+  {
+   "address": "2009 Bolster Loop",
+   "price": 817880,
+   "was_price": 826705,
+   "beds": 2,
+   "baths": 2.5,
+   "sqft": 1381
+  },
+  {
+   "address": "2021 Bolster Loop",
+   "price": 999880,
+   "was_price": 1010918,
+   "beds": 3,
+   "baths": 3.5,
+   "sqft": 1894
+  }
+ ],
+ "plans": null,
+ "incentive_kinds": null
+}

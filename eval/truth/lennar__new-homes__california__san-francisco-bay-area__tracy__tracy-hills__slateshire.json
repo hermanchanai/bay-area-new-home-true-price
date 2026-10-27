@@ -1,0 +1,27 @@
+{
+ "page": "lennar/new-homes__california__san-francisco-bay-area__tracy__tracy-hills__slateshire",
+ "url": "https://www.lennar.com/new-homes/california/san-francisco-bay-area/tracy/tracy-hills/slateshire",
+ "builder": "lennar",
+ "fetch_date": "2026-10-27",
+ "page_sha256": "3d106ccafabf64f67c36883b3fdf435c9f5c52dda067934cb47d5d54fac3f224",
+ "homes": [
+  {
+   "address": "3315 Layla Way",
+   "price": 859443,
+   "was_price": 1078443,
+   "beds": 4,
+   "baths": 3.5,
+   "sqft": 3766
+  },
+  {
+   "address": "3339 Layla Way",
+   "price": 899575,
+   "was_price": 1126575,
+   "beds": 5,
+   "baths": 4.5,
+   "sqft": 3912
+  }
+ ],
+ "plans": null,
+ "incentive_kinds": null
+}

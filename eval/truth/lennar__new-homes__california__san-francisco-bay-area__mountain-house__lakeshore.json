@@ -1,0 +1,139 @@
+{
+ "page": "lennar/new-homes__california__san-francisco-bay-area__mountain-house__lakeshore",
+ "url": "https://www.lennar.com/new-homes/california/san-francisco-bay-area/mountain-house/lakeshore",
+ "builder": "lennar",
+ "fetch_date": "2026-10-27",
+ "page_sha256": "bb547d0df0c3aef5d85c7d85585cf6ce6e87fae868e2c7635801dd10e10d8171",
+ "homes": [
+  {
+   "address": "1130 N. Salvin Court",
+   "price": 771074,
+   "was_price": 857074,
+   "beds": 4,
+   "baths": 3.0,
+   "sqft": 1829
+  },
+  {
+   "address": "1118 N. Salvin Court",
+   "price": 796500,
+   "was_price": 882500,
+   "beds": 4,
+   "baths": 3.0,
+   "sqft": 1992
+  },
+  {
+   "address": "1155 N. Salvin Court",
+   "price": 833971,
+   "was_price": 919971,
+   "beds": 4,
+   "baths": 3.0,
+   "sqft": 2140
+  },
+  {
+   "address": "1121 N. Salvin Court",
+   "price": 865561,
+   "was_price": 951561,
+   "beds": 5,
+   "baths": 3.0,
+   "sqft": 2289
+  },
+  {
+   "address": "1233 N. Girardi Drive",
+   "price": 833579,
+   "was_price": 958579,
+   "beds": 4,
+   "baths": 2.5,
+   "sqft": 2258
+  },
+  {
+   "address": "1221 N. Girardi Drive",
+   "price": 960062,
+   "was_price": 1104062,
+   "beds": 5,
+   "baths": 3.0,
+   "sqft": 2965
+  },
+  {
+   "address": "93 W. Semolina Lane",
+   "price": 948880,
+   "was_price": 1133238,
+   "beds": 5,
+   "baths": 3.5,
+   "sqft": 3097
+  },
+  {
+   "address": "55 W. Poeta Court",
+   "price": 1134647,
+   "was_price": 1227647,
+   "beds": 5,
+   "baths": 3.5,
+   "sqft": 3324
+  },
+  {
+   "address": "1423 N. Girardi Drive",
+   "price": 889880,
+   "was_price": 1074814,
+   "beds": 4,
+   "baths": 2.5,
+   "sqft": 2710
+  },
+  {
+   "address": "1322 N. Martorella Avenue",
+   "price": 999880,
+   "was_price": 1201197,
+   "beds": 4,
+   "baths": 3.5,
+   "sqft": 3359
+  },
+  {
+   "address": "69 W. Farinata Court",
+   "price": 1160478,
+   "was_price": 1239478,
+   "beds": 5,
+   "baths": 4.5,
+   "sqft": 3525
+  },
+  {
+   "address": "53 W. Farinata Court",
+   "price": 1215351,
+   "was_price": 1297851,
+   "beds": 5,
+   "baths": 4.5,
+   "sqft": 3711
+  },
+  {
+   "address": "304 W Adriana Drive",
+   "price": 842745,
+   "was_price": 937745,
+   "beds": 4,
+   "baths": 3.0,
+   "sqft": 2356
+  },
+  {
+   "address": "270 W Adriana Drive",
+   "price": 867957,
+   "was_price": 962957,
+   "beds": 4,
+   "baths": 3.0,
+   "sqft": 2514
+  },
+  {
+   "address": "276 W Adriana Drive",
+   "price": 908645,
+   "was_price": 1003645,
+   "beds": 4,
+   "baths": 3.0,
+   "sqft": 2658
+  },
+  {
+   "address": "264 W Adriana Drive",
+   "price": 818880,
+   "was_price": 1030143,
+   "beds": 5,
+   "baths": 3.0,
+   "sqft": 2772
+  }
+ ],
+ "plans": null,
+ "incentive_kinds": null
+}

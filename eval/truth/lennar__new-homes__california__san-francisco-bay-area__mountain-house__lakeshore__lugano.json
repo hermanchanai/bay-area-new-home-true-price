@@ -1,0 +1,43 @@
+{
+ "page": "lennar/new-homes__california__san-francisco-bay-area__mountain-house__lakeshore__lugano",
+ "url": "https://www.lennar.com/new-homes/california/san-francisco-bay-area/mountain-house/lakeshore/lugano",
+ "builder": "lennar",
+ "fetch_date": "2026-10-27",
+ "page_sha256": "ba1ed7c0859df4aa3b0288be84b21d6b8059278a6bc6ae3f8b4baf9be00c9710",
+ "homes": [
+  {
+   "address": "1130 N. Salvin Court",
+   "price": 771074,
+   "was_price": 857074,
+   "beds": 4,
+   "baths": 3.0,
+   "sqft": 1829
+  },
+  {
+   "address": "1118 N. Salvin Court",
+   "price": 796500,
+   "was_price": 882500,
+   "beds": 4,
+   "baths": 3.0,
+   "sqft": 1992
+  },
+  {
+   "address": "1155 N. Salvin Court",
+   "price": 833971,
+   "was_price": 919971,
+   "beds": 4,
+   "baths": 3.0,
+   "sqft": 2140
+  },
+  {
+   "address": "1121 N. Salvin Court",
+   "price": 865561,
+   "was_price": 951561,
+   "beds": 5,
+   "baths": 3.0,
+   "sqft": 2289
+  }
+ ],
+ "plans": null,
+ "incentive_kinds": null
+}

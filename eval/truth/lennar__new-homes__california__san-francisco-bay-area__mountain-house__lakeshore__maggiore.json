@@ -1,0 +1,43 @@
+{
+ "page": "lennar/new-homes__california__san-francisco-bay-area__mountain-house__lakeshore__maggiore",
+ "url": "https://www.lennar.com/new-homes/california/san-francisco-bay-area/mountain-house/lakeshore/maggiore",
+ "builder": "lennar",
+ "fetch_date": "2026-10-27",
+ "page_sha256": "2e5fd2b98e02dd3d4f14c4f57309c8d24d39a6e0705a27ed9a80ff7a68f84448",
+ "homes": [
+  {
+   "address": "304 W Adriana Drive",
+   "price": 842745,
+   "was_price": 937745,
+   "beds": 4,
+   "baths": 3.0,
+   "sqft": 2356
+  },
+  {
+   "address": "270 W Adriana Drive",
+   "price": 867957,
+   "was_price": 962957,
+   "beds": 4,
+   "baths": 3.0,
+   "sqft": 2514
+  },
+  {
+   "address": "276 W Adriana Drive",
+   "price": 908645,
+   "was_price": 1003645,
+   "beds": 4,
+   "baths": 3.0,
+   "sqft": 2658
+  },
+  {
+   "address": "264 W Adriana Drive",
+   "price": 818880,
+   "was_price": 1030143,
+   "beds": 5,
+   "baths": 3.0,
+   "sqft": 2772
+  }
+ ],
+ "plans": null,
+ "incentive_kinds": null
+}

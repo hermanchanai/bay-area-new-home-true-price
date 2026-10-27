@@ -1,0 +1,35 @@
+{
+ "page": "lennar/new-homes__california__san-francisco-bay-area__manteca__cedar-point__evergreen",
+ "url": "https://www.lennar.com/new-homes/california/san-francisco-bay-area/manteca/cedar-point/evergreen",
+ "builder": "lennar",
+ "fetch_date": "2026-10-27",
+ "page_sha256": "9751ce895e671ce320734544caa616c04774a30da1716821b793b99c94d2ef92",
+ "homes": [
+  {
+   "address": "904 Jazz Way",
+   "price": 558498,
+   "was_price": 569455,
+   "beds": 3,
+   "baths": 2.5,
+   "sqft": 1878
+  },
+  {
+   "address": "830 Jazz Way",
+   "price": 589233,
+   "was_price": 600611,
+   "beds": 4,
+   "baths": 3.0,
+   "sqft": 2064
+  },
+  {
+   "address": "866 Jazz Way",
+   "price": 599529,
+   "was_price": 611227,
+   "beds": 4,
+   "baths": 3.0,
+   "sqft": 2230
+  }
+ ],
+ "plans": null,
+ "incentive_kinds": null
+}

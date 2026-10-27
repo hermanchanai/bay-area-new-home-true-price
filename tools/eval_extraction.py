@@ -106,8 +106,9 @@ def _pct(n, d) -> str:
     return f"{n / d:.1%}" if d else "n/a"
 
 
-def evaluate(model: str, date: str | None = None, conn=None) -> dict:
+def evaluate(model: str, date: str | None = None, conn=None, builders: list[str] | None = None) -> dict:
     truths = [json.loads(p.read_text()) for p in sorted(TRUTH.glob("*.json"))]
+    truths = [t for t in truths if not builders or t["builder"] in builders]
     date = date or truths[0]["fetch_date"]
     run_id = uuid.uuid4().hex[:12]
     tot = defaultdict(lambda: [0, 0])
@@ -132,9 +133,11 @@ def evaluate(model: str, date: str | None = None, conn=None) -> dict:
             for f, (ok, n) in p["fields"].items():
                 tot[f"plan_{f}"][0] += ok; tot[f"plan_{f}"][1] += n
             page["plans"] = p
-        k = score_kinds(t["incentive_kinds"], [i.get("kind") for i in ex.get("incentives") or []])
-        tot["incentive_kind_recall"][0] += k["found"]; tot["incentive_kind_recall"][1] += k["truth"]
-        tot["incentive_kind_precision"][0] += k["got"] - k["false_pos"]; tot["incentive_kind_precision"][1] += k["got"]
+        k = {"missed": [], "false_pos_kinds": []}
+        if t["incentive_kinds"] is not None:  # null = offers not labelled for this page
+            k = score_kinds(t["incentive_kinds"], [i.get("kind") for i in ex.get("incentives") or []])
+            tot["incentive_kind_recall"][0] += k["found"]; tot["incentive_kind_recall"][1] += k["truth"]
+            tot["incentive_kind_precision"][0] += k["got"] - k["false_pos"]; tot["incentive_kind_precision"][1] += k["got"]
         page["kinds"] = k
         pages.append(page)
         for part in ("homes", "plans"):
@@ -155,7 +158,7 @@ def evaluate(model: str, date: str | None = None, conn=None) -> dict:
                  "incentive_kind_recall", "incentive_kind_precision"]
     gate = {k: (summary[k][0] / summary[k][1] if summary.get(k, (0, 0))[1] else None) for k in gate_keys}
     passed = all(v is not None and v >= GATE for v in gate.values())
-    result = {"model": model, "date": date, "run_id": run_id, "pages": len(pages), "missing_pages": missing_pages,
+    result = {"model": model, "date": date, "run_id": run_id, "builders": builders, "pages": len(pages), "missing_pages": missing_pages,
               "summary": summary, "gate": gate, "passed": passed, "per_page": pages}
     write_report(result)
     return result
@@ -163,7 +166,8 @@ def evaluate(model: str, date: str | None = None, conn=None) -> dict:
 
 def write_report(r: dict) -> Path:
     REPORTS.mkdir(parents=True, exist_ok=True)
-    lines = [f"# Extraction eval: {r['model']} on pages fetched {r['date']}", "",
+    lines = [f"# Extraction eval: {r['model']} on pages fetched {r['date']}"
+             + (f" ({', '.join(r['builders'])})" if r.get("builders") else ""), "",
              f"Run `{r['run_id']}`, {r['pages']} pages scored against model-free truth (`tools/build_truth.py`)."
              + (f" {len(r['missing_pages'])} truth pages had no extraction." if r["missing_pages"] else ""), "",
              f"**Gate (every metric ≥ {GATE:.0%}): {'PASS' if r['passed'] else 'FAIL'}**", "",
@@ -182,7 +186,8 @@ def write_report(r: dict) -> Path:
         if ms:
             lines.append(f"- **{p['page']}**")
             lines += [f"  - {m}" for m in ms]
-    path = REPORTS / f"{r['date']}__{r['model'].replace('/', '_')}.md"
+    scope = f"__{'-'.join(r['builders'])}" if r.get("builders") else ""
+    path = REPORTS / f"{r['date']}__{r['model'].replace('/', '_')}{scope}.md"
     path.write_text("\n".join(lines) + "\n")
     return path
 
@@ -191,8 +196,9 @@ if __name__ == "__main__":
     ap = argparse.ArgumentParser()
     ap.add_argument("--model", required=True)
     ap.add_argument("--date", default=None)
+    ap.add_argument("--builder", action="append")
     a = ap.parse_args()
-    r = evaluate(a.model, a.date)
+    r = evaluate(a.model, a.date, builders=a.builder)
     for k, (ok, n) in sorted(r["summary"].items()):
         print(f"{k:28} {ok:4}/{n:<4} {_pct(ok, n):>7}{'  <- gate' if k in r['gate'] else ''}")
     print(f"pages scored {r['pages']}, missing {len(r['missing_pages'])}; gate {'PASS' if r['passed'] else 'FAIL'}")

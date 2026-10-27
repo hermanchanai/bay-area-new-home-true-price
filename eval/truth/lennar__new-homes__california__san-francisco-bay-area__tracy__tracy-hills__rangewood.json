@@ -1,0 +1,35 @@
+{
+ "page": "lennar/new-homes__california__san-francisco-bay-area__tracy__tracy-hills__rangewood",
+ "url": "https://www.lennar.com/new-homes/california/san-francisco-bay-area/tracy/tracy-hills/rangewood",
+ "builder": "lennar",
+ "fetch_date": "2026-10-27",
+ "page_sha256": "6ba22680394a058feef691ff3e07ada6aea9eaaa64ea30cad5bcdb6f0df77189",
+ "homes": [
+  {
+   "address": "7930 Punjya Brothers Drive",
+   "price": 813254,
+   "was_price": 946254,
+   "beds": 4,
+   "baths": 3.0,
+   "sqft": 3184
+  },
+  {
+   "address": "2675 Kester Way",
+   "price": 845403,
+   "was_price": 980403,
+   "beds": 5,
+   "baths": 3.5,
+   "sqft": 3269
+  },
+  {
+   "address": "7978 Punjya Brothers Drive",
+   "price": 969472,
+   "was_price": 1018472,
+   "beds": 5,
+   "baths": 3.5,
+   "sqft": 3536
+  }
+ ],
+ "plans": null,
+ "incentive_kinds": null
+}

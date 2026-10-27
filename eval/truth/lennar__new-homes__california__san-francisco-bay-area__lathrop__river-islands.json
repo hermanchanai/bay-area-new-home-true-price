@@ -1,0 +1,59 @@
+{
+ "page": "lennar/new-homes__california__san-francisco-bay-area__lathrop__river-islands",
+ "url": "https://www.lennar.com/new-homes/california/san-francisco-bay-area/lathrop/river-islands",
+ "builder": "lennar",
+ "fetch_date": "2026-10-27",
+ "page_sha256": "f36d9444133c33085a59f62f7ea419cf5ee76664f09d681623cdd0f238a6fb7a",
+ "homes": [
+  {
+   "address": "3139 Workman Avenue",
+   "price": 565880,
+   "was_price": 608077,
+   "beds": 4,
+   "baths": 3.0,
+   "sqft": 1907
+  },
+  {
+   "address": "4846 Badger Creek Court",
+   "price": 595880,
+   "was_price": 694802,
+   "beds": 4,
+   "baths": 3.0,
+   "sqft": 2075
+  },
+  {
+   "address": "4841 Badger Creek Court",
+   "price": 611923,
+   "was_price": 710845,
+   "beds": 4,
+   "baths": 3.0,
+   "sqft": 2152
+  },
+  {
+   "address": "4660 Concordia Avenue",
+   "price": 734966,
+   "was_price": null,
+   "beds": 4,
+   "baths": 3.0,
+   "sqft": 2296
+  },
+  {
+   "address": "4652 Concordia Avenue",
+   "price": 751032,
+   "was_price": null,
+   "beds": 5,
+   "baths": 3.0,
+   "sqft": 2445
+  },
+  {
+   "address": "4569 Caufield Way",
+   "price": 898322,
+   "was_price": null,
+   "beds": 5,
+   "baths": 3.5,
+   "sqft": 2767
+  }
+ ],
+ "plans": null,
+ "incentive_kinds": null
+}

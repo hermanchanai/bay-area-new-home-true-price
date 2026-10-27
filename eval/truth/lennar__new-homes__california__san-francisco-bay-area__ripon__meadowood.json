@@ -1,0 +1,59 @@
+{
+ "page": "lennar/new-homes__california__san-francisco-bay-area__ripon__meadowood",
+ "url": "https://www.lennar.com/new-homes/california/san-francisco-bay-area/ripon/meadowood",
+ "builder": "lennar",
+ "fetch_date": "2026-10-27",
+ "page_sha256": "1004528f0ee3f7b4c58999ece184a01dad7b205c2ec985082b57c5864d3733da",
+ "homes": [
+  {
+   "address": "887 W. Shasta Avenue",
+   "price": 642832,
+   "was_price": 677106,
+   "beds": 4,
+   "baths": 2.5,
+   "sqft": 2178
+  },
+  {
+   "address": "907 Shasta Court",
+   "price": 652154,
+   "was_price": 686154,
+   "beds": 4,
+   "baths": 2.5,
+   "sqft": 2272
+  },
+  {
+   "address": "884 Shasta Avenue",
+   "price": 639258,
+   "was_price": 701497,
+   "beds": 5,
+   "baths": 3.0,
+   "sqft": 2369
+  },
+  {
+   "address": "882 Shasta Avenue",
+   "price": 675497,
+   "was_price": 711497,
+   "beds": 5,
+   "baths": 3.0,
+   "sqft": 2369
+  },
+  {
+   "address": "718 Absher Court",
+   "price": 598055,
+   "was_price": 630055,
+   "beds": 3,
+   "baths": 2.5,
+   "sqft": 1900
+  },
+  {
+   "address": "722 Schut Court",
+   "price": 620719,
+   "was_price": 653719,
+   "beds": 4,
+   "baths": 2.5,
+   "sqft": 2083
+  }
+ ],
+ "plans": null,
+ "incentive_kinds": null
+}

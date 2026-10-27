@@ -12,12 +12,13 @@ Truth format, per page:
   homes:  [{address, price, was_price, beds, baths, sqft}]  or null when not labelled
   plans:  [{name, beds_max, sqft_min, from_price}]          or null when not labelled
   incentive_kinds: [[kind, alternative kind, ...], ...]     each inner list = one incentive,
-                                                            any listed kind counts as correct
+                                                            any listed kind counts as correct; null = not labelled
 """
 import argparse
 import json
 import re
 from pathlib import Path
+from urllib.parse import urlparse
 
 from bs4 import BeautifulSoup
 
@@ -178,7 +179,24 @@ def pulte_truth(html: str, text: str) -> dict:
     return {"homes": homes, "plans": None, "incentive_kinds": kinds}
 
 
-BUILDERS = {"taylor_morrison": tm_truth, "trumark": trumark_truth, "pulte": pulte_truth}
+# --- Lennar: homesite records in the page's Apollo cache (__NEXT_DATA__) --------------------
+# Day 3 hold-out: written after the Day 2 prompt was frozen, so the model was never tuned against it.
+
+def lennar_truth(html: str, text: str) -> dict:
+    m = re.search(r'<script id="__NEXT_DATA__"[^>]*>(.*?)</script>', html, re.S)
+    state = json.loads(m.group(1))["props"]["pageProps"].get("initialApolloState", {}) if m else {}
+    path = urlparse(text.split("\n", 1)[0].removeprefix("# SOURCE ").strip()).path.rstrip("/")
+    homes = {}
+    for k, h in state.items():
+        if k.startswith("HomesiteType:") and h.get("address") and (h.get("url") or "").startswith(path + "/"):
+            homes.setdefault(h["address"], {"address": h["address"], "price": h.get("price") or None,
+                                            "was_price": h.get("wasPrice") or None, "beds": h.get("beds"),
+                                            "baths": baths(h.get("baths") or 0, h.get("halfBaths")),
+                                            "sqft": h.get("sqft")})
+    return {"homes": list(homes.values()), "plans": None, "incentive_kinds": None}  # offers not labelled
+
+
+BUILDERS = {"taylor_morrison": tm_truth, "trumark": trumark_truth, "pulte": pulte_truth, "lennar": lennar_truth}
 
 
 def run(date: str) -> list[dict]:
@@ -208,4 +226,4 @@ if __name__ == "__main__":
     for t in run(date):
         h = t["homes"] or []
         print(f"{t['page'][:70]:70} homes={len(h):2} plans={len(t['plans']) if t['plans'] is not None else '-':>2} "
-              f"kinds={['|'.join(k) for k in t['incentive_kinds']]}")
+              f"kinds={['|'.join(k) for k in t['incentive_kinds'] or []]}")
