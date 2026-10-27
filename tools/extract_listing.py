@@ -2,7 +2,8 @@
 
     python -m tools.extract_listing --truth-pages                 # the 43 eval pages
     python -m tools.extract_listing --builder trumark --limit 2
-    python -m tools.extract_listing --truth-pages --purpose escalate   # Muse Spark standard mode
+    python -m tools.extract_listing --truth-pages --purpose escalate   # one model only, no routing
+    python -m tools.extract_listing --builder all                      # routed: see route()
 
 One request per page (pages are ≤ ~31k tokens; the model's context is 1M). Output is strict JSON
 (response_format json_schema) saved to .tmp/extract/<date>/<model>/<builder>/<page>.json.
@@ -16,6 +17,7 @@ from pathlib import Path
 
 from tools import db, llm
 from tools.preprocess_page import PRE, RAW, latest_date
+from tools.validate_records import Page, needs_escalation, validate
 
 ROOT = Path(__file__).resolve().parent.parent
 OUT = ROOT / ".tmp" / "extract"
@@ -109,6 +111,28 @@ def extract_page(builder: str, stem: str, url: str, kind: str, date: str, purpos
     return data
 
 
+def _errors(issues: list[dict]) -> int:
+    return sum(i["severity"] == "error" for i in issues)
+
+
+def route(extract, page_text: str) -> dict:
+    """Contributor-mode Muse Spark first; if validation errors or confidence < 0.7, Muse Spark standard.
+    Still failing -> needs_review (never dropped), keeping whichever record has fewer errors."""
+    page = Page(page_text)
+    rec = extract("extract")
+    issues = validate(rec, page)
+    out = {"record": rec, "issues": issues, "model": rec["_meta"]["model"], "escalated": False, "needs_review": False}
+    if not needs_escalation(rec, issues):
+        return out
+    rec2 = extract("escalate")
+    issues2 = validate(rec2, page)
+    ok2 = not needs_escalation(rec2, issues2)
+    if ok2 or _errors(issues2) < _errors(issues):
+        out.update(record=rec2, issues=issues2, model=rec2["_meta"]["model"])
+    out.update(escalated=True, needs_review=not ok2)
+    return out
+
+
 def targets(date: str, builders: list[str] | None, truth_pages: bool) -> list[dict]:
     wanted = {json.loads(p.read_text())["page"] for p in TRUTH.glob("*.json")} if truth_pages else None
     out = []
@@ -131,7 +155,7 @@ if __name__ == "__main__":
     ap.add_argument("--date", default=None)
     ap.add_argument("--builder", action="append")
     ap.add_argument("--truth-pages", action="store_true")
-    ap.add_argument("--purpose", default="extract")
+    ap.add_argument("--purpose", default=None, help="one model only (no routing): extract | escalate")
     ap.add_argument("--model", default=None)
     ap.add_argument("--limit", type=int, default=None)
     ap.add_argument("--workers", type=int, default=4)
@@ -141,10 +165,21 @@ if __name__ == "__main__":
     db.connect()  # apply migrations once before threads start
     failed = []
 
+    routed = a.purpose is None and a.model is None
+    routes = []
+
     def one(t):
         try:
-            return t, extract_page(t["builder"], t["stem"], t["url"], t["kind"], date, a.purpose, a.model,
-                                   conn=db.connect()), None
+            conn = db.connect()
+            if not routed:
+                return t, extract_page(t["builder"], t["stem"], t["url"], t["kind"], date, a.purpose or "extract",
+                                       a.model, conn=conn), None
+            r = route(lambda purpose: extract_page(t["builder"], t["stem"], t["url"], t["kind"], date, purpose,
+                                                   conn=conn),
+                      (PRE / date / t["builder"] / f"{t['stem']}.md").read_text())
+            routes.append({"page": f"{t['builder']}/{t['stem']}", "url": t["url"], "model": r["model"],
+                           "escalated": r["escalated"], "needs_review": r["needs_review"], "issues": r["issues"]})
+            return t, r["record"], None
         except llm.BudgetExceeded:
             raise
         except Exception as e:  # one bad page never sinks the run; it's listed below
@@ -162,4 +197,12 @@ if __name__ == "__main__":
             print(f"ok  {name}: {len(d['homes'])} homes, {len(d['plans'])} plans, {len(d['incentives'])} "
                   f"incentives, conf {d['confidence']}, ${m['cost_usd']:.4f}{' (cache)' if m['from_cache'] else ''}")
     print(f"{len(todo) - len(failed)}/{len(todo)} pages extracted; {len(failed)} failed")
+    if routed:
+        # merge with earlier runs for the same date (one builder at a time), newest wins
+        path = OUT / date / "routes.json"
+        old = {r["page"]: r for r in json.loads(path.read_text())} if path.exists() else {}
+        old.update({r["page"]: r for r in routes})
+        path.write_text(json.dumps(sorted(old.values(), key=lambda r: r["page"]), indent=1))
+        review = [r["page"] for r in routes if r["needs_review"]]
+        print(f"escalated {sum(r['escalated'] for r in routes)}, needs review {len(review)}: {review}")
     llm.print_spend()

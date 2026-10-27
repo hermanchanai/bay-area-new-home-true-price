@@ -34,3 +34,44 @@ def test_messages_put_instructions_in_developer_role():
     m = messages_for("## PAGE TEXT\nx", "trumark", "https://t/x", "community")
     assert m[0]["role"] == "developer" and "price_cut" in m[0]["content"]
     assert m[1]["content"].startswith("Builder: trumark\nPage type: community page\nURL: https://t/x")
+
+
+def _fake(records):
+    """extract stand-in: returns the next record for each purpose and logs the calls."""
+    calls = []
+
+    def extract(purpose):
+        calls.append(purpose)
+        return {**records[purpose], "_meta": {"model": f"model-{purpose}"}}
+    return extract, calls
+
+
+GOOD = {"community": {"price_from": None}, "homes": [], "incentives": [], "confidence": 0.9}
+LOW = {**GOOD, "confidence": 0.5}
+BAD_HOME = {**GOOD, "homes": [{"address": "1 Nowhere St", "price": 1_000_000, "lot": None}]}
+WORSE = {**GOOD, "homes": [{"address": "1 Nowhere St", "price": 1_000_000, "lot": None},
+                           {"address": "2 Nowhere St", "price": 1_000_000, "lot": None}]}
+
+
+def test_route_clean_first_pass_does_not_escalate():
+    from tools.extract_listing import route
+    extract, calls = _fake({"extract": GOOD})
+    out = route(extract, "page text")
+    assert calls == ["extract"] and out["model"] == "model-extract"
+    assert not out["escalated"] and not out["needs_review"]
+
+
+def test_route_escalates_on_low_confidence_and_keeps_the_fixed_record():
+    from tools.extract_listing import route
+    extract, calls = _fake({"extract": LOW, "escalate": GOOD})
+    out = route(extract, "page text")
+    assert calls == ["extract", "escalate"] and out["model"] == "model-escalate"
+    assert out["escalated"] and not out["needs_review"]
+
+
+def test_route_still_failing_goes_to_review_with_the_fewer_errors_record():
+    from tools.extract_listing import route
+    extract, calls = _fake({"extract": BAD_HOME, "escalate": WORSE})
+    out = route(extract, "page text")
+    assert out["needs_review"] and out["model"] == "model-extract"
+    assert [i["rule"] for i in out["issues"] if i["severity"] == "error"] == ["address_not_on_page", "price_not_on_page"]
