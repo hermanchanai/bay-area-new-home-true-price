@@ -1,0 +1,13 @@
+# Buyer and valuation assumptions. Every true-price figure prints these next to it.
+
+down_payment_pct: 0.20
+term_months: 360
+# Typical buyer closing costs, as a share of price; caps an "up to $X" closing credit.
+closing_cost_pct: 0.03
+# Extra rate (percentage points) a jumbo loan — above the county conforming limit — pays over the
+# conforming market rate.
+jumbo_spread_pct: 0.25
+
+market_rate:
+  source: FRED MORTGAGE30US (Freddie Mac PMMS, 30-yr fixed, weekly)
+  url: https://fred.stlouisfed.org/graph/fredgraph.csv?id=MORTGAGE30US
