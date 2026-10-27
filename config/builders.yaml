@@ -15,6 +15,8 @@ builders:
     site: https://www.taylormorrison.com
     start: [https://www.taylormorrison.com/ca/bay-area]
     community_pattern: '/ca/bay-area/(?P<city>[a-z0-9-]+)/(?P<slug>[a-z0-9-]+)'
+    # Community pages only name the promo ("CONV 7/6 ARM ..."); its rate and fine print are here.
+    extra_pages: [https://www.taylormorrison.com/make-moves/bay-area]
     expected_communities: 6
 
   - key: pulte
