@@ -1,0 +1,69 @@
+{
+ "page": "taylor_morrison/ca__bay-area__newark__the-emery",
+ "url": "https://www.taylormorrison.com/ca/bay-area/newark/the-emery",
+ "builder": "taylor_morrison",
+ "fetch_date": "2026-10-27",
+ "page_sha256": "e4bc555d2e1ab0052717736e3e5e5c429555ba45a225262f24ca30043af1b216",
+ "homes": [],
+ "plans": [
+  {
+   "name": "Plan 1A",
+   "beds_max": 3,
+   "sqft_min": 1391,
+   "from_price": null
+  },
+  {
+   "name": "Plan 1B",
+   "beds_max": 3,
+   "sqft_min": 1404,
+   "from_price": null
+  },
+  {
+   "name": "Plan 3A-4",
+   "beds_max": 3,
+   "sqft_min": 1816,
+   "from_price": null
+  },
+  {
+   "name": "Plan 3A-2",
+   "beds_max": 4,
+   "sqft_min": 1818,
+   "from_price": null
+  },
+  {
+   "name": "Plan 3A-3",
+   "beds_max": 4,
+   "sqft_min": 1819,
+   "from_price": null
+  },
+  {
+   "name": "Plan 3A-1",
+   "beds_max": 4,
+   "sqft_min": 1819,
+   "from_price": null
+  },
+  {
+   "name": "Plan 3A-5",
+   "beds_max": 3,
+   "sqft_min": 1852,
+   "from_price": null
+  },
+  {
+   "name": "Plan 3A-6",
+   "beds_max": 3,
+   "sqft_min": 1893,
+   "from_price": null
+  },
+  {
+   "name": "Plan 3A-7",
+   "beds_max": 3,
+   "sqft_min": 1893,
+   "from_price": null
+  }
+ ],
+ "incentive_kinds": [
+  [
+   "arm_promo"
+  ]
+ ]
+}

@@ -1,0 +1,62 @@
+{
+ "page": "trumark/new-homes__ca__manteca__vida-at-the-collective-55",
+ "url": "https://trumarkhomes.com/new-homes/ca/manteca/vida-at-the-collective-55/",
+ "builder": "trumark",
+ "fetch_date": "2026-10-27",
+ "page_sha256": "b2c242e448062fb8556f624aa597c9f56bc2ebf4b0390b0b0aeb3fbc86b0d891",
+ "homes": [
+  {
+   "address": "1319 Marceline Drive",
+   "price": 458604,
+   "was_price": null,
+   "beds": 2,
+   "baths": 2.0,
+   "sqft": 1516
+  },
+  {
+   "address": "1306 Parkcrest Circle",
+   "price": 529000,
+   "was_price": null,
+   "beds": 2,
+   "baths": 2.0,
+   "sqft": 1297
+  },
+  {
+   "address": "1312 Parkcrest Circle",
+   "price": 607000,
+   "was_price": null,
+   "beds": 2,
+   "baths": 2.0,
+   "sqft": 1708
+  },
+  {
+   "address": "1310 Parkcrest Circle",
+   "price": 556000,
+   "was_price": null,
+   "beds": 2,
+   "baths": 2.0,
+   "sqft": 1516
+  }
+ ],
+ "plans": [
+  {
+   "name": "Residence 1",
+   "from_price": 529000,
+   "sqft_min": 1297,
+   "beds_max": 2
+  },
+  {
+   "name": "Residence 2",
+   "from_price": 524652,
+   "sqft_min": 1516,
+   "beds_max": 2
+  },
+  {
+   "name": "Residence 3",
+   "from_price": 512785,
+   "sqft_min": 1708,
+   "beds_max": 2
+  }
+ ],
+ "incentive_kinds": []
+}

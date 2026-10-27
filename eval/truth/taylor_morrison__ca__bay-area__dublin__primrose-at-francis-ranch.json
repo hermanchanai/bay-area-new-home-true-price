@@ -1,0 +1,66 @@
+{
+ "page": "taylor_morrison/ca__bay-area__dublin__primrose-at-francis-ranch",
+ "url": "https://www.taylormorrison.com/ca/bay-area/dublin/primrose-at-francis-ranch",
+ "builder": "taylor_morrison",
+ "fetch_date": "2026-10-27",
+ "page_sha256": "0b6a8a331886ed0a1d4b1e0abe3d763cfd27bb12fbac24b19920bfb7849cbca8",
+ "homes": [
+  {
+   "address": "1949 Michael Avenue",
+   "price": 2000000,
+   "was_price": null,
+   "beds": 4,
+   "baths": 3.0,
+   "sqft": 2751
+  },
+  {
+   "address": "1977 Margaret Way",
+   "price": 2200950,
+   "was_price": null,
+   "beds": 4,
+   "baths": 3.0,
+   "sqft": 2605
+  },
+  {
+   "address": "1981 Murray Avenue",
+   "price": 2250000,
+   "was_price": null,
+   "beds": 4,
+   "baths": 3.0,
+   "sqft": 2743
+  },
+  {
+   "address": "1939 Margaret Way",
+   "price": 2265000,
+   "was_price": null,
+   "beds": 4,
+   "baths": 3.0,
+   "sqft": 2920
+  }
+ ],
+ "plans": [
+  {
+   "name": "Plan 1",
+   "beds_max": 4,
+   "sqft_min": 2605,
+   "from_price": 2065000
+  },
+  {
+   "name": "Plan 3",
+   "beds_max": 4,
+   "sqft_min": 2919,
+   "from_price": 2150000
+  },
+  {
+   "name": "Plan 2",
+   "beds_max": 4,
+   "sqft_min": 2742,
+   "from_price": 2275000
+  }
+ ],
+ "incentive_kinds": [
+  [
+   "arm_promo"
+  ]
+ ]
+}

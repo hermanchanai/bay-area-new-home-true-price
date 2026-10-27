@@ -1,0 +1,105 @@
+{
+ "page": "pulte/homes__california__bay-area__sunnyvale__the-square-211128",
+ "url": "https://www.pulte.com/homes/california/bay-area/sunnyvale/the-square-211128",
+ "builder": "pulte",
+ "fetch_date": "2026-10-27",
+ "page_sha256": "52faf67be835e283d192f8873c12a2c1e9979fa3893c7ab55957ed0ef9352722",
+ "homes": [
+  {
+   "address": "400 Mexico Terrace, Unit 9",
+   "price": 1090586,
+   "was_price": 1310586,
+   "beds": 2,
+   "baths": 2.0,
+   "sqft": 1185
+  },
+  {
+   "address": "400 Mexico Terrace, Unit 6",
+   "price": 1101149,
+   "was_price": 1321149,
+   "beds": 2,
+   "baths": 2.0,
+   "sqft": 1185
+  },
+  {
+   "address": "401 Tonkin Terrace, Unit 6",
+   "price": 1050653,
+   "was_price": 1325653,
+   "beds": 2,
+   "baths": 2.0,
+   "sqft": 1185
+  },
+  {
+   "address": "401 Kara Terrace, Unit 4",
+   "price": 1248223,
+   "was_price": 1423223,
+   "beds": 2,
+   "baths": 2.0,
+   "sqft": 1304
+  },
+  {
+   "address": "400 Mexico Terrace, Unit 4",
+   "price": 1249888,
+   "was_price": 1449888,
+   "beds": 2,
+   "baths": 2.0,
+   "sqft": 1360
+  },
+  {
+   "address": "401 Kara Terrace, Unit 2",
+   "price": 1306443,
+   "was_price": 1481443,
+   "beds": 2,
+   "baths": 2.0,
+   "sqft": 1339
+  },
+  {
+   "address": "1141 Milan Terrace, Unit 1",
+   "price": 1396133,
+   "was_price": 1676133,
+   "beds": 2,
+   "baths": 2.5,
+   "sqft": 1543
+  },
+  {
+   "address": "1139 Milan Terrace, Unit 4",
+   "price": 1467829,
+   "was_price": 1682829,
+   "beds": 2,
+   "baths": 2.5,
+   "sqft": 1535
+  },
+  {
+   "address": "1139 Milan Terrace, Unit 8",
+   "price": 1488429,
+   "was_price": 1688429,
+   "beds": 2,
+   "baths": 2.5,
+   "sqft": 1543
+  },
+  {
+   "address": "1139 Milan Terrace, Unit 5",
+   "price": 1782928,
+   "was_price": 1957928,
+   "beds": 3,
+   "baths": 3.5,
+   "sqft": 1844
+  }
+ ],
+ "plans": null,
+ "incentive_kinds": [
+  [
+   "price_cut"
+  ],
+  [
+   "arm_promo"
+  ],
+  [
+   "flat_cash",
+   "closing_credit"
+  ],
+  [
+   "flat_cash"
+  ]
+ ]
+}

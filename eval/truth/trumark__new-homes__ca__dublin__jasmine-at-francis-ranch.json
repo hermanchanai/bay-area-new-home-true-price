@@ -1,0 +1,92 @@
+{
+ "page": "trumark/new-homes__ca__dublin__jasmine-at-francis-ranch",
+ "url": "https://trumarkhomes.com/new-homes/ca/dublin/jasmine-at-francis-ranch/",
+ "builder": "trumark",
+ "fetch_date": "2026-10-27",
+ "page_sha256": "e383b4e91a79013e4c178028e4d01b8015a6f6f2ff0ee5072ddc73500cb4d7b4",
+ "homes": [
+  {
+   "address": "1733 Central Parkway",
+   "price": 1115093,
+   "was_price": 1165093,
+   "beds": 4,
+   "baths": 3.5,
+   "sqft": 1970
+  },
+  {
+   "address": "1715 Central Parkway",
+   "price": 1102777,
+   "was_price": 1202777,
+   "beds": 4,
+   "baths": 3.5,
+   "sqft": 1970
+  },
+  {
+   "address": "1717 Central Parkway",
+   "price": 1107544,
+   "was_price": 1157544,
+   "beds": 4,
+   "baths": 3.5,
+   "sqft": 1970
+  },
+  {
+   "address": "1719 Central Parkway",
+   "price": 1238161,
+   "was_price": null,
+   "beds": 4,
+   "baths": 3.5,
+   "sqft": 2071
+  },
+  {
+   "address": "1723 Wayfairing Ave",
+   "price": 1326898,
+   "was_price": null,
+   "beds": 3,
+   "baths": 2.5,
+   "sqft": 1921
+  },
+  {
+   "address": "1732 Wayfairing Ave",
+   "price": 1475565,
+   "was_price": null,
+   "beds": 4,
+   "baths": 3.0,
+   "sqft": 1935
+  }
+ ],
+ "plans": [
+  {
+   "name": "Residence 1 | TH",
+   "from_price": 1175000,
+   "sqft_min": 1970,
+   "beds_max": 4
+  },
+  {
+   "name": "Residence 2 | TH",
+   "from_price": 1190000,
+   "sqft_min": 2071,
+   "beds_max": 4
+  },
+  {
+   "name": "Residence 1 | Duets",
+   "from_price": 1260000,
+   "sqft_min": 1921,
+   "beds_max": 3
+  },
+  {
+   "name": "Residence 2 | Duets",
+   "from_price": 1390000,
+   "sqft_min": 1935,
+   "beds_max": 4
+  }
+ ],
+ "incentive_kinds": [
+  [
+   "price_cut"
+  ],
+  [
+   "perm_rate",
+   "unquantified"
+  ]
+ ]
+}

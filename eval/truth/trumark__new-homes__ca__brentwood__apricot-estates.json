@@ -1,0 +1,56 @@
+{
+ "page": "trumark/new-homes__ca__brentwood__apricot-estates",
+ "url": "https://trumarkhomes.com/new-homes/ca/brentwood/apricot-estates/",
+ "builder": "trumark",
+ "fetch_date": "2026-10-27",
+ "page_sha256": "2a2b1c9b52dbcdca6113e4ec0c40bcdc4749ca6bc0a23558d4014a770fd6749c",
+ "homes": [
+  {
+   "address": "1591 Ponza Circle",
+   "price": 1376160,
+   "was_price": 1431460,
+   "beds": 5,
+   "baths": 4.5,
+   "sqft": 4397
+  },
+  {
+   "address": "1589 Strathaven Place",
+   "price": 1251685,
+   "was_price": 1301685,
+   "beds": 5,
+   "baths": 4.5,
+   "sqft": 3803
+  },
+  {
+   "address": "1590 Ponza Circle",
+   "price": 1252907,
+   "was_price": 1302907,
+   "beds": 5,
+   "baths": 4.5,
+   "sqft": 3803
+  }
+ ],
+ "plans": [
+  {
+   "name": "Residence 2",
+   "from_price": 1175000,
+   "sqft_min": 3803,
+   "beds_max": 5
+  },
+  {
+   "name": "Residence 3",
+   "from_price": 1290000,
+   "sqft_min": 4397,
+   "beds_max": 5
+  }
+ ],
+ "incentive_kinds": [
+  [
+   "price_cut"
+  ],
+  [
+   "perm_rate",
+   "unquantified"
+  ]
+ ]
+}

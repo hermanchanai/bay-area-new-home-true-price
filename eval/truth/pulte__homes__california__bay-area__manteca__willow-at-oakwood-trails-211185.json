@@ -1,0 +1,57 @@
+{
+ "page": "pulte/homes__california__bay-area__manteca__willow-at-oakwood-trails-211185",
+ "url": "https://www.pulte.com/homes/california/bay-area/manteca/willow-at-oakwood-trails-211185",
+ "builder": "pulte",
+ "fetch_date": "2026-10-27",
+ "page_sha256": "462bc02d1ed1777c3702b09688e2b12d9ca29805fbca0b9d29c955ca49e74a97",
+ "homes": [
+  {
+   "address": "1518 Prairie Oak Ave",
+   "price": 822415,
+   "was_price": 842415,
+   "beds": 4,
+   "baths": 3.0,
+   "sqft": 2503
+  },
+  {
+   "address": "1486 Prairie Oak Ave",
+   "price": 890316,
+   "was_price": 990316,
+   "beds": 5,
+   "baths": 4.0,
+   "sqft": 3521
+  },
+  {
+   "address": "1530 Teak Ave",
+   "price": 874667,
+   "was_price": 1004667,
+   "beds": 5,
+   "baths": 4.0,
+   "sqft": 3521
+  },
+  {
+   "address": "1458 Prairie Oak Ave",
+   "price": 913074,
+   "was_price": 1013074,
+   "beds": 5,
+   "baths": 4.0,
+   "sqft": 3521
+  }
+ ],
+ "plans": null,
+ "incentive_kinds": [
+  [
+   "price_cut"
+  ],
+  [
+   "arm_promo"
+  ],
+  [
+   "flat_cash",
+   "closing_credit"
+  ],
+  [
+   "flat_cash"
+  ]
+ ]
+}

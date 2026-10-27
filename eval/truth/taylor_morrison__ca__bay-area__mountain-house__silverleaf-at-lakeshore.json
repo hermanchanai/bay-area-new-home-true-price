@@ -1,0 +1,100 @@
+{
+ "page": "taylor_morrison/ca__bay-area__mountain-house__silverleaf-at-lakeshore",
+ "url": "https://www.taylormorrison.com/ca/bay-area/mountain-house/silverleaf-at-lakeshore",
+ "builder": "taylor_morrison",
+ "fetch_date": "2026-10-27",
+ "page_sha256": "ce34232ed062474006fb59a98c947c929809a41929459af7b15f4ac09be83c0a",
+ "homes": [
+  {
+   "address": "461 W Calabria Drive",
+   "price": 850000,
+   "was_price": null,
+   "beds": 4,
+   "baths": 3.0,
+   "sqft": 2654
+  },
+  {
+   "address": "471 W Calabria Drive",
+   "price": 881000,
+   "was_price": null,
+   "beds": 4,
+   "baths": 3.0,
+   "sqft": 2835
+  },
+  {
+   "address": "481 W Calabria Drive",
+   "price": 899000,
+   "was_price": null,
+   "beds": 5,
+   "baths": 3.0,
+   "sqft": 3001
+  },
+  {
+   "address": "411 W Calabria Drive",
+   "price": 910000,
+   "was_price": null,
+   "beds": 5,
+   "baths": 3.5,
+   "sqft": 3063
+  },
+  {
+   "address": "444 W Volta Street",
+   "price": 910000,
+   "was_price": null,
+   "beds": 4,
+   "baths": 3.0,
+   "sqft": 2835
+  },
+  {
+   "address": "401 W Calabria Drive",
+   "price": 915000,
+   "was_price": null,
+   "beds": 5,
+   "baths": 3.0,
+   "sqft": 3001
+  },
+  {
+   "address": "433 W Volta Street",
+   "price": 950000,
+   "was_price": null,
+   "beds": 5,
+   "baths": 3.0,
+   "sqft": 3001
+  }
+ ],
+ "plans": [
+  {
+   "name": "Lotus",
+   "beds_max": 5,
+   "sqft_min": 2654,
+   "from_price": 850000
+  },
+  {
+   "name": "Lilac",
+   "beds_max": 5,
+   "sqft_min": 2835,
+   "from_price": 885000
+  },
+  {
+   "name": "Lupine",
+   "beds_max": 6,
+   "sqft_min": 3001,
+   "from_price": 899000
+  },
+  {
+   "name": "Laurel",
+   "beds_max": 5,
+   "sqft_min": 3063,
+   "from_price": 925000
+  }
+ ],
+ "incentive_kinds": [
+  [
+   "arm_promo"
+  ],
+  [
+   "flat_cash",
+   "closing_credit"
+  ]
+ ]
+}

@@ -1,0 +1,15 @@
+{
+ "page": "trumark/new-homes__ca__northern-california__available-homes",
+ "url": "https://trumarkhomes.com/new-homes/ca/northern-california/available-homes/",
+ "builder": "trumark",
+ "fetch_date": "2026-10-27",
+ "page_sha256": "3e7413ed82ebc02ffb4288c2ddf176e1cb8285d73352b9f8f9f5c89485b2ad96",
+ "homes": null,
+ "plans": null,
+ "incentive_kinds": [
+  [
+   "perm_rate",
+   "unquantified"
+  ]
+ ]
+}

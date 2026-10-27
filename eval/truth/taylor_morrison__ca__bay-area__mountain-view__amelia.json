@@ -1,0 +1,96 @@
+{
+ "page": "taylor_morrison/ca__bay-area__mountain-view__amelia",
+ "url": "https://www.taylormorrison.com/ca/bay-area/mountain-view/amelia",
+ "builder": "taylor_morrison",
+ "fetch_date": "2026-10-27",
+ "page_sha256": "067d4054bc649edf8f51390970997d38a8ac630c0a57f6869111c6f13852fd98",
+ "homes": [
+  {
+   "address": "571 Ames Alley",
+   "price": 1575000,
+   "was_price": null,
+   "beds": 2,
+   "baths": 2.5,
+   "sqft": 1431
+  },
+  {
+   "address": "2120 Latham Street",
+   "price": 1650000,
+   "was_price": null,
+   "beds": 3,
+   "baths": 2.5,
+   "sqft": 1502
+  },
+  {
+   "address": "536 Shockley Alley",
+   "price": 1751000,
+   "was_price": null,
+   "beds": 3,
+   "baths": 2.5,
+   "sqft": 1502
+  },
+  {
+   "address": "560 S Rengstorff Avenue",
+   "price": 1757000,
+   "was_price": null,
+   "beds": 4,
+   "baths": 3.5,
+   "sqft": 1697
+  }
+ ],
+ "plans": [
+  {
+   "name": "Plan 1",
+   "beds_max": 2,
+   "sqft_min": 1431,
+   "from_price": 1575000
+  },
+  {
+   "name": "Plan 3",
+   "beds_max": 3,
+   "sqft_min": 1502,
+   "from_price": 1655000
+  },
+  {
+   "name": "Plan 4B",
+   "beds_max": 4,
+   "sqft_min": 1697,
+   "from_price": 1756850
+  },
+  {
+   "name": "Plan 3A",
+   "beds_max": 3,
+   "sqft_min": 1502,
+   "from_price": 1790000
+  },
+  {
+   "name": "Plan 4BX",
+   "beds_max": 4,
+   "sqft_min": 1697,
+   "from_price": 1825000
+  },
+  {
+   "name": "Plan 2",
+   "beds_max": 4,
+   "sqft_min": 1980,
+   "from_price": 2199850
+  },
+  {
+   "name": "Plan 7",
+   "beds_max": 2,
+   "sqft_min": 1146,
+   "from_price": null
+  },
+  {
+   "name": "Plan 4D",
+   "beds_max": 4,
+   "sqft_min": 1749,
+   "from_price": null
+  }
+ ],
+ "incentive_kinds": [
+  [
+   "arm_promo"
+  ]
+ ]
+}

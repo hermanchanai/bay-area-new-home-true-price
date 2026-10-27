@@ -1,0 +1,49 @@
+{
+ "page": "pulte/homes__california__bay-area__manteca__lilac-at-oakwood-trails-211184",
+ "url": "https://www.pulte.com/homes/california/bay-area/manteca/lilac-at-oakwood-trails-211184",
+ "builder": "pulte",
+ "fetch_date": "2026-10-27",
+ "page_sha256": "6e7103af65782c33b10602e2cf0b3232d88dce5c040da4ce74a5b7d630f70e3a",
+ "homes": [
+  {
+   "address": "1576 Torrey Dr",
+   "price": 717215,
+   "was_price": 797215,
+   "beds": 5,
+   "baths": 3.0,
+   "sqft": 2590
+  },
+  {
+   "address": "3348 Andean Way",
+   "price": 840390,
+   "was_price": null,
+   "beds": 5,
+   "baths": 3.5,
+   "sqft": 3159
+  },
+  {
+   "address": "1520 Torrey Dr",
+   "price": 805102,
+   "was_price": 880102,
+   "beds": 5,
+   "baths": 3.5,
+   "sqft": 3159
+  }
+ ],
+ "plans": null,
+ "incentive_kinds": [
+  [
+   "price_cut"
+  ],
+  [
+   "arm_promo"
+  ],
+  [
+   "flat_cash",
+   "closing_credit"
+  ],
+  [
+   "flat_cash"
+  ]
+ ]
+}

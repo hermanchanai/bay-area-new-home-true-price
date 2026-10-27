@@ -1,0 +1,84 @@
+{
+ "page": "trumark/new-homes__ca__dublin__azure-at-francis-ranch",
+ "url": "https://trumarkhomes.com/new-homes/ca/dublin/azure-at-francis-ranch/",
+ "builder": "trumark",
+ "fetch_date": "2026-10-27",
+ "page_sha256": "53bf94596dfda0d4ed6cbbf865b5e32263fe2b89c1f3a58098e18b462bd2cd55",
+ "homes": [
+  {
+   "address": "4296 Langley Road",
+   "price": 2737987,
+   "was_price": null,
+   "beds": 4,
+   "baths": 5.5,
+   "sqft": 3813
+  },
+  {
+   "address": "1775 Sill Ave",
+   "price": 2655683,
+   "was_price": null,
+   "beds": 4,
+   "baths": 5.5,
+   "sqft": 3933
+  },
+  {
+   "address": "4225 Langley Road",
+   "price": 2817601,
+   "was_price": null,
+   "beds": 4,
+   "baths": 5.5,
+   "sqft": 3799
+  },
+  {
+   "address": "1799 Sill Ave",
+   "price": 2591546,
+   "was_price": 2660000,
+   "beds": 4,
+   "baths": 5.5,
+   "sqft": 3933
+  },
+  {
+   "address": "4237 Langley Road",
+   "price": 2791075,
+   "was_price": null,
+   "beds": 4,
+   "baths": 5.5,
+   "sqft": 3814
+  }
+ ],
+ "plans": [
+  {
+   "name": "Residence 1",
+   "from_price": 2495000,
+   "sqft_min": 3650,
+   "beds_max": 4
+  },
+  {
+   "name": "Residence 2",
+   "from_price": 2585000,
+   "sqft_min": 3813,
+   "beds_max": 4
+  },
+  {
+   "name": "Residence 3",
+   "from_price": 2660000,
+   "sqft_min": 3799,
+   "beds_max": 4
+  },
+  {
+   "name": "Residence 3X",
+   "from_price": 2640000,
+   "sqft_min": 3933,
+   "beds_max": 4
+  }
+ ],
+ "incentive_kinds": [
+  [
+   "price_cut"
+  ],
+  [
+   "perm_rate",
+   "unquantified"
+  ]
+ ]
+}

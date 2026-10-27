@@ -1,0 +1,70 @@
+{
+ "page": "trumark/new-homes__ca__livermore__amara-at-arroyo-crossings",
+ "url": "https://trumarkhomes.com/new-homes/ca/livermore/amara-at-arroyo-crossings/",
+ "builder": "trumark",
+ "fetch_date": "2026-10-27",
+ "page_sha256": "cecdffe086e533595fa183d0bebaadbe145f78368413a099068f334c2bdf5713",
+ "homes": [
+  {
+   "address": "4744 Las Positas Road",
+   "price": 999000,
+   "was_price": null,
+   "beds": 4,
+   "baths": 3.5,
+   "sqft": 1983
+  },
+  {
+   "address": "4724 Las Positas Road",
+   "price": 999488,
+   "was_price": 1042488,
+   "beds": 3,
+   "baths": 3.5,
+   "sqft": 1913
+  },
+  {
+   "address": "4695 Marengo Common",
+   "price": 958719,
+   "was_price": 1008719,
+   "beds": 3,
+   "baths": 3.5,
+   "sqft": 1913
+  },
+  {
+   "address": "4707 Marengo Common",
+   "price": 1015604,
+   "was_price": 1155404,
+   "beds": 4,
+   "baths": 3.5,
+   "sqft": 2094
+  }
+ ],
+ "plans": [
+  {
+   "name": "Residence 1",
+   "from_price": 945000,
+   "sqft_min": 1913,
+   "beds_max": 3
+  },
+  {
+   "name": "Residence 2",
+   "from_price": 954000,
+   "sqft_min": 1983,
+   "beds_max": 4
+  },
+  {
+   "name": "Residence 3",
+   "from_price": 985000,
+   "sqft_min": 2094,
+   "beds_max": 4
+  }
+ ],
+ "incentive_kinds": [
+  [
+   "price_cut"
+  ],
+  [
+   "perm_rate",
+   "unquantified"
+  ]
+ ]
+}

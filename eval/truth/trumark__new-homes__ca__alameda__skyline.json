@@ -1,0 +1,59 @@
+{
+ "page": "trumark/new-homes__ca__alameda__skyline",
+ "url": "https://trumarkhomes.com/new-homes/ca/alameda/skyline/",
+ "builder": "trumark",
+ "fetch_date": "2026-10-27",
+ "page_sha256": "cd4c57bbd641ca1b027487e8680f89d839fca3019007e22ad71b4ec40c56a660",
+ "homes": [
+  {
+   "address": "1649 Clement Ave",
+   "price": 1169900,
+   "was_price": null,
+   "beds": 3,
+   "baths": 3.0,
+   "sqft": 2087
+  },
+  {
+   "address": "2037 Grand Street",
+   "price": 1055000,
+   "was_price": null,
+   "beds": 3,
+   "baths": 3.5,
+   "sqft": 1754
+  },
+  {
+   "address": "2005 Grand Street",
+   "price": 1118555,
+   "was_price": null,
+   "beds": 2,
+   "baths": 2.5,
+   "sqft": 1809
+  }
+ ],
+ "plans": [
+  {
+   "name": "Residence 1",
+   "from_price": 1030000,
+   "sqft_min": 1754,
+   "beds_max": 3
+  },
+  {
+   "name": "Residence 2",
+   "from_price": 1045000,
+   "sqft_min": 1809,
+   "beds_max": 2
+  },
+  {
+   "name": "Residence 3",
+   "from_price": 1090000,
+   "sqft_min": 2087,
+   "beds_max": 3
+  }
+ ],
+ "incentive_kinds": [
+  [
+   "perm_rate",
+   "unquantified"
+  ]
+ ]
+}

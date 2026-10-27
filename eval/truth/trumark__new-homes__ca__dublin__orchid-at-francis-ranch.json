@@ -1,0 +1,60 @@
+{
+ "page": "trumark/new-homes__ca__dublin__orchid-at-francis-ranch",
+ "url": "https://trumarkhomes.com/new-homes/ca/dublin/orchid-at-francis-ranch/",
+ "builder": "trumark",
+ "fetch_date": "2026-10-27",
+ "page_sha256": "5ba645107551fc260ac1b63f3f295bd37acd2c66b651b376c109aaffc7a27052",
+ "homes": [
+  {
+   "address": "1637 Wren Court",
+   "price": 3014119,
+   "was_price": null,
+   "beds": 5,
+   "baths": 5.5,
+   "sqft": 4654
+  },
+  {
+   "address": "1640 Savanna Court",
+   "price": 3175973,
+   "was_price": 3250031,
+   "beds": 5,
+   "baths": 6.0,
+   "sqft": 4838
+  }
+ ],
+ "plans": [
+  {
+   "name": "Residence 1",
+   "from_price": 2860000,
+   "sqft_min": 4398,
+   "beds_max": 4
+  },
+  {
+   "name": "Residence 1X",
+   "from_price": 2840000,
+   "sqft_min": 4429,
+   "beds_max": 4
+  },
+  {
+   "name": "Residence 2",
+   "from_price": 2895000,
+   "sqft_min": 4654,
+   "beds_max": 5
+  },
+  {
+   "name": "Residence 3",
+   "from_price": 2975000,
+   "sqft_min": 4838,
+   "beds_max": 5
+  }
+ ],
+ "incentive_kinds": [
+  [
+   "price_cut"
+  ],
+  [
+   "perm_rate",
+   "unquantified"
+  ]
+ ]
+}

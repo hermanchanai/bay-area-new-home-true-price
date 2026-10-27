@@ -1,0 +1,35 @@
+{
+ "page": "trumark/new-homes__ca__manteca__dawn-at-the-collective-55",
+ "url": "https://trumarkhomes.com/new-homes/ca/manteca/dawn-at-the-collective-55/",
+ "builder": "trumark",
+ "fetch_date": "2026-10-27",
+ "page_sha256": "d21e4043f3ce9ca28e1b50b77d76f887985199f7739cd16b346bc1570088c640",
+ "homes": [
+  {
+   "address": "1288 Parkcrest Circle",
+   "price": 673000,
+   "was_price": null,
+   "beds": 2,
+   "baths": 2.5,
+   "sqft": 2021
+  },
+  {
+   "address": "1254 Parkcrest Circle",
+   "price": 713000,
+   "was_price": null,
+   "beds": 2,
+   "baths": 2.5,
+   "sqft": 2462
+  },
+  {
+   "address": "1276 Parkcrest Circle",
+   "price": 721000,
+   "was_price": null,
+   "beds": 2,
+   "baths": 2.5,
+   "sqft": 2314
+  }
+ ],
+ "plans": [],
+ "incentive_kinds": []
+}

@@ -1,0 +1,33 @@
+{
+ "page": "pulte/homes__california__bay-area__mountain-house__sequoia-at-avina-211411",
+ "url": "https://www.pulte.com/homes/california/bay-area/mountain-house/sequoia-at-avina-211411",
+ "builder": "pulte",
+ "fetch_date": "2026-10-27",
+ "page_sha256": "6010164e780daa86f7a321a1e3ea7496b1348c772760ebe7d495233bbee96e93",
+ "homes": [
+  {
+   "address": "1904 S Lazuli Street",
+   "price": 1190734,
+   "was_price": 1365734,
+   "beds": 6,
+   "baths": 4.0,
+   "sqft": 3102
+  }
+ ],
+ "plans": null,
+ "incentive_kinds": [
+  [
+   "price_cut"
+  ],
+  [
+   "arm_promo"
+  ],
+  [
+   "flat_cash",
+   "closing_credit"
+  ],
+  [
+   "flat_cash"
+  ]
+ ]
+}

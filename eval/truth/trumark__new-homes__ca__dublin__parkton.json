@@ -1,0 +1,38 @@
+{
+ "page": "trumark/new-homes__ca__dublin__parkton",
+ "url": "https://trumarkhomes.com/new-homes/ca/dublin/parkton/",
+ "builder": "trumark",
+ "fetch_date": "2026-10-27",
+ "page_sha256": "6534da1b83a6ad7d856430c48ffc6bf7e737937a745359e865acb2cc75fafe91",
+ "homes": [
+  {
+   "address": "3960 Viggo Way",
+   "price": 1599463,
+   "was_price": 1749463,
+   "beds": 4,
+   "baths": 3.0,
+   "sqft": 2411
+  },
+  {
+   "address": "3830 Viggo Way",
+   "price": 1648681,
+   "was_price": 1798575,
+   "beds": 4,
+   "baths": 3.0,
+   "sqft": 2411
+  }
+ ],
+ "plans": [
+  {
+   "name": "Residence 2",
+   "from_price": 1599463,
+   "sqft_min": 2411,
+   "beds_max": 4
+  }
+ ],
+ "incentive_kinds": [
+  [
+   "price_cut"
+  ]
+ ]
+}

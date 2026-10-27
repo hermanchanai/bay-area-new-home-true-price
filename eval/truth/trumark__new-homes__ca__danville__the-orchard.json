@@ -1,0 +1,68 @@
+{
+ "page": "trumark/new-homes__ca__danville__the-orchard",
+ "url": "https://trumarkhomes.com/new-homes/ca/danville/the-orchard/",
+ "builder": "trumark",
+ "fetch_date": "2026-10-27",
+ "page_sha256": "e3ee041c3d34ba7def6ffdb3ac5f914661a72c76389fae8d38e0321ee55b65c4",
+ "homes": [
+  {
+   "address": "156 Tulare Court",
+   "price": 955000,
+   "was_price": null,
+   "beds": 2,
+   "baths": 2.5,
+   "sqft": 1503
+  },
+  {
+   "address": "152 Tulare Court",
+   "price": 1119000,
+   "was_price": null,
+   "beds": 3,
+   "baths": 3.5,
+   "sqft": 1799
+  },
+  {
+   "address": "150 Tulare Court",
+   "price": 1021000,
+   "was_price": null,
+   "beds": 3,
+   "baths": 3.0,
+   "sqft": 1534
+  },
+  {
+   "address": "148 Tulare Court",
+   "price": 1065000,
+   "was_price": null,
+   "beds": 3,
+   "baths": 3.0,
+   "sqft": 1618
+  }
+ ],
+ "plans": [
+  {
+   "name": "Residence 1",
+   "from_price": 1021000,
+   "sqft_min": 1534,
+   "beds_max": 3
+  },
+  {
+   "name": "Residence 2",
+   "from_price": 1065000,
+   "sqft_min": 1618,
+   "beds_max": 3
+  },
+  {
+   "name": "Residence 3",
+   "from_price": 955000,
+   "sqft_min": 1503,
+   "beds_max": 2
+  },
+  {
+   "name": "Residence 4",
+   "from_price": 1119000,
+   "sqft_min": 1799,
+   "beds_max": 3
+  }
+ ],
+ "incentive_kinds": []
+}

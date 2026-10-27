@@ -1,0 +1,44 @@
+{
+ "page": "taylor_morrison/ca__bay-area__dublin__larkspur-at-francis-ranch",
+ "url": "https://www.taylormorrison.com/ca/bay-area/dublin/larkspur-at-francis-ranch",
+ "builder": "taylor_morrison",
+ "fetch_date": "2026-10-27",
+ "page_sha256": "5a31d25c5cf7ad75d73da468530649d99bbac06fa2c3c54a443dae5772eac069",
+ "homes": [
+  {
+   "address": "1607 Walsh Avenue",
+   "price": 2200000,
+   "was_price": null,
+   "beds": 4,
+   "baths": 4.0,
+   "sqft": 3500
+  },
+  {
+   "address": "4024 Doyle Road",
+   "price": 2400670,
+   "was_price": null,
+   "beds": 4,
+   "baths": 4.5,
+   "sqft": 3556
+  }
+ ],
+ "plans": [
+  {
+   "name": "Plan 2",
+   "beds_max": 5,
+   "sqft_min": 3500,
+   "from_price": 2250000
+  },
+  {
+   "name": "Plan 1",
+   "beds_max": 4,
+   "sqft_min": 3556,
+   "from_price": 2400670
+  }
+ ],
+ "incentive_kinds": [
+  [
+   "arm_promo"
+  ]
+ ]
+}

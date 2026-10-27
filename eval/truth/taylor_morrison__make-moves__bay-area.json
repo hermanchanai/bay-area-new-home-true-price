@@ -1,0 +1,18 @@
+{
+ "page": "taylor_morrison/make-moves__bay-area",
+ "url": "https://www.taylormorrison.com/make-moves/bay-area",
+ "builder": "taylor_morrison",
+ "fetch_date": "2026-10-27",
+ "page_sha256": "bac8e12732eac585f38a4a16944e1c4c4c2e63255a69fa190bfda4e6652cafa1",
+ "homes": null,
+ "plans": null,
+ "incentive_kinds": [
+  [
+   "arm_promo"
+  ],
+  [
+   "flat_cash",
+   "closing_credit"
+  ]
+ ]
+}

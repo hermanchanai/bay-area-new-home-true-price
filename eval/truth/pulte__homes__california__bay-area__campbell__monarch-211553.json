@@ -1,0 +1,65 @@
+{
+ "page": "pulte/homes__california__bay-area__campbell__monarch-211553",
+ "url": "https://www.pulte.com/homes/california/bay-area/campbell/monarch-211553",
+ "builder": "pulte",
+ "fetch_date": "2026-10-27",
+ "page_sha256": "df824f594666fd0431ca1a3017e1f6cfcc69014f2f96485efb51f3cb8006cc77",
+ "homes": [
+  {
+   "address": "269 Wagon Way",
+   "price": 1303706,
+   "was_price": 1403706,
+   "beds": 2,
+   "baths": 2.5,
+   "sqft": 1536
+  },
+  {
+   "address": "273 Wagon Way",
+   "price": 1392783,
+   "was_price": 1492783,
+   "beds": 2,
+   "baths": 2.5,
+   "sqft": 1678
+  },
+  {
+   "address": "293 Dreamland Way",
+   "price": 1724376,
+   "was_price": 1824376,
+   "beds": 3,
+   "baths": 3.5,
+   "sqft": 2094
+  },
+  {
+   "address": "500 Boxcar Drive",
+   "price": 1877494,
+   "was_price": 1977494,
+   "beds": 4,
+   "baths": 3.5,
+   "sqft": 2192
+  },
+  {
+   "address": "508 Boxcar Drive",
+   "price": 1948873,
+   "was_price": 2048873,
+   "beds": 4,
+   "baths": 3.5,
+   "sqft": 2339
+  }
+ ],
+ "plans": null,
+ "incentive_kinds": [
+  [
+   "price_cut"
+  ],
+  [
+   "arm_promo"
+  ],
+  [
+   "flat_cash",
+   "closing_credit"
+  ],
+  [
+   "flat_cash"
+  ]
+ ]
+}

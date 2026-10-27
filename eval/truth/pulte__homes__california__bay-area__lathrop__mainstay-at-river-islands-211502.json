@@ -1,0 +1,65 @@
+{
+ "page": "pulte/homes__california__bay-area__lathrop__mainstay-at-river-islands-211502",
+ "url": "https://www.pulte.com/homes/california/bay-area/lathrop/mainstay-at-river-islands-211502",
+ "builder": "pulte",
+ "fetch_date": "2026-10-27",
+ "page_sha256": "3108986f06140f5c99f7c8c81ffcdf265773448fac1e02895cc6010b36790df9",
+ "homes": [
+  {
+   "address": "17131 St. James Lane",
+   "price": 970828,
+   "was_price": 1040828,
+   "beds": 6,
+   "baths": 4.0,
+   "sqft": 3410
+  },
+  {
+   "address": "17173 Coral Tree Lane",
+   "price": 976908,
+   "was_price": 1046908,
+   "beds": 6,
+   "baths": 4.0,
+   "sqft": 3410
+  },
+  {
+   "address": "3767 Scholl Lane",
+   "price": 996571,
+   "was_price": 1066571,
+   "beds": 6,
+   "baths": 4.5,
+   "sqft": 3339
+  },
+  {
+   "address": "17165 Coral Tree Lane",
+   "price": 1000312,
+   "was_price": 1070312,
+   "beds": 5,
+   "baths": 5.0,
+   "sqft": 3834
+  },
+  {
+   "address": "3753 Scholl Lane",
+   "price": 1120660,
+   "was_price": 1190660,
+   "beds": 5,
+   "baths": 3.5,
+   "sqft": 3410
+  }
+ ],
+ "plans": null,
+ "incentive_kinds": [
+  [
+   "price_cut"
+  ],
+  [
+   "arm_promo"
+  ],
+  [
+   "flat_cash",
+   "closing_credit"
+  ],
+  [
+   "flat_cash"
+  ]
+ ]
+}

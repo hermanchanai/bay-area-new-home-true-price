@@ -1,0 +1,56 @@
+{
+ "page": "trumark/new-homes__ca__livermore__alicante-at-arroyo-crossings",
+ "url": "https://trumarkhomes.com/new-homes/ca/livermore/alicante-at-arroyo-crossings/",
+ "builder": "trumark",
+ "fetch_date": "2026-10-27",
+ "page_sha256": "bba46257e3230d42fddd02e023b2ba7425ff68a927b108e6e58ca547282b803a",
+ "homes": [
+  {
+   "address": "4894 Las Positas Road",
+   "price": 699000,
+   "was_price": 760899,
+   "beds": 2,
+   "baths": 2.5,
+   "sqft": 1436
+  },
+  {
+   "address": "4898 Las Positas Road",
+   "price": 760514,
+   "was_price": 788129,
+   "beds": 2,
+   "baths": 2.5,
+   "sqft": 1187
+  },
+  {
+   "address": "4540 Dolcetto Common",
+   "price": 759737,
+   "was_price": 834572,
+   "beds": 2,
+   "baths": 2.5,
+   "sqft": 1436
+  }
+ ],
+ "plans": [
+  {
+   "name": "Residence 1",
+   "from_price": 730000,
+   "sqft_min": 1187,
+   "beds_max": 2
+  },
+  {
+   "name": "Residence 2",
+   "from_price": 730000,
+   "sqft_min": 1436,
+   "beds_max": 2
+  }
+ ],
+ "incentive_kinds": [
+  [
+   "price_cut"
+  ],
+  [
+   "perm_rate",
+   "unquantified"
+  ]
+ ]
+}

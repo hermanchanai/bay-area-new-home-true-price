@@ -1,0 +1,48 @@
+{
+ "page": "trumark/new-homes__ca__manteca__origin-at-the-collective-55",
+ "url": "https://trumarkhomes.com/new-homes/ca/manteca/origin-at-the-collective-55/",
+ "builder": "trumark",
+ "fetch_date": "2026-10-27",
+ "page_sha256": "c2520725a6519156d0ac31ecd3d0f165d21fd765b0fb7936ddbc90539fda49a3",
+ "homes": [
+  {
+   "address": "940 Conrad Street",
+   "price": 706055,
+   "was_price": null,
+   "beds": 2,
+   "baths": 2.5,
+   "sqft": 2703
+  },
+  {
+   "address": "1453 Sparrow Ave",
+   "price": 646148,
+   "was_price": null,
+   "beds": 2,
+   "baths": 2.5,
+   "sqft": 2621
+  },
+  {
+   "address": "927 Conrad Street",
+   "price": 669294,
+   "was_price": null,
+   "beds": 2,
+   "baths": 2.5,
+   "sqft": 2703
+  }
+ ],
+ "plans": [
+  {
+   "name": "Residence 1",
+   "from_price": 644405,
+   "sqft_min": 2621,
+   "beds_max": 2
+  },
+  {
+   "name": "Residence 2",
+   "from_price": 669294,
+   "sqft_min": 2703,
+   "beds_max": 3
+  }
+ ],
+ "incentive_kinds": []
+}

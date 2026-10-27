@@ -1,0 +1,59 @@
+{
+ "page": "trumark/new-homes__ca__san-ramon__deerwood-heights",
+ "url": "https://trumarkhomes.com/new-homes/ca/san-ramon/deerwood-heights/",
+ "builder": "trumark",
+ "fetch_date": "2026-10-27",
+ "page_sha256": "456b4d4f7a23224062e1ca1f5e7c3e089662aa78c2165827cdbf29860d4f860a",
+ "homes": [
+  {
+   "address": "2003 Cascade Way",
+   "price": 1167000,
+   "was_price": null,
+   "beds": 3,
+   "baths": 3.5,
+   "sqft": 1925
+  },
+  {
+   "address": "2009 Cascade Way",
+   "price": 995000,
+   "was_price": null,
+   "beds": 3,
+   "baths": 3.0,
+   "sqft": 1399
+  },
+  {
+   "address": "2001 Cascade Way",
+   "price": 1195000,
+   "was_price": null,
+   "beds": 3,
+   "baths": 3.5,
+   "sqft": 2001
+  }
+ ],
+ "plans": [
+  {
+   "name": "Residence 1",
+   "from_price": 995000,
+   "sqft_min": 1399,
+   "beds_max": 3
+  },
+  {
+   "name": "Residence 3",
+   "from_price": 1167000,
+   "sqft_min": 1925,
+   "beds_max": 3
+  },
+  {
+   "name": "Residence 4",
+   "from_price": 1195000,
+   "sqft_min": 2001,
+   "beds_max": 3
+  }
+ ],
+ "incentive_kinds": [
+  [
+   "perm_rate",
+   "unquantified"
+  ]
+ ]
+}

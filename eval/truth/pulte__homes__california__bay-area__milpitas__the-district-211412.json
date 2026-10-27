@@ -1,0 +1,129 @@
+{
+ "page": "pulte/homes__california__bay-area__milpitas__the-district-211412",
+ "url": "https://www.pulte.com/homes/california/bay-area/milpitas/the-district-211412",
+ "builder": "pulte",
+ "fetch_date": "2026-10-27",
+ "page_sha256": "a89547bd8fb202ad1a77dbf4e2aa8392673a8a2a18543c36f7e73d07db702c43",
+ "homes": [
+  {
+   "address": "1351 Laurel Way",
+   "price": 858966,
+   "was_price": 1018966,
+   "beds": 3,
+   "baths": 3.0,
+   "sqft": 1604
+  },
+  {
+   "address": "1357 Laurel Way",
+   "price": 1013923,
+   "was_price": 1113923,
+   "beds": 3,
+   "baths": 2.0,
+   "sqft": 1762
+  },
+  {
+   "address": "1307 Laurel Way",
+   "price": 963707,
+   "was_price": 1138707,
+   "beds": 3,
+   "baths": 3.0,
+   "sqft": 1762
+  },
+  {
+   "address": "1319 Laurel Way",
+   "price": 1046742,
+   "was_price": 1221742,
+   "beds": 3,
+   "baths": 3.0,
+   "sqft": 1949
+  },
+  {
+   "address": "1309 Laurel Way",
+   "price": 1099977,
+   "was_price": 1224977,
+   "beds": 3,
+   "baths": 3.0,
+   "sqft": 1949
+  },
+  {
+   "address": "1361 Laurel Way",
+   "price": 1096773,
+   "was_price": 1271773,
+   "beds": 3,
+   "baths": 3.0,
+   "sqft": 2175
+  },
+  {
+   "address": "1345 Lilac Way",
+   "price": 1196887,
+   "was_price": 1296887,
+   "beds": 3,
+   "baths": 3.0,
+   "sqft": 1537
+  },
+  {
+   "address": "1339 Laurel Way",
+   "price": 1177813,
+   "was_price": 1302813,
+   "beds": 3,
+   "baths": 3.0,
+   "sqft": 2175
+  },
+  {
+   "address": "1303 Laurel Way",
+   "price": 1128219,
+   "was_price": 1303219,
+   "beds": 3,
+   "baths": 3.0,
+   "sqft": 2175
+  },
+  {
+   "address": "1325 Laurel Way",
+   "price": 1204382,
+   "was_price": 1329382,
+   "beds": 3,
+   "baths": 3.0,
+   "sqft": 2175
+  },
+  {
+   "address": "612 Chamise Way",
+   "price": 1199703,
+   "was_price": 1499703,
+   "beds": 3,
+   "baths": 3.5,
+   "sqft": 1911
+  },
+  {
+   "address": "1343 Lilac Way",
+   "price": 1346093,
+   "was_price": 1521093,
+   "beds": 3,
+   "baths": 3.5,
+   "sqft": 1911
+  },
+  {
+   "address": "1325 Lilac Way",
+   "price": 1279436,
+   "was_price": 1579436,
+   "beds": 3,
+   "baths": 3.5,
+   "sqft": 1967
+  }
+ ],
+ "plans": null,
+ "incentive_kinds": [
+  [
+   "price_cut"
+  ],
+  [
+   "arm_promo"
+  ],
+  [
+   "flat_cash",
+   "closing_credit"
+  ],
+  [
+   "flat_cash"
+  ]
+ ]
+}

@@ -1,0 +1,65 @@
+{
+ "page": "pulte/homes__california__bay-area__saratoga__the-elms-211096",
+ "url": "https://www.pulte.com/homes/california/bay-area/saratoga/the-elms-211096",
+ "builder": "pulte",
+ "fetch_date": "2026-10-27",
+ "page_sha256": "a2cfa7217dd5b77342a7cec9c327adaaa5f1b0b7da1818c4874da2b6c1bc59ca",
+ "homes": [
+  {
+   "address": "11435 Willow Place",
+   "price": 1699955,
+   "was_price": 1842955,
+   "beds": 2,
+   "baths": 2.5,
+   "sqft": 1562
+  },
+  {
+   "address": "11345 Cottonwood Place",
+   "price": 1945144,
+   "was_price": 2070144,
+   "beds": 3,
+   "baths": 3.0,
+   "sqft": 1741
+  },
+  {
+   "address": "11220 Cottonwood Place",
+   "price": 1953335,
+   "was_price": 2078335,
+   "beds": 3,
+   "baths": 3.0,
+   "sqft": 1741
+  },
+  {
+   "address": "11145 Maple Place",
+   "price": 1872853,
+   "was_price": 2122853,
+   "beds": 3,
+   "baths": 3.0,
+   "sqft": 1741
+  },
+  {
+   "address": "11240 Cottonwood Place",
+   "price": 2080413,
+   "was_price": 2230413,
+   "beds": 3,
+   "baths": 3.0,
+   "sqft": 1828
+  }
+ ],
+ "plans": null,
+ "incentive_kinds": [
+  [
+   "price_cut"
+  ],
+  [
+   "arm_promo"
+  ],
+  [
+   "flat_cash",
+   "closing_credit"
+  ],
+  [
+   "flat_cash"
+  ]
+ ]
+}

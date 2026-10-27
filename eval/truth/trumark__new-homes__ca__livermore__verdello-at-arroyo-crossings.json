@@ -1,0 +1,48 @@
+{
+ "page": "trumark/new-homes__ca__livermore__verdello-at-arroyo-crossings",
+ "url": "https://trumarkhomes.com/new-homes/ca/livermore/verdello-at-arroyo-crossings/",
+ "builder": "trumark",
+ "fetch_date": "2026-10-27",
+ "page_sha256": "d2094aa94616d44d827f02b8d2646f338d6a8c68ecde18b77b8f8e586e71668b",
+ "homes": [
+  {
+   "address": "4686 Vilana Street",
+   "price": 1287128,
+   "was_price": 1423928,
+   "beds": 4,
+   "baths": 3.5,
+   "sqft": 2340
+  },
+  {
+   "address": "4648 Vilana Street",
+   "price": 1280668,
+   "was_price": 1445468,
+   "beds": 4,
+   "baths": 3.5,
+   "sqft": 2453
+  }
+ ],
+ "plans": [
+  {
+   "name": "Residence 2",
+   "from_price": 1230000,
+   "sqft_min": 2340,
+   "beds_max": 4
+  },
+  {
+   "name": "Residence 3",
+   "from_price": 1270000,
+   "sqft_min": 2453,
+   "beds_max": 4
+  }
+ ],
+ "incentive_kinds": [
+  [
+   "price_cut"
+  ],
+  [
+   "perm_rate",
+   "unquantified"
+  ]
+ ]
+}

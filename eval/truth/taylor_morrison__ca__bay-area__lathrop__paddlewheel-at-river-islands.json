@@ -1,0 +1,80 @@
+{
+ "page": "taylor_morrison/ca__bay-area__lathrop__paddlewheel-at-river-islands",
+ "url": "https://www.taylormorrison.com/ca/bay-area/lathrop/paddlewheel-at-river-islands",
+ "builder": "taylor_morrison",
+ "fetch_date": "2026-10-27",
+ "page_sha256": "5af8fb71cc8660340727295b7574bb1633b5787be8e22ba56cec1f8d2572215e",
+ "homes": [
+  {
+   "address": "16441 Barnett Court",
+   "price": 883940,
+   "was_price": null,
+   "beds": 5,
+   "baths": 4.0,
+   "sqft": 3201
+  },
+  {
+   "address": "16449 Barnett Court",
+   "price": 918940,
+   "was_price": null,
+   "beds": 6,
+   "baths": 4.5,
+   "sqft": 3465
+  },
+  {
+   "address": "16507 Barnett Street",
+   "price": 945000,
+   "was_price": null,
+   "beds": 5,
+   "baths": 4.0,
+   "sqft": 2928
+  },
+  {
+   "address": "16519 Barnett Street",
+   "price": 966000,
+   "was_price": null,
+   "beds": 5,
+   "baths": 4.0,
+   "sqft": 3201
+  },
+  {
+   "address": "4212 Ellington Way",
+   "price": 995000,
+   "was_price": null,
+   "beds": 5,
+   "baths": 4.0,
+   "sqft": 2928
+  }
+ ],
+ "plans": [
+  {
+   "name": "Lenten",
+   "beds_max": 5,
+   "sqft_min": 3009,
+   "from_price": 883940
+  },
+  {
+   "name": "Luna",
+   "beds_max": 6,
+   "sqft_min": 3261,
+   "from_price": 918940
+  },
+  {
+   "name": "Lacewood",
+   "beds_max": 5,
+   "sqft_min": 2725,
+   "from_price": 945000
+  },
+  {
+   "name": "Lily",
+   "beds_max": 6,
+   "sqft_min": 3133,
+   "from_price": 1035000
+  }
+ ],
+ "incentive_kinds": [
+  [
+   "arm_promo"
+  ]
+ ]
+}

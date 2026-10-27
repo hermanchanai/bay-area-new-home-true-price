@@ -1,0 +1,60 @@
+{
+ "page": "trumark/new-homes__ca__livermore__solera-at-arroyo-crossings",
+ "url": "https://trumarkhomes.com/new-homes/ca/livermore/solera-at-arroyo-crossings/",
+ "builder": "trumark",
+ "fetch_date": "2026-10-27",
+ "page_sha256": "8a6321ae1cf4f969c2dfdb1288d36299f450065208cacaee58a1e2d1a14ef809",
+ "homes": [
+  {
+   "address": "4810 Dolcetto Common",
+   "price": 886033,
+   "was_price": null,
+   "beds": 3,
+   "baths": 3.0,
+   "sqft": 1585
+  },
+  {
+   "address": "4832 Las Positas Road",
+   "price": 963407,
+   "was_price": 976615,
+   "beds": 3,
+   "baths": 3.0,
+   "sqft": 1812
+  }
+ ],
+ "plans": [
+  {
+   "name": "Residence 1",
+   "from_price": 859000,
+   "sqft_min": 1585,
+   "beds_max": 3
+  },
+  {
+   "name": "Residence 2",
+   "from_price": 935000,
+   "sqft_min": 1812,
+   "beds_max": 3
+  },
+  {
+   "name": "Residence 3",
+   "from_price": 955000,
+   "sqft_min": 1845,
+   "beds_max": 3
+  },
+  {
+   "name": "Residence 4",
+   "from_price": 980000,
+   "sqft_min": 1751,
+   "beds_max": 4
+  }
+ ],
+ "incentive_kinds": [
+  [
+   "price_cut"
+  ],
+  [
+   "perm_rate",
+   "unquantified"
+  ]
+ ]
+}

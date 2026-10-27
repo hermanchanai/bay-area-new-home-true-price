@@ -1,0 +1,57 @@
+{
+ "page": "pulte/homes__california__bay-area__mountain-house__laurel-at-avina-211410",
+ "url": "https://www.pulte.com/homes/california/bay-area/mountain-house/laurel-at-avina-211410",
+ "builder": "pulte",
+ "fetch_date": "2026-10-27",
+ "page_sha256": "243a089ea8bc3e98a8e5966ce06971d6599e771af32227e0860393df9c1e52ea",
+ "homes": [
+  {
+   "address": "329 E Clydesdale Court",
+   "price": 956537,
+   "was_price": 1181537,
+   "beds": 4,
+   "baths": 3.0,
+   "sqft": 2562
+  },
+  {
+   "address": "317 E Clydesdale Court",
+   "price": 1043830,
+   "was_price": 1268830,
+   "beds": 5,
+   "baths": 3.5,
+   "sqft": 2992
+  },
+  {
+   "address": "313 E Gobind Blvd",
+   "price": 1078438,
+   "was_price": 1278438,
+   "beds": 5,
+   "baths": 3.5,
+   "sqft": 2992
+  },
+  {
+   "address": "314 E Clydesdale Court",
+   "price": 1077032,
+   "was_price": 1302032,
+   "beds": 5,
+   "baths": 3.5,
+   "sqft": 2992
+  }
+ ],
+ "plans": null,
+ "incentive_kinds": [
+  [
+   "price_cut"
+  ],
+  [
+   "arm_promo"
+  ],
+  [
+   "flat_cash",
+   "closing_credit"
+  ],
+  [
+   "flat_cash"
+  ]
+ ]
+}
