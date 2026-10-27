@@ -40,3 +40,22 @@ truth-parser error as easily as a model error. Fix whichever is wrong, and recor
   `data-fed-ref` JSON, and its offers' fine print is only on `/make-moves/bay-area`.
 - Prices already net of a discount ("Was $1,181,537 / $956,537"): `price` is the shown price and the
   discount is a `price_cut` with `included_in_price = true`, so true-price math never subtracts it twice.
+
+**First run, 2026-10-27** (`muse-spark-1.3-contributor`, 43 pages, $0.07, about 3 minutes with 4 workers)
+The first scoring failed the gate on incentive-kind precision (80.8%). Every disagreement was checked
+against the page text; five were truth-rule errors, fixed test-first in `tests/test_build_truth.py`:
+- Pulte's "Appliance Package" (washer, dryer, fridge) and "paid HOA dues" offers had no truth rule;
+  both are `unquantified`.
+- Pulte Cypress uses a second card layout ("337 E Beatrice Avenue ," / "Mountain House ," / "CA" /
+  ZIP, lowercase labels); the parser skipped its 3 homes, which are real ($300K "Was" cuts).
+- Trumark's "NOTE RATE" matched on cards for *other* communities under "Around the Area"; offer rules
+  now read only the page's own sections. Its all-homes page has "$61K savings!" badges with no home
+  cards, now a `price_cut`.
+- Trumark "Temporarily Sold Out" plans have no "From $" line; plans now anchor on the sq ft line.
+- Taylor Morrison community pages name "CONV 7/6 ARM" in a banner with no rate; by our own rules that
+  is `arm_promo` or `unquantified`. Pages with no floorplan JSON (plans only in prose) are unlabelled.
+After the fixes: gate PASS (home recall 99.3%, everything else ≥ 95.7%). Remaining misses are the
+model's: it skipped the rate-less ARM banner on 4 TM pages, missed one Trumark home (1310 Parkcrest
+Circle, a repeated card) and read one Pulte 3.5-bath home as 3.0.
+Caution: these truth fixes were found *because* the model disagreed, so this set now flatters the
+model a little. Judge Day 3's new builders on fresh truth before trusting the 100% figures.

@@ -30,8 +30,8 @@ Every model call in the product goes to a Meta model. The code itself was writte
 | Builder page fetch (`tools/fetch_builder_pages.py`): Taylor Morrison, Pulte, Trumark | done, 41 communities |
 | Page preprocessing (`tools/preprocess_page.py`) | done: 0.1–5 MB of HTML → 3k–31k tokens per page |
 | Model client (`tools/llm.py`): cache, cost ledger, budget guard | done |
-| Truth labels (`tools/build_truth.py`, no model): 43 pages, 133 homes, 76 plans | done |
-| Extraction (`tools/extract_listing.py`) + eval (`tools/eval_extraction.py`) | built; first Muse Spark run pending |
+| Truth labels (`tools/build_truth.py`, no model): 43 pages, 136 homes, 81 plans | done |
+| Extraction (`tools/extract_listing.py`) + eval (`tools/eval_extraction.py`) | Muse Spark contributor passes the 90% gate on 43 pages ([report](eval/reports/2026-10-27__muse-spark-1.3-contributor.md)) |
 | Floor plans, parcel linking, agent, map | next |
 
 ## How incentives become dollars
@@ -79,3 +79,7 @@ building period.
     11 communities, Pulte 12, Trumark 18, with zero errors and zero robots refusals.
   - Muse Spark client with disk cache, cost ledger and a hard budget guard; page preprocessor;
     model-free truth labels for 43 pages; extractor with JSON-schema output; eval with a 90% gate.
+  - First Muse Spark run (contributor mode, 43 pages, $0.07): home recall 99.3%, precision, price,
+    beds and sq ft 100%, incentive kinds 95.7% recall / 100% precision. The first scoring failed at
+    80.8% kind precision; reading the misses showed the model was right and five truth rules were
+    wrong (fixed test-first, listed in `workflows/extract_listing.md`).
