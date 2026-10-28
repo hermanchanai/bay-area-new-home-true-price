@@ -2,6 +2,7 @@
 
     python -m tools.llm --spend     # spend per provider/model against each cap
     python -m tools.llm --ping      # one tiny call: checks the key and request format
+    python -m tools.llm --ping --provider fireworks    # same, on a Muse Spark Open host
 
 Providers speak OpenAI-style chat completions (Meta Model API: POST /v1/chat/completions).
 Model ids, prices and caps live in config/llm.yaml.
@@ -197,9 +198,11 @@ if __name__ == "__main__":
     ap = argparse.ArgumentParser()
     ap.add_argument("--spend", action="store_true")
     ap.add_argument("--ping", action="store_true")
+    ap.add_argument("--provider", help="ping another provider (its first model in config/llm.yaml)")
     a = ap.parse_args()
     if a.ping:
+        model = next(iter(load_config()["providers"][a.provider]["models"])) if a.provider else None
         r = chat([{"role": "user", "content": 'Reply with the JSON {"ok": true} and nothing else.'}],
-                 purpose="ping")
+                 purpose="ping", provider=a.provider, model=model)
         print(f"reply={r.text!r} finish={r.finish_reason} usage={r.usage} cost=${r.cost_usd:.6f}")
     print_spend()
