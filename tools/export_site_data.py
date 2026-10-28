@@ -73,18 +73,26 @@ def summarize(conn, today: str) -> list[dict]:
              "has_past_sales": r["past_n"] is not None} for r in rows]
 
 
+def _why(method: str, flags: str | None) -> str | None:
+    """Why an offer isn't counted for this home: already in its price, limited to some buyers, or conditional."""
+    if method == "in_asking_price":
+        return "in_price"
+    return next((f for f in json.loads(flags or "[]") if f in ("eligibility_limited", "conditional")), None)
+
+
 def community_detail(conn, cid: int, today: str) -> dict:
     d = get_community(conn, cid, today)
     d["plans"] = [get_plan(conn, p["plan_id"], rooms=True) for p in d["plans"]]
     for i in d["incentives"]:
         i.pop("fine_print", None)
     offers = {}
-    for r in conn.execute("SELECT v.home_id, v.incentive_id, v.value_low, v.value_high, v.flags FROM incentive_values v "
+    for r in conn.execute("SELECT v.home_id, v.incentive_id, v.value_low, v.value_high, v.method, v.flags "
+                          "FROM incentive_values v "
                           "JOIN homes h ON h.id = v.home_id WHERE h.community_id = ? ORDER BY v.value_high DESC",
                           (cid,)):
         offers.setdefault(r["home_id"], []).append(
             {"incentive_id": r["incentive_id"], "value_low": r["value_low"], "value_high": r["value_high"],
-             "counted": "not_counted" not in (r["flags"] or "")})
+             "counted": "not_counted" not in (r["flags"] or ""), "why": _why(r["method"], r["flags"])})
     for h in d["homes"]:
         h["offers"] = offers.get(h["home_id"], [])
     return d

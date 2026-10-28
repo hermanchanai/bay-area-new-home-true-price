@@ -170,11 +170,13 @@ function closeDrawer() {
   document.body.style.overflow = "";
 }
 
+const WHY = { eligibility_limited: "some buyers only, not counted", conditional: "paid only if the builder misses its date, not counted" };
+
 function drawerHTML(d) {
   const c = S.comms[d.community_id];
   const inc = Object.fromEntries(d.incentives.map((i) => [i.incentive_id, i]));
   const homes = d.homes.map((h) => {
-    const offers = h.offers.map((o) => `<li>${esc(inc[o.incentive_id]?.label || "Offer")}: <span class="num">${range(o.value_low, o.value_high)}</span>${o.counted ? "" : " <span class='text-slate-400'>(not counted)</span>"}</li>`).join("");
+    const offers = h.offers.map((o) => `<li>${esc(inc[o.incentive_id]?.label || "Offer")}: ${o.why === "in_price" ? "<span class='text-slate-500'>already in the asking price</span>" : `<span class="num">${range(o.value_low, o.value_high)}</span>${o.counted ? "" : ` <span class='text-slate-400'>(${WHY[o.why] || "not counted"})</span>`}`}</li>`).join("");
     return `<tr id="home-${h.home_id}" class="border-t border-slate-100 align-top">
       <td class="py-2 pr-2"><div class="font-medium">${esc(h.address || h.lot || "—")}</div>
         <div class="text-xs text-slate-500">${esc(h.plan || "")} · ${beds(h.beds)} bd · ${h.baths ?? "?"} ba${h.sqft ? " · " + h.sqft.toLocaleString() + " sq ft" : ""}</div>

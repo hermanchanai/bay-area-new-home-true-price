@@ -45,7 +45,7 @@ def test_home_incentives_take_its_own_and_community_offers_and_skip_cuts_already
     ])
     got = home_incentives(home, p, p)
     assert [(i["kind"], i["included_in_price"]) for i in got] == [
-        ("price_cut", True), ("flat_cash", False), ("arm_promo", False)]
+        ("price_cut", True), ("flat_cash", True), ("arm_promo", False)]   # savings shown: up-to cash applied
     assert {i["pool_id"] for i in got if i["pool_id"]} == {"b/c:p1"}   # pools never collide across pages
 
 
@@ -87,3 +87,33 @@ def test_only_offers_limited_to_a_buyer_group_are_left_out():
     counted, excluded = pricing_set(general + group, "h1")
     assert [i["kind"] for i in counted] == ["perm_rate", "temp_buydown", "arm_promo"]
     assert [r for _, r in excluded] == ["eligibility_limited", "eligibility_limited"]
+
+
+def test_savings_already_shown_in_the_price_are_the_up_to_cash_offer_applied():
+    # Pulte The Square, 400 Mexico Terrace Unit 9 (2026-10-27): "$220,000 in Savings", $1,090,586, was $1,310,586,
+    # next to "Up to $250K in FLEX Cash". The $220K is the FLEX Cash already applied: never subtract it again.
+    from tools.load_records import pricing_set
+    home = h("400 Mexico Terrace, Unit 9", price=1_090_586, was=1_310_586)
+    flex = inc("flat_cash", amount_usd=250_000, amount_is_up_to=True, label="Up to $250K in FLEX Cash")
+    arm = inc("arm_promo", rate=4.99, structure="7/6 ARM")
+    heroes = inc("flat_cash", amount_usd=2_000, label="$2,000 Hometown Heroes incentive")
+    p = page("b/c", "community", "https://x.com/c", [home], [flex, arm, heroes])
+    got = home_incentives(home, p, p)
+    assert [(i["label"], i["included_in_price"]) for i in got] == [
+        ("Up to $250K in FLEX Cash", True), ("arm_promo", False), ("$2,000 Hometown Heroes incentive", False)]
+    counted, excluded = pricing_set(got, "h1")
+    assert [i["kind"] for i in counted] == ["arm_promo"]                  # the rate offer still counts
+    assert [(i["label"], r) for i, r in excluded] == [("Up to $250K in FLEX Cash", "in_asking_price"),
+                                                      ("$2,000 Hometown Heroes incentive", "eligibility_limited")]
+    full = h("1 A St", price=1_000_000)                                  # no savings shown: the cash offer counts
+    assert home_incentives(full, page("b/d", "community", "https://x.com/d", [full], [flex]),
+                           page("b/d", "community", "https://x.com/d"))[0]["included_in_price"] is False
+
+
+def test_a_closing_date_guarantee_is_not_a_discount():
+    from tools.load_records import pricing_set
+    guarantee = inc("flat_cash", amount_usd=5_000, amount_is_up_to=True,
+                    label="Closing-Ready Guarantee - reimburse up to $5,000 if not ready")
+    counted, excluded = pricing_set([guarantee, inc("perm_rate", rate=5.25)], "h1")
+    assert [i["kind"] for i in counted] == ["perm_rate"]
+    assert [r for _, r in excluded] == ["conditional"]

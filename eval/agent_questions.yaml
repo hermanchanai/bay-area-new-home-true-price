@@ -7,8 +7,9 @@
 #   (true price = the guaranteed end, asking minus offers every buyer gets; "ready by" = the builder's date)
 # - must_mention: text the answer must contain (a list = any one of them), case-insensitive
 # - no_homes: the right answer is "none"; citing any home fails
-# Hand-computed values: q13 1576 Torrey Dr at 10% down: up to $250K flex cash vs the 4.99% 7/6 ARM worth
-#   $63,798 (one choice) -> true price $467,215 to $653,417. q14 337 E Beatrice Ave at 5% down: ARM worth
+# Hand-computed values: q13 1576 Torrey Dr at 10% down: its "$80,000 in Savings" is Pulte's FLEX Cash already
+#   applied (re-derived 2026-10-28), so only the 4.99% 7/6 ARM counts, worth $63,798 -> true price $653,417.
+#   q04 (re-derived 2026-10-28): the biggest "up to" discount, $250,000, is on 8 homes that show no savings yet. q14 337 E Beatrice Ave at 5% down: ARM worth
 #   $74,169 (market 7.32%, FRED 2026-10-22). q10 Cairnway median $804,200 (n 43). q11 Orchard Grove $1,320,100.
 #   q16 Driftway: Residence 1, 1X, 2, 3 all have a downstairs bedroom. q17 Residence 1X owner's suite 14' x 14' 5".
 questions:
@@ -231,8 +232,22 @@ questions:
   question: Which home in San Joaquin County has the biggest discount from builder incentives?
   expect:
     top3_any_of:
-    - 1576 TORREY DR
+    - 3348 ANDEAN WAY
+    - 17131 St. James Lane
+    - 17173 Coral Tree Lane
+    - 3767 Scholl Lane
+    - 17165 Coral Tree Lane
+    - 3753 Scholl Lane
+    - 1529 Riverfront Drive
+    - 1627 Riverfront Drive
     eligible:
+    - 17131 St. James Lane
+    - 17173 Coral Tree Lane
+    - 3767 Scholl Lane
+    - 17165 Coral Tree Lane
+    - 3753 Scholl Lane
+    - 1529 Riverfront Drive
+    - 1627 Riverfront Drive
     - 1576 TORREY DR
     - 337 E Beatrice Avenue
     - 361 E Beatrice Avenue
@@ -424,7 +439,6 @@ questions:
   expect:
     must_mention:
     - '653'
-    - '467'
 - id: q14
   question: With 5% down, how much is the 4.99% ARM offer on 337 E Beatrice Avenue worth?
   expect:

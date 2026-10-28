@@ -17,8 +17,8 @@ Built for the Meta Global AI Developer Hackathon (Indie track, "Build for Your W
 ## In numbers (data read 2026-10-27)
 
 - 462 move-in-ready homes in 116 communities from 15 builders; every home has a street address or lot.
-- 456 homes priced: incentives cut the asking price by 3.6% guaranteed, up to 6.0% at most, at a 7.32%
-  market rate.
+- 456 homes priced: incentives cut the asking price by 3.6% guaranteed, up to 4.1% at most, at a 7.32%
+  market rate. Savings a builder already shows in the price are never counted twice.
 - 27 communities show what earlier buyers paid, from county assessor records.
 - Extraction accuracy on 43 hand-checked pages: home recall 99.3%; price, beds and sq ft 100%.
   Hold-out builder (never tuned on): 151/151 homes.
@@ -199,3 +199,8 @@ building period.
     public readers. Muse Spark Open (open weights) wired on Fireworks and Baseten: the 43-page
     extraction eval passes the gate ($1.04) and the buyer agent scores 20/20 ($0.14), so the live
     site's agent now runs on Muse Spark Open.
+    Pricing fix: a home that already shows savings (Pulte's "$220,000 in Savings" at The Square) has had
+    the builder's "up to $250K FLEX Cash" applied, so that offer is no longer subtracted again; closing-date
+    guarantees and offers naming a buyer group in their label aren't counted either. Best-case prices
+    changed on 80 homes (average best-case discount 6.0% -> 4.1%); guaranteed prices changed on none.
+    Agent eval re-derived for the two affected questions, 20/20.

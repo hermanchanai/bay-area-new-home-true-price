@@ -10,9 +10,13 @@ Rules
   Builder offers pages only fill in missing terms (a "7/6 ARM" banner with no rate); they are never
   stacked as extra offers.
 - A price cut matching was-price minus price is already in the asking price: shown, valued at $0.
+- A home that already shows savings (was-price above price) has had the builder's "up to $X" cash
+  offer applied: Pulte's "$220,000 in Savings" on a home next to "Up to $250K in FLEX Cash" is that
+  FLEX Cash. The up-to offer is shown, valued at $0; rate offers and fixed-amount offers still count.
 - Offers don't stack unless the fine print says they combine (plan §6.7): by default a home's offers
-  are one choice and the best counts. Offers limited to a buyer group (teachers, military ...) are
-  shown, not counted.
+  are one choice and the best counts. Offers limited to a buyer group (teachers, military ...; named in
+  the eligibility or the offer's own label) are shown, not counted, and so are guarantees that pay only
+  if the builder misses a date ("reimburse up to $5,000 if not ready").
 """
 import argparse
 import json
@@ -77,7 +81,11 @@ def assign_homes(pages: list[dict]) -> list[dict]:
 
 def _already_in_price(i: dict, home: dict) -> bool:
     was, price, amt = home.get("was_price"), home.get("price"), i.get("amount_usd")
-    return bool(was and price and amt and abs((was - price) - amt) <= max(1000, 0.01 * amt))
+    if not (was and price and was > price):
+        return False
+    if i["kind"] in ("flat_cash", "price_cut") and i.get("amount_is_up_to"):
+        return True                                       # the savings shown are this offer, applied
+    return i["kind"] == "price_cut" and bool(amt) and abs((was - price) - amt) <= max(1000, 0.01 * amt)
 
 
 def home_incentives(home: dict, page: dict, community_page: dict) -> list[dict]:
@@ -94,8 +102,7 @@ def home_incentives(home: dict, page: dict, community_page: dict) -> list[dict]:
                 continue
             seen.add(key)
             x = dict(i)
-            x["included_in_price"] = bool(i.get("included_in_price")) or (
-                i["kind"] == "price_cut" and _already_in_price(i, home))
+            x["included_in_price"] = bool(i.get("included_in_price")) or _already_in_price(i, home)
             x["pool_id"] = f"{src['page']}:{i['pool_id']}" if i.get("pool_id") else None
             out.append(x)
     return out
@@ -120,6 +127,7 @@ def fill_from_offers(incs: list[dict], offers: list[dict]) -> list[dict]:
 # offers only some buyers can get; "qualified buyers", "FHA", "select homes" stay open to everyone
 BUYER_GROUP = re.compile(r"(?i)teacher|nurse|\bems\b|police|firefight|first responder|military|veteran|hero|"
                          r"educator|healthcare|employee")
+GUARANTEE = re.compile(r"(?i)guarantee|reimburs")
 COMBINABLE = re.compile(r"(?i)\b(?:may|can) be combined\b|\bcombinable with\b")
 NOT_COMBINABLE = re.compile(r"(?i)\b(?:cannot|can ?not|may not|not) be combined\b|\bnot combinable\b")
 
@@ -132,8 +140,10 @@ def pricing_set(incs: list[dict], home_key: str) -> tuple[list[dict], list[tuple
     for i in incs:
         if i.get("included_in_price"):
             excluded.append((i, "in_asking_price"))
-        elif BUYER_GROUP.search(i.get("eligibility") or ""):
+        elif BUYER_GROUP.search(" ".join(filter(None, [i.get("eligibility"), i.get("label")]))):
             excluded.append((i, "eligibility_limited"))
+        elif GUARANTEE.search(i.get("label") or ""):
+            excluded.append((i, "conditional"))
         else:
             text = " ".join(filter(None, [i.get("fine_print"), i.get("label")]))
             stacks = bool(COMBINABLE.search(text)) and not NOT_COMBINABLE.search(text)
@@ -250,7 +260,7 @@ def load(date: str, conn) -> dict:
             for inc_id, i in priced:
                 if reasons.get(id(i)) == "in_asking_price":
                     v_lo = v_hi = 0
-                    method, flags = "in_asking_price", ["not_counted"]
+                    method, flags = "in_asking_price", ["not_counted", "in_asking_price"]
                 else:
                     v = value_incentive(_inc(i), h["price"], market, a_)
                     v_lo, v_hi, method, flags = v.low, v.high, v.method, list(v.flags)
@@ -263,6 +273,10 @@ def load(date: str, conn) -> dict:
             conn.execute("INSERT INTO true_prices VALUES (?,?,?,?,?,?,?)",
                          (home_id, tp.asking, tp.value_low, tp.value_high, tp.true_low, tp.true_high, now))
             stats["priced"] += 1
+        # a community offer is "in the price" only if it is for every home it was attached to (savings vary by home)
+        conn.execute("UPDATE incentives SET included_in_price = NOT EXISTS (SELECT 1 FROM incentive_values v "
+                     "WHERE v.incentive_id = incentives.id AND v.method != 'in_asking_price') "
+                     "AND EXISTS (SELECT 1 FROM incentive_values v WHERE v.incentive_id = incentives.id)")
     stats["market_rate"] = f"{market}% ({rate_date})"
     return stats
 
