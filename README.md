@@ -27,12 +27,14 @@ Every model call in the product goes to a Meta model. The code itself was writte
 | Incentive pricing (`tools/price_incentives.py`) | done, 17 unit tests |
 | Market rate (`tools/fetch_market_rate.py`, FRED MORTGAGE30US) | done |
 | Assessor pulls (`tools/pull_assessor.py`): Alameda, Contra Costa, San Joaquin | done, 155k parcels + 14.5k priced Alameda sales |
-| Builder page fetch (`tools/fetch_builder_pages.py`): Taylor Morrison, Pulte, Trumark | done, 41 communities |
+| Builder page fetch (`tools/fetch_builder_pages.py`): 19 builders | done: 209 community pages + 73 single-home pages; 3 builders skipped (JS-only / bot challenge), logged |
 | Page preprocessing (`tools/preprocess_page.py`) | done: 0.1–5 MB of HTML → 3k–31k tokens per page |
 | Model client (`tools/llm.py`): cache, cost ledger, budget guard | done |
 | Truth labels (`tools/build_truth.py`, no model): 43 pages, 136 homes, 81 plans | done |
 | Extraction (`tools/extract_listing.py`) + eval (`tools/eval_extraction.py`) | Muse Spark contributor passes the 90% gate on 43 pages ([report](eval/reports/2026-10-27__muse-spark-1.3-contributor.md)) |
-| Floor plans, parcel linking, agent, map | next |
+| Validation (`tools/validate_records.py`) + routing (contributor → standard → review) | done; 6 of 286 pages in the review queue |
+| Coverage (`tools/coverage_report.py`) | Day 3 gate PASS: 463 unique homes, 100% with address or lot ([report](eval/reports/2026-10-27__coverage.md)) |
+| Floor plans, true prices, parcel linking, agent, map | next |
 
 ## How incentives become dollars
 
@@ -83,3 +85,9 @@ building period.
     beds and sq ft 100%, incentive kinds 95.7% recall / 100% precision. The first scoring failed at
     80.8% kind precision; reading the misses showed the model was right and five truth rules were
     wrong (fixed test-first, listed in `workflows/extract_listing.md`).
+  - Day 3 (same day): 16 more builders; discovery now reads the city from the page itself when URLs
+    don't name it, follows Lennar's master plans and Meritage's single-home pages. FCB, D.R. Horton and
+    Richmond American skipped (no data without the site's JavaScript; D.R. Horton shows a bot
+    challenge). Routed extraction over 286 pages: 10 escalated to Muse Spark standard, 6 left for
+    review. Hold-out check on Lennar (truth parsed from its own homesite data, prompt never tuned on
+    it): 151/151 homes, price/beds/baths/sq ft 100%. Meta spend to date $2.34.

@@ -59,3 +59,23 @@ model's: it skipped the rate-less ARM banner on 4 TM pages, missed one Trumark h
 Circle, a repeated card) and read one Pulte 3.5-bath home as 3.0.
 Caution: these truth fixes were found *because* the model disagreed, so this set now flatters the
 model a little. Judge Day 3's new builders on fresh truth before trusting the 100% figures.
+
+**Routed run (Day 3).** `python -m tools.extract_listing --builder <key>` (no `--purpose`) runs
+`route()`: contributor mode, then `validate_records`; any error or confidence < 0.7 re-runs on Muse
+Spark standard; still failing → `needs_review` in `.tmp/extract/<date>/routes.json` (never dropped).
+`python -m tools.coverage_report` checks the Day 3 gates and lists the review queue.
+Validator rules learned from real pages (each pinned by a test):
+- Quotes stitched from a card's separate lines pass when every token is close together on the page
+  (a Pulte badge sits ~70 tokens above its address); an invented number still fails.
+- Incentives over 25% of the price warn; over 50% fail. Price cuts already in the shown price are
+  judged against the original price (Century: was $1,236,615, now $779,000).
+- A home's quote drifting is a warning; its address and price must be on the page (errors).
+Preprocessor: JSON assigned to JavaScript variables is kept (KB's `var LocalQMIs = [...]`); without it
+KB community pages showed only "Move-in Ready (2)" counts.
+Hold-out (`--builder lennar`): truth from Lennar's own homesite records, built after the prompt was
+frozen: 42 pages, 151/151 homes, every field 100%.
+Review queue 2026-10-27, all correct calls: Century's "3.875% … adjusted for the first 5 years" (ARM
+terms not stated, 3 pages); SummerHill 28FIFTY, where the model built "2859 Josephine Lane" from photo
+file names; three low-confidence pages (Ponderosa, Tri Pointe River Islands).
+Zero-home builders checked by hand: Kiper's Echo and The Rose are rentals; Brookfield Rosewood is sold
+out; City Ventures and Signature list plans only.

@@ -74,8 +74,9 @@ def write_report(date: str, rows: list[dict], g: dict, review: list[dict]) -> Pa
         lines.append(f"| {r['builder']} | {fetched} | {r['pages']} | {r['homes']} | {r['with_address']} | "
                      f"{r['lot_only']} | {r['neither']} | {r['escalated']} | {r['needs_review']} |")
     lines += ["", "## Needs review", ""] + [
-        f"- {r['page']} ({r['model']}): " + "; ".join(f"{i['where']} {i['rule']}" for i in r["issues"]
-                                                      if i["severity"] == "error") for r in review] or ["- none"]
+        f"- {r['page']} ({r['model']}): " + ("; ".join(f"{i['where']} {i['rule']}" for i in r["issues"]
+                                                       if i["severity"] == "error") or "confidence < 0.7")
+        for r in review] or ["- none"]
     path = REPORTS / f"{date}__coverage.md"
     path.write_text("\n".join(lines) + "\n")
     return path
