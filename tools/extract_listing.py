@@ -181,9 +181,7 @@ if __name__ == "__main__":
             routes.append({"page": f"{t['builder']}/{t['stem']}", "url": t["url"], "model": r["model"],
                            "escalated": r["escalated"], "needs_review": r["needs_review"], "issues": r["issues"]})
             return t, r["record"], None
-        except llm.BudgetExceeded:
-            raise
-        except Exception as e:  # one bad page never sinks the run; it's listed below
+        except Exception as e:  # one bad page never sinks the run (a spent cap included); it's listed below
             return t, None, f"{type(e).__name__}: {str(e)[:300]}"
 
     with ThreadPoolExecutor(a.workers) as pool:

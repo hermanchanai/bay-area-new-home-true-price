@@ -130,3 +130,17 @@ def test_tool_calls_are_sent_returned_and_replayed_from_cache(env):
     assert (r.text, r.tool_calls, r.finish_reason) == ("", calls, "tool_calls")
     again = llm.chat([{"role": "user", "content": "q"}], purpose="t", tools=tools, session=FakeSession(), **env)
     assert again.from_cache and again.tool_calls == calls        # agent eval re-runs cost $0
+
+
+def test_daily_cap_counts_only_todays_spend(env):
+    from datetime import UTC, datetime
+    cfg = {**CFG, "providers": {"meta": {**CFG["providers"]["meta"], "cap_usd": 100, "daily_cap_usd": 0.50}}}
+    today = datetime.now(UTC).isoformat(timespec="seconds")
+    ins = "INSERT INTO llm_calls (provider, model, purpose, cache_key, cost_usd, ok, created_at) VALUES ('meta','m','t','x',?,1,?)"
+    env["conn"].execute(ins, (5.0, "2026-01-01T09:00:00+00:00"))           # an old day: never counts today
+    s = FakeSession(ok())
+    llm.chat([{"role": "user", "content": "a"}], purpose="t", session=s, conn=env["conn"], cache_dir=env["cache_dir"], cfg=cfg)
+    env["conn"].execute(ins, (0.499, today))
+    with pytest.raises(llm.BudgetExceeded, match="today"):
+        llm.chat([{"role": "user", "content": "b"}], purpose="t", session=FakeSession(), conn=env["conn"],
+                 cache_dir=env["cache_dir"], cfg=cfg)

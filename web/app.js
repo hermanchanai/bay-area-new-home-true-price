@@ -7,6 +7,7 @@ const $ = (s) => document.querySelector(s);
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
 const usd = (n) => (n == null ? "—" : "$" + Math.round(n).toLocaleString("en-US"));
 const short = (n) => (n == null ? "—" : n >= 1e6 ? "$" + (n / 1e6).toFixed(2).replace(/\.?0+$/, "") + "M" : "$" + Math.round(n / 1e3) + "K");
+const day = (d) => new Date(d + "T12:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric" });
 const range = (lo, hi) => (lo == null ? "—" : lo === hi ? usd(hi) : `${usd(lo)} – ${usd(hi)}`);
 const beds = (b) => (b == null ? "?" : Number.isInteger(b) ? b : b.toFixed(1));
 const MONTH = (ym) => (ym ? new Date(ym + "-15").toLocaleString("en-US", { month: "short", year: "numeric" }) : "date not given");
@@ -47,8 +48,13 @@ async function boot() {
     `<b>${m.assumptions.term_years}-year fixed</b> mortgage at the market rate, <b>${m.market_rate}%</b> ` +
     `(Freddie Mac's weekly survey via FRED, ${m.rate_date}); a loan above the county's conforming limit pays 0.25 points more. ` +
     `Open a community to rerun it with your own down payment.`;
+  const hm = m.history || {};
+  if (hm.checks) $("#method-history").innerHTML = `Prices are checked every day: ${hm.checks} check${hm.checks > 1 ? "s" : ""} ` +
+    `since ${day(hm.first)}${hm.price_changed != null ? `; at the last one, ${hm.price_changed} asking price${hm.price_changed === 1 ? "" : "s"} changed, ` +
+    `${hm.new} home${hm.new === 1 ? "" : "s"} appeared and ${hm.gone} came off the list` : ""}. ` +
+    `<a class="text-sky-700 underline" href="data/price_history.csv" download>Download the full price history (CSV)</a>.`;
   examples();
-  initMap();
+  await initMap();
   ["#f-county", "#f-max", "#f-beds", "#f-product", "#f-now"].forEach((id) => $(id).addEventListener("change", () => { S.shown = 30; render(); }));
   render();
   window.addEventListener("hashchange", route);
@@ -75,17 +81,72 @@ const BINS = [
 ];
 const colorFor = (pct) => [...BINS].reverse().find(([lo]) => (pct || 0) >= lo)[1];
 
-function initMap() {
-  S.map = L.map("map", { scrollWheelZoom: false }).setView([37.6, -121.8], 9);
+// Two map backends with one interface: Google Maps when the deploy has a browser key (config.js, written at export, not in git),
+// else Leaflet on OpenStreetMap tiles.
+function leafletMap(pts) {
+  const map = L.map("map", { scrollWheelZoom: false }).setView([37.6, -121.8], 9);
   L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
     maxZoom: 18, attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
-  }).addTo(S.map);
-  S.layer = L.layerGroup().addTo(S.map);
+  }).addTo(map);
+  const layer = L.layerGroup().addTo(map);
+  map.invalidateSize();
+  if (pts.length) map.fitBounds(pts, { padding: [20, 20], maxZoom: 12 });
+  return {
+    clear: () => layer.clearLayers(),
+    pin: (lat, lng, radius, color, html) => L.circleMarker([lat, lng], { radius, color: "#0f172a", weight: 1,
+      fillColor: color, fillOpacity: 0.9 }).bindPopup(html).addTo(layer),
+    focus: (lat, lng) => map.setView([lat, lng], Math.max(map.getZoom(), 12)),
+  };
+}
+
+async function googleMap(key, pts) {
+  await new Promise((resolve, reject) => {
+    window.__gmapsReady = resolve;
+    const tag = document.createElement("script");
+    tag.src = `https://maps.googleapis.com/maps/api/js?key=${encodeURIComponent(key)}&v=weekly&loading=async&callback=__gmapsReady`;
+    tag.async = true;
+    tag.onerror = reject;
+    document.head.appendChild(tag);
+  });
+  const { Map, InfoWindow } = await google.maps.importLibrary("maps");
+  const { Marker } = await google.maps.importLibrary("marker");
+  const map = new Map($("#map"), { center: { lat: 37.6, lng: -121.8 }, zoom: 9, gestureHandling: "cooperative",
+    mapTypeControl: false, streetViewControl: false, clickableIcons: false });
+  if (pts.length) {
+    const b = new google.maps.LatLngBounds();
+    pts.forEach(([lat, lng]) => b.extend({ lat, lng }));
+    map.fitBounds(b, 20);
+    google.maps.event.addListenerOnce(map, "idle", () => map.getZoom() > 12 && map.setZoom(12));
+  }
+  const info = new InfoWindow();
+  let pins = [];
+  return {
+    clear: () => { pins.forEach((m) => m.setMap(null)); pins = []; },
+    pin: (lat, lng, radius, color, html) => {
+      const m = new Marker({ map, position: { lat, lng }, icon: { path: google.maps.SymbolPath.CIRCLE, scale: radius,
+        fillColor: color, fillOpacity: 0.9, strokeColor: "#0f172a", strokeWeight: 1 } });
+      m.addListener("click", () => { info.setContent(html); info.open({ anchor: m, map }); });
+      pins.push(m);
+    },
+    focus: (lat, lng) => { map.setCenter({ lat, lng }); map.setZoom(Math.max(map.getZoom(), 12)); },
+  };
+}
+
+async function initMap() {
   $("#legend").innerHTML = `<span class="font-medium">Incentives worth up to (share of asking):</span>` +
     BINS.map(([, c, l]) => `<span class="flex items-center gap-1"><span class="inline-block w-3 h-3 rounded-full" style="background:${c}"></span>${l}</span>`).join("");
   const pts = S.site.communities.filter((c) => c.lat != null).map((c) => [c.lat, c.lng]);
-  S.map.invalidateSize();
-  if (pts.length) S.map.fitBounds(pts, { padding: [20, 20], maxZoom: 12 });
+  if (window.GMAPS_KEY) {
+    try {
+      S.map = await googleMap(window.GMAPS_KEY, pts);
+      $("#map-credit").textContent = "Map data © Google.";
+      return;
+    } catch (e) {
+      console.warn("Google Maps did not load; using OpenStreetMap", e);
+      $("#map").innerHTML = "";
+    }
+  }
+  S.map = leafletMap(pts);
 }
 
 function render() {
@@ -94,21 +155,17 @@ function render() {
   homes.forEach((h) => (byComm[h.community_id] ||= []).push(h));
   $("#count").textContent = `${homes.length} homes in ${Object.keys(byComm).length} communities`;
 
-  S.layer.clearLayers();
+  S.map.clear();
   const unmapped = [];
   Object.entries(byComm).forEach(([id, hs]) => {
     const c = S.comms[id];
     if (c.lat == null) return unmapped.push(c);
     const cheapest = hs[0];
-    L.circleMarker([c.lat, c.lng], {
-      radius: 6 + Math.min(10, Math.sqrt(hs.length) * 2), color: "#0f172a", weight: 1,
-      fillColor: colorFor(c.max_discount_pct_best), fillOpacity: 0.9,
-    }).bindPopup(`<div class="text-sm"><div class="font-semibold">${esc(c.name)}</div>
+    S.map.pin(c.lat, c.lng, 6 + Math.min(10, Math.sqrt(hs.length) * 2), colorFor(c.max_discount_pct_best), `<div class="text-sm"><div class="font-semibold">${esc(c.name)}</div>
       <div class="text-xs text-slate-500">${esc(c.builder)} · ${esc(c.city)}</div>
       <div class="mt-1 num">${hs.length} home${hs.length > 1 ? "s" : ""} match · true price from <b>${short(cheapest.true_price_high ?? cheapest.asking)}</b></div>
       <div class="text-xs num">Incentives worth up to ${c.max_discount_pct_best ?? 0}% of asking (${c.max_discount_pct ?? 0}% guaranteed)</div>
-      <a href="#c/${c.id}" class="inline-block mt-2 text-sky-700 font-medium">Open community →</a></div>`)
-      .addTo(S.layer);
+      <a href="#c/${c.id}" class="inline-block mt-2 text-sky-700 font-medium">Open community →</a></div>`);
   });
   $("#unmapped").textContent = unmapped.length
     ? `${unmapped.length} matching ${unmapped.length > 1 ? "communities have" : "community has"} no map pin yet (streets too new for public maps): ${unmapped.map((c) => c.name).join(", ")}. They're in the list.`
@@ -155,7 +212,7 @@ async function route() {
     row?.scrollIntoView({ block: "center" });
   }
   const c = S.comms[cid];
-  if (c.lat != null) S.map.setView([c.lat, c.lng], Math.max(S.map.getZoom(), 12));
+  if (c.lat != null) S.map.focus(c.lat, c.lng);
 }
 
 function openDrawer(html) {
@@ -170,6 +227,18 @@ function closeDrawer() {
   document.body.style.overflow = "";
 }
 
+function historyHTML(h) {
+  const hs = h.history || [];
+  if (hs.length < 2) return "";
+  const diff = hs[hs.length - 1][1] - hs[0][1];
+  const head = diff === 0 ? `Asking unchanged since ${day(hs[0][0])}`
+    : `Asking ${diff < 0 ? "down" : "up"} ${usd(Math.abs(diff))} since ${day(hs[0][0])}`;
+  const tone = diff < 0 ? "text-emerald-700" : diff > 0 ? "text-rose-700" : "text-slate-500";
+  const rows = hs.map(([d, a, t]) => `<li>${day(d)}: asking ${usd(a)} · true ${usd(t)}</li>`).join("");
+  return `<details class="text-xs mt-1"><summary class="cursor-pointer ${tone}">${head} · ${hs.length} daily checks</summary>
+    <ul class="pl-4 mt-1 num">${rows}</ul></details>`;
+}
+
 const WHY = { eligibility_limited: "some buyers only, not counted", conditional: "paid only if the builder misses its date, not counted" };
 
 function drawerHTML(d) {
@@ -181,6 +250,7 @@ function drawerHTML(d) {
       <td class="py-2 pr-2"><div class="font-medium">${esc(h.address || h.lot || "—")}</div>
         <div class="text-xs text-slate-500">${esc(h.plan || "")} · ${beds(h.beds)} bd · ${h.baths ?? "?"} ba${h.sqft ? " · " + h.sqft.toLocaleString() + " sq ft" : ""}</div>
         <div class="text-xs text-slate-500">${ready(h)}</div>
+        ${historyHTML(h)}
         ${offers ? `<details class="text-xs mt-1"><summary class="cursor-pointer text-sky-700">${h.offers.length} offer${h.offers.length > 1 ? "s" : ""} (pick one)</summary><ul class="list-disc pl-4 mt-1">${offers}</ul></details>` : ""}</td>
       <td class="py-2 pr-2 text-right num">${usd(h.asking)}</td>
       <td class="py-2 text-right num font-semibold" data-true="${h.home_id}">${range(h.true_price_low, h.true_price_high)}</td></tr>`;

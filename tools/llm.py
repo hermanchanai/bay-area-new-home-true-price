@@ -62,9 +62,12 @@ def cost_usd(price: dict, prompt: int, cached: int, completion: int) -> float:
             + completion * price["output"]) / 1e6
 
 
-def spent(conn, provider: str) -> float:
-    return conn.execute("SELECT COALESCE(SUM(cost_usd), 0) FROM llm_calls WHERE provider = ?",
-                        (provider,)).fetchone()[0]
+def spent(conn, provider: str, since: str | None = None) -> float:
+    sql, args = "SELECT COALESCE(SUM(cost_usd), 0) FROM llm_calls WHERE provider = ?", [provider]
+    if since:
+        sql += " AND created_at >= ?"
+        args.append(since)
+    return conn.execute(sql, args).fetchone()[0]
 
 
 def parse_json(text: str):
@@ -133,6 +136,11 @@ def chat(messages: list[dict], *, purpose: str, provider: str | None = None, mod
     if used + worst > prov["cap_usd"]:
         raise BudgetExceeded(f"{provider}: spent ${used:.4f} + worst case ${worst:.4f} "
                              f"> cap ${prov['cap_usd']:.2f}")
+    if prov.get("daily_cap_usd") is not None:     # UTC day; the daily price check's ceiling
+        today = spent(conn, provider, datetime.now(timezone.utc).date().isoformat())
+        if today + worst > prov["daily_cap_usd"]:
+            raise BudgetExceeded(f"{provider}: spent ${today:.4f} today + worst case ${worst:.4f} "
+                                 f"> daily cap ${prov['daily_cap_usd']:.2f}")
 
     load_dotenv(ROOT / ".env", override=True)
     api_key = os.environ.get(prov["key_env"])

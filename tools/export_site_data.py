@@ -17,10 +17,13 @@ Builder fine print stays out of the JSON (the source link is there instead).
 """
 import json
 import logging
+import os
 import re
 import shutil
 from datetime import date
 from pathlib import Path
+
+from dotenv import load_dotenv
 
 from tools import db
 from tools.agent_tools import (
@@ -32,6 +35,7 @@ from tools.agent_tools import (
     get_plan,
 )
 from tools.eval_agent import RUNS, cited
+from tools.snapshot_prices import home_key
 
 ROOT = Path(__file__).resolve().parent.parent
 WEB = ROOT / "web" / "data"
@@ -80,6 +84,24 @@ def _why(method: str, flags: str | None) -> str | None:
     return next((f for f in json.loads(flags or "[]") if f in ("eligibility_limited", "conditional")), None)
 
 
+def history_meta(conn) -> dict:
+    """How many daily checks are on record, and what changed at the last one."""
+    days = [r[0] for r in conn.execute("SELECT DISTINCT snapshot_date FROM price_history ORDER BY 1")]
+    out = {"first": days[0] if days else None, "last": days[-1] if days else None, "checks": len(days)}
+    if len(days) > 1:
+        prev, last = days[-2], days[-1]
+        q = lambda sql: conn.execute(sql, (prev, last)).fetchone()[0]  # noqa: E731
+        out.update(
+            price_changed=q("SELECT COUNT(*) FROM price_history a JOIN price_history b ON b.home_key = a.home_key "
+                            "WHERE a.snapshot_date = ? AND b.snapshot_date = ? AND a.asking != b.asking"),
+            gone=q("SELECT COUNT(*) FROM price_history a WHERE a.snapshot_date = ? AND NOT EXISTS (SELECT 1 FROM "
+                   "price_history b WHERE b.home_key = a.home_key AND b.snapshot_date = ?)"),
+            new=conn.execute("SELECT COUNT(*) FROM price_history b WHERE b.snapshot_date = ? AND NOT EXISTS (SELECT 1 "
+                             "FROM price_history a WHERE a.home_key = b.home_key AND a.snapshot_date = ?)",
+                             (last, prev)).fetchone()[0])
+    return out
+
+
 def community_detail(conn, cid: int, today: str) -> dict:
     d = get_community(conn, cid, today)
     d["plans"] = [get_plan(conn, p["plan_id"], rooms=True) for p in d["plans"]]
@@ -93,8 +115,12 @@ def community_detail(conn, cid: int, today: str) -> dict:
         offers.setdefault(r["home_id"], []).append(
             {"incentive_id": r["incentive_id"], "value_low": r["value_low"], "value_high": r["value_high"],
              "counted": "not_counted" not in (r["flags"] or ""), "why": _why(r["method"], r["flags"])})
+    builder_id, url = conn.execute("SELECT builder_id, url FROM communities WHERE id = ?", (cid,)).fetchone()
     for h in d["homes"]:
         h["offers"] = offers.get(h["home_id"], [])
+        h["history"] = [list(r) for r in conn.execute(      # [date, asking, guaranteed true price], one per daily check
+            "SELECT snapshot_date, asking, true_high FROM price_history WHERE home_key = ? ORDER BY snapshot_date",
+            (home_key(builder_id, url, h.get("address"), h.get("lot")),))]
     return d
 
 
@@ -140,13 +166,17 @@ def export(conn, out_dir: Path = WEB, db_path: Path = SITE_DB, today: str | None
             "assumptions": {"down_payment_pct": 20, "term_years": 30},
             "communities": len(comms), "mapped": sum(c["lat"] is not None for c in comms),
             "homes": len(homes), "builders": len({c["builder"] for c in comms}),
-            "with_past_sales": sum(c["has_past_sales"] for c in comms)}
+            "with_past_sales": sum(c["has_past_sales"] for c in comms),
+            "history": history_meta(conn)}
     if (out_dir / "c").exists():
         shutil.rmtree(out_dir / "c")
     (out_dir / "c").mkdir(parents=True)
     shown = {c["id"] for c in comms}
     plans = [{"plan_id": r[0], "community_id": r[1], "name": r[2]}
              for r in conn.execute("SELECT id, community_id, name FROM plans ORDER BY id") if r[1] in shown]
+    # Google Maps browser key: public by design (locked to the site's address in Google Cloud), kept out of git.
+    load_dotenv(ROOT / ".env", override=True)
+    (out_dir.parent / "config.js").write_text(f"window.GMAPS_KEY = {json.dumps(os.environ.get('GOOGLE_MAPS_BROWSER_KEY', ''))};\n")
     (out_dir / "site.json").write_text(json.dumps({"meta": meta, "communities": comms, "homes": homes, "plans": plans},
                                                   separators=(",", ":"), default=str))
     for c in comms:

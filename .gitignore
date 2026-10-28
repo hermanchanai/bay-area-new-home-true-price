@@ -9,3 +9,4 @@ data/raw/
 
 # Local Netlify folder
 .netlify
+web/config.js

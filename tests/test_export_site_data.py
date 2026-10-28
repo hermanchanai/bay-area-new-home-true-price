@@ -57,3 +57,18 @@ def test_demo_answers_keep_only_answers_whose_citations_exist(conn, tmp_path):
 def test_question_key_ignores_case_spacing_and_punctuation(q, key):
     from tools.export_site_data import question_key
     assert question_key(q) == key
+
+
+def test_community_pages_carry_each_homes_daily_price_history(conn, tmp_path):
+    from tools.snapshot_prices import snapshot
+    snapshot(conn, "2026-10-27")
+    with conn:
+        conn.execute("UPDATE homes SET price = 880000 WHERE address = '1 Oak St'")
+        conn.execute("UPDATE true_prices SET asking = 880000, true_high = 860000 WHERE home_id = 1")
+    snapshot(conn, "2026-10-28")
+    meta = export(conn, tmp_path / "web", tmp_path / "site.db", today=TODAY)
+    assert meta["history"] == {"first": "2026-10-27", "last": "2026-10-28", "checks": 2,
+                               "price_changed": 1, "gone": 0, "new": 0}
+    d = json.loads((tmp_path / "web" / "c" / "1.json").read_text())
+    oak = next(h for h in d["homes"] if h["address"] == "1 Oak St")
+    assert oak["history"] == [["2026-10-27", 900000, 880000], ["2026-10-28", 880000, 860000]]

@@ -8,6 +8,8 @@ providers:
     key_env: META_API_KEY
     # Hard cap on cumulative spend recorded in llm_calls, of the $150 event credit.
     cap_usd: 120
+    # Per UTC day (tools/daily_refresh.py, Herman 2026-10-28). Unchanged pages hit the cache and cost $0.
+    daily_cap_usd: 1.00
     models:
       muse-spark-1.3: {input: 1.25, cached_input: 0.15, output: 4.25}
       # Same model; "contributor" mode lets Meta train on the request. We only send public

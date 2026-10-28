@@ -91,6 +91,7 @@
   <section class="bg-white border border-slate-200 rounded-xl p-4 text-sm text-slate-600 flex flex-col gap-2">
     <h2 class="font-semibold text-slate-800">How the true price is worked out</h2>
     <p id="method-rate"></p>
+    <p id="method-history"></p>
     <p>Cash, price cuts and closing credits count at face value (a closing credit up to typical closing costs). A
       lower mortgage rate is a range: the low end is what the builder pays to buy it down (the present value of
       the payment savings), the high end is the price cut that would give the same monthly payment at the market rate.
@@ -109,8 +110,10 @@
 <aside id="drawer" class="fixed top-0 right-0 h-full w-full md:w-[680px] bg-white shadow-2xl z-[1001] translate-x-full overflow-y-auto"
        aria-label="Community details"></aside>
 
-<footer class="max-w-7xl mx-auto px-4 pb-8 text-xs text-slate-400">Built for the Meta hackathon, October 2026. Map ©
-  <a class="underline" href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors.</footer>
+<footer class="max-w-7xl mx-auto px-4 pb-8 text-xs text-slate-400">Built for the Meta hackathon, October 2026.
+  <span id="map-credit">Map © <a class="underline" href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors.</span>
+  Pins placed with county parcel data, builders' own maps and OpenStreetMap.</footer>
+<script src="config.js" onerror="void 0"></script>
 <script src="app.js"></script>
 </body>
 </html>
