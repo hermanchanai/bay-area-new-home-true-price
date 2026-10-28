@@ -11,13 +11,64 @@ as a true-price range next to assessor-recorded sale values from earlier phases.
 
 Built for the Meta Global AI Developer Hackathon (Indie track, "Build for Your World").
 
+**Live: https://bay-area-true-price.netlify.app**: map, community pages and an agent you can ask
+("cheapest 4-bed in Contra Costa after incentives, ready now?").
+
+## In numbers (data read 2026-10-27)
+
+- 462 move-in-ready homes in 116 communities from 15 builders; every home has a street address or lot.
+- 456 homes priced: incentives cut the asking price by 3.6% guaranteed, up to 6.0% at most, at a 7.32%
+  market rate.
+- 27 communities show what earlier buyers paid, from county assessor records.
+- Extraction accuracy on 43 hand-checked pages: home recall 99.3%; price, beds and sq ft 100%.
+  Hold-out builder (never tuned on): 151/151 homes.
+- Agent: 20/20 hand-checked questions, every dollar figure traced to a database row.
+- Total Meta model spend for the whole build: about $2.50.
+
 ## Meta models used
-- **Muse Spark Open** (via Baseten / Modal): bulk extraction of homes, plans and incentives across
-  ~20 builder sites with one extractor. *(in progress)*
-- **Muse Spark** (Meta Model API): escalation for hard pages, floor-plan vision, and the buyer agent
-  with tools. *(in progress)*
+
+All on **Muse Spark 1.3** through the Meta Model API:
+
+| Job | Mode | Calls | Cost |
+|---|---|---:|---:|
+| Extract homes, plans and incentives from ~290 builder pages, one extractor for every site | contributor | 645 | $1.62 |
+| Re-extract pages that fail validation | standard | 28 | $0.73 |
+| Read room labels off floor-plan images (vision) | contributor | 432 | $0.10 |
+| Buyer agent with 7 read-only database tools (native tool calls), eval runs | contributor | 173 | $0.05 |
+| Buyer agent for site visitors | standard | live | capped at $2/day |
+
+Contributor mode lets Meta train on the request and is about 12× cheaper. It only ever sees public
+builder pages and my own test questions. Visitors' questions use standard mode. Muse Spark Open (via
+Baseten or Modal) was planned for bulk extraction, but no partner credits arrived in time.
 
 Every model call in the product goes to a Meta model. The code itself was written with Claude Code.
+
+## How it works
+
+```
+builder sites ──fetch (robots.txt, 2 s/host)──► preprocess (embedded JSON + visible text)
+        ──► Muse Spark extract (JSON schema) ──► validate (ranges, quotes must match the page)
+        ──fail──► Muse Spark standard ──fail──► review queue
+        ──► SQLite: homes, plans, incentives ──► incentive pricing (FRED rate) ──► true price range
+county assessor layers (ArcGIS) ──► link parcels by street ──► past-sale estimates per community
+SQLite ──► export ──► static site (Netlify)       SQLite ──► agent API (Flask on Railway, /api proxy)
+```
+
+## Data and rules
+
+- Public data only: builders' own public pages, county assessor open data, FRED.
+- Only derived facts and a source link are stored. Raw pages, photos and floor-plan images never
+  leave the build machine, and incentive fine print is linked, not copied.
+- Earlier sales are shown as community medians, never a price per address.
+- robots.txt honoured. Builders behind a bot challenge or JavaScript-only data were skipped and logged.
+
+## Limits
+
+- A snapshot: listings and incentives as read on 2026-10-27. Builders change both weekly.
+- Santa Clara has no free assessor values, so no past sales there. Most Alameda communities selling now
+  have no closed sales on the roll yet.
+- "Up to" incentives may pay $0, so rankings use the guaranteed end of the range.
+- Not financial advice. The builder's own page is the source of truth; every figure links to it.
 
 ## Status
 
