@@ -33,3 +33,34 @@ fails.
 - San Joaquin has no deed date in the layer; the per-APN lookup on `common1.mptsweb.com` adds it
   later, only for linked parcels, slowly (its terms are unread).
 - Duplicate APNs within a layer (split polygons) collapse to one row on upsert.
+
+## Linking parcels to communities and estimating past sales (added 2026-10-27)
+
+**Run:** `.venv/bin/python -m tools.link_parcels --spot-check` (about 2 minutes; live book-page counts are
+cached in `.tmp/link/`). Writes `community_parcels`, `past_sales`, community lat/lng, and
+`eval/reports/<date>__past_sales.md`.
+
+**Linking, in order** (each rule came from a wrong link found on real data):
+1. Streets come from the community's home addresses (number + street name, suffix dropped).
+2. Centre = the 900 m cluster of county parcels holding the most of those streets, within 8 km of the
+   community's city. The city is matched loosely because builders use marketing cities (Brooks at
+   Creekside says Antioch; same-named streets in Oakley are 11.8 km from its own page pin).
+3. Parcels within 900 m on those streets are linked (exact address 1.0, street 0.8).
+4. Alameda and Contra Costa: a book-page where under 60% of single-family parcels sold since 2022 is an
+   older neighbourhood and is dropped (live `returnCountOnly` per book-page).
+5. San Joaquin: parcels more than 25% outside the community's home sizes are another collection on a
+   shared street (Regency at Tracy Lakes' Pinecrest vs. its larger collections on Lakeshore Av).
+6. When the community's own page has a map pin (one not shared by 3+ of the builder's pages, which is a
+   market centre), the cluster must be within 2 km of it.
+
+**Sale estimate:** Alameda transfer-tax price where present; otherwise value ÷ 1.02 per July-1 roll since
+the sale (Alameda/Contra Costa 2025-26 roll, San Joaquin 2026-27 with the sale assumed in the year
+built, so estimates there may run up to 2% high). Not estimated: improvements 0, a deed shared by several
+parcels (a bulk lot transfer to the builder), deeds in 2026 (not reassessed yet), a deed before the year
+built. Five estimates minimum per community.
+
+**Edge cases**
+- Alameda's transfer list ends 3/2025; its communities selling now mostly have no buyer deeds yet, so the
+  transfer-tax check samples the list itself.
+- Communities whose homes have no address, or whose streets are not on the roll yet, show no past sales.
+- Townhome use codes are outside the pulled universe (Alameda 7300/7305, Contra Costa non-11).

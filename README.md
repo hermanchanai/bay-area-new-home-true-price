@@ -36,7 +36,8 @@ Every model call in the product goes to a Meta model. The code itself was writte
 | Coverage (`tools/coverage_report.py`) | Day 3 gate PASS: 463 unique homes, 100% with address or lot ([report](eval/reports/2026-10-27__coverage.md)) |
 | True prices (`tools/load_records.py`): 462 homes loaded, 456 priced | Day 4 gate PASS ([report](eval/reports/2026-10-27__true_prices.md)) |
 | Floor plans (`tools/read_floorplan.py`, Muse Spark vision): 107 Lennar plans | 98.7% of printed room labels read exactly ([report](eval/reports/2026-10-27__floorplans.md)) |
-| Parcel linking, past sales, agent, map | next |
+| Parcel linking + past sales (`tools/link_parcels.py`, no model) | Day 5 gate PASS: 27 communities show what earlier buyers paid ([report](eval/reports/2026-10-27__past_sales.md)) |
+| Agent, map | next |
 
 ## How incentives become dollars
 
@@ -60,6 +61,7 @@ uv venv --python 3.12 .venv && uv pip install --python .venv/bin/python -r requi
 .venv/bin/python -m pytest -q
 .venv/bin/python -m tools.db                  # create data/trueprice.db
 .venv/bin/python -m tools.fetch_market_rate   # latest 30-yr rate
+.venv/bin/python -m tools.link_parcels --spot-check   # past sales per community + live assessor checks
 ```
 
 ## What existed before the event
@@ -97,3 +99,8 @@ building period.
     fine print says so; cuts already in the asking price and buyer-group offers are shown, not counted.
     Average discount 3.6% guaranteed to 6.0% at most, at a 7.32% market rate. Floor plans: Muse Spark
     vision read 107 Lennar plans, 906/918 printed room labels exact, $0.09. Meta spend to date $2.44.
+  - Day 5 (same day): communities linked to assessor parcels by their homes' streets, near the right
+    city, in new-home book-pages, in the community's size band (San Joaquin). 27 communities show past
+    sales (5 Contra Costa / Alameda, 22 San Joaquin). Alameda's 14.5k recorded prices confirmed the
+    Prop 13 rule used everywhere else (value = price × 1.02 per July-1 roll since the sale, 2025-26
+    roll). Most Alameda communities selling now have no closed sales yet (lots still use code 0800).
