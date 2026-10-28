@@ -12,7 +12,7 @@ POST /api/ask {"question": ...}
      from this server's own llm_calls ledger. A cap is checked before a question, so one question can overshoot
      it by its own cost (cents).
 GET /api/reprice?home_id=&down=   the incentive math with the buyer's own down payment (no model, $0)
-GET /api/health                   counts and today's spend
+GET /api/health                   the live model, counts and today's spend
 
 The visitor IP is Netlify's client header when proxied, else X-Forwarded-For, else the socket. Those headers
 can be forged by a caller hitting this server directly; the spend caps are the backstop. Questions are not
@@ -55,7 +55,9 @@ def _spent(conn, since: str | None = None) -> float:
 
 def create_app(db_path: Path = SITE_DB, run=run_agent, live: dict | None = None, demo: dict | None = None,
                clock=time.time) -> Flask:
-    live = live or llm.load_config()["live"]
+    cfg = llm.load_config()
+    live = live or cfg["live"]
+    model = "{provider}/{model}".format(**cfg["purposes"][PURPOSE])
     if demo is None:
         f = WEB / "demo_answers.json"
         demo = json.loads(f.read_text()) if f.exists() else {}
@@ -132,7 +134,7 @@ def create_app(db_path: Path = SITE_DB, run=run_agent, live: dict | None = None,
     def health():
         conn = db.connect(db_path)
         try:
-            return jsonify(ok=True, homes=conn.execute("SELECT COUNT(*) FROM homes").fetchone()[0],
+            return jsonify(ok=True, agent_model=model, homes=conn.execute("SELECT COUNT(*) FROM homes").fetchone()[0],
                            spent_today_usd=_spent(conn, today()), daily_cap_usd=live["daily_cap_usd"],
                            spent_total_usd=_spent(conn), total_cap_usd=live["total_cap_usd"])
         finally:

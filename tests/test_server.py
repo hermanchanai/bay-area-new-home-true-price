@@ -5,7 +5,7 @@ from datetime import UTC, datetime
 import pytest
 
 from tests.test_agent_tools import conn as _conn
-from tools import db
+from tools import db, llm
 from tools.server import create_app
 
 conn = _conn
@@ -100,3 +100,10 @@ def test_health_reports_spend_against_the_caps(app):
     h = app.test_client().get("/api/health").json
     assert h["ok"] and h["homes"] == 5 and h["spent_today_usd"] == 0 and h["daily_cap_usd"] == 1.0
     assert json.dumps(h)                                       # no secrets, plain JSON
+
+
+def test_health_names_the_live_model():
+    purpose = llm.load_config()["purposes"]["agent_live"]
+    h = create_app(live={"daily_cap_usd": 1, "total_cap_usd": 1, "per_ip_per_hour": 1, "per_ip_per_day": 1,
+                         "max_question_chars": 10}, demo={}).test_client().get("/api/health").json
+    assert h["agent_model"] == f"{purpose['provider']}/{purpose['model']}"
