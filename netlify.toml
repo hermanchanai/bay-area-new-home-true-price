@@ -1,8 +1,14 @@
-# Static site. The agent API runs as a separate Python service (tools/server.py, deployed from
-# tools/build_bundle's folder); the /api proxy to it is added with that deploy.
+# Static site. The agent API is a separate Python service on Railway (tools/server.py, deployed from
+# tools/build_bundle's folder); Netlify proxies /api/* to it so the page calls its own origin.
 [build]
   publish = "web"
   command = ""
+
+[[redirects]]
+  from = "/api/*"
+  to = "https://api-production-a5c4.up.railway.app/api/:splat"
+  status = 200
+  force = true
 
 [[headers]]
   for = "/data/*"
