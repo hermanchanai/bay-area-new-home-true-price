@@ -79,3 +79,13 @@ terms not stated, 3 pages); SummerHill 28FIFTY, where the model built "2859 Jose
 file names; three low-confidence pages (Ponderosa, Tri Pointe River Islands).
 Zero-home builders checked by hand: Kiper's Echo and The Rose are rentals; Brookfield Rosewood is sold
 out; City Ventures and Signature list plans only.
+
+**Floor plans (Day 4):** `python -m tools.read_floorplan` reads Lennar's per-floor SVG floor plans
+(rendered to PNG in `.tmp/floorplans/` with macOS `qlmanage`, never committed; re-runs reuse that day's
+SVGs) with Muse Spark vision, one call per plan, and writes `plans.layout_json` (rooms, downstairs
+bedroom, primary-suite floor, loft, flex room, garage bays). Truth = the SVG's own text labels, paired
+with dimensions by position. 2026-10-27: 107 plans, 906/918 dimensioned labels read exactly (98.7%),
+$0.09. The plan's 60-110% area check assumed every room is dimensioned; Lennar dimensions only
+bedrooms, living rooms and garages (~50% of sq ft), so the area ratio is an outlier flag (35-75%). It
+caught the model returning one floor twice, now deduplicated. Other builders' floor plans (PDFs,
+images inside JS viewers) are not read yet.

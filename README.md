@@ -34,7 +34,9 @@ Every model call in the product goes to a Meta model. The code itself was writte
 | Extraction (`tools/extract_listing.py`) + eval (`tools/eval_extraction.py`) | Muse Spark contributor passes the 90% gate on 43 pages ([report](eval/reports/2026-10-27__muse-spark-1.3-contributor.md)) |
 | Validation (`tools/validate_records.py`) + routing (contributor → standard → review) | done; 6 of 286 pages in the review queue |
 | Coverage (`tools/coverage_report.py`) | Day 3 gate PASS: 463 unique homes, 100% with address or lot ([report](eval/reports/2026-10-27__coverage.md)) |
-| Floor plans, true prices, parcel linking, agent, map | next |
+| True prices (`tools/load_records.py`): 462 homes loaded, 456 priced | Day 4 gate PASS ([report](eval/reports/2026-10-27__true_prices.md)) |
+| Floor plans (`tools/read_floorplan.py`, Muse Spark vision): 107 Lennar plans | 98.7% of printed room labels read exactly ([report](eval/reports/2026-10-27__floorplans.md)) |
+| Parcel linking, past sales, agent, map | next |
 
 ## How incentives become dollars
 
@@ -91,3 +93,7 @@ building period.
     challenge). Routed extraction over 286 pages: 10 escalated to Muse Spark standard, 6 left for
     review. Hold-out check on Lennar (truth parsed from its own homesite data, prompt never tuned on
     it): 151/151 homes, price/beds/baths/sq ft 100%. Meta spend to date $2.34.
+  - Day 4 (same day): extraction loaded into SQLite (462 homes, 456 priced). Offers don't stack unless the
+    fine print says so; cuts already in the asking price and buyer-group offers are shown, not counted.
+    Average discount 3.6% guaranteed to 6.0% at most, at a 7.32% market rate. Floor plans: Muse Spark
+    vision read 107 Lennar plans, 906/918 printed room labels exact, $0.09. Meta spend to date $2.44.
