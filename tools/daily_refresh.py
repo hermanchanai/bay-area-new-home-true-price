@@ -2,8 +2,11 @@
 
     python -m tools.daily_refresh                 # today, then deploy the site (Netlify) and agent API (Railway)
     python -m tools.daily_refresh --no-deploy     # everything up to the export; nothing published
+    python -m tools.daily_refresh --skip-fetch    # rerun today from the pages already fetched
 
-Run by launchd every morning (workflows/daily_refresh.md). Steps, in order:
+Run by launchd every morning at 05:30 (~/Library/LaunchAgents/com.hermanchan.true-price-daily.plist; log in
+~/Library/Logs/true-price-daily.log and .tmp/logs/daily_<date>.log). Fetching ~19 builders one at a time,
+2 s per request, takes 1-2 hours. Steps, in order:
   1. market rate (FRED)         2. fetch all builders        3. preprocess
   4. extract (cached pages $0; Meta daily cap in config/llm.yaml stops new calls, the run goes on)
   5. carry forward: a page fetched today whose extraction didn't run (cap, error) reuses its latest earlier
@@ -79,9 +82,10 @@ def enough_homes(conn) -> tuple[bool, int, int]:
     return (last == 0 or now >= MIN_SHARE * last), now, last
 
 
-def run(day: str, deploy: bool) -> dict:
+def run(day: str, deploy: bool, fetch: bool = True) -> dict:
     py("tools.fetch_market_rate")
-    py("tools.fetch_builder_pages", "--builder", "all")
+    if fetch:
+        py("tools.fetch_builder_pages", "--builder", "all")
     py("tools.preprocess_page", "--date", day)
     py("tools.extract_listing", "--date", day)
     carried = carry_forward(day)
@@ -106,9 +110,10 @@ def run(day: str, deploy: bool) -> dict:
 if __name__ == "__main__":
     ap = argparse.ArgumentParser()
     ap.add_argument("--no-deploy", action="store_true")
+    ap.add_argument("--skip-fetch", action="store_true")
     a = ap.parse_args()
     day = Date.today().isoformat()          # the fetcher names its folder by the local date
     LOGS.mkdir(parents=True, exist_ok=True)
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(message)s", datefmt="%H:%M:%S",
                         handlers=[logging.StreamHandler(), logging.FileHandler(LOGS / f"daily_{day}.log")])
-    log.info("done: %s", run(day, deploy=not a.no_deploy))
+    log.info("done: %s", run(day, deploy=not a.no_deploy, fetch=not a.skip_fetch))
