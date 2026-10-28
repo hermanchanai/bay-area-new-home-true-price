@@ -52,6 +52,10 @@ $1.04). Against Muse Spark contributor on the same pages ([report](eval/reports/
 | Plan beds | 100% | 95.1% |
 | Pages failed | 0 of 43 | 1 of 43 (output ran on to the 32k-token limit) |
 
+The buyer agent on Muse Spark Open passes the same 20 hand-checked questions, 20/20, with every dollar
+figure traced to a tool result, for $0.14 ([report](eval/reports/2026-10-28__agent__agent_open.md);
+`python -m tools.eval_agent --purpose agent_open`).
+
 Every model call in the product goes to a Meta model. The code itself was written with Claude Code.
 
 ## How it works

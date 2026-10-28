@@ -2,6 +2,7 @@
 
     python -m tools.eval_agent                  # run all, write eval/reports/<date>__agent.md
     python -m tools.eval_agent --only q01,q07   # a subset
+    python -m tools.eval_agent --purpose agent_open   # another model (config/llm.yaml purposes)
 
 A question passes when the homes the answer ranks first (in order of their [H<id>] citations) include the
 expected ones and nothing outside the eligible set, every required fact is mentioned, and every dollar figure
@@ -114,26 +115,28 @@ def score(q: dict, answer: str, trace: list[dict], homes: dict, known: dict | No
     return {"id": q["id"], "pass": not reasons, "reasons": reasons, "top3": top3}
 
 
-def main(only: set[str] | None = None) -> Path:
+def main(only: set[str] | None = None, purpose: str = "agent") -> Path:
     conn = db.connect()
     qs = [q for q in yaml.safe_load(QUESTIONS.read_text())["questions"] if not only or q["id"] in only]
     homes = {r[0]: r[1] or r[2] or "" for r in conn.execute("SELECT id, address, lot FROM homes")}
     known = {"C": {r[0] for r in conn.execute("SELECT id FROM communities")},
              "P": {r[0] for r in conn.execute("SELECT id FROM plans")}}
-    RUNS.mkdir(parents=True, exist_ok=True)
+    runs = RUNS if purpose == "agent" else RUNS / purpose
+    runs.mkdir(parents=True, exist_ok=True)
     results, cost = [], 0.0
     for q in qs:
-        r = run_agent(q["question"], conn=conn)
+        r = run_agent(q["question"], conn=conn, purpose=purpose)
         s = score(q, r["answer"], r["trace"], homes, known)
         s.update(cost=r["cost_usd"], turns=r["turns"], tools=[t["tool"] for t in r["trace"]], answer=r["answer"])
-        (RUNS / f"{q['id']}.json").write_text(json.dumps({**r, "score": s}, indent=1, default=str))
+        (runs / f"{q['id']}.json").write_text(json.dumps({**r, "score": s}, indent=1, default=str))
         cost += r["cost_usd"]
         results.append(s)
         log.info("%s %s %s", q["id"], "PASS" if s["pass"] else "FAIL", "; ".join(s["reasons"]))
     passed = sum(s["pass"] for s in results)
     gate = passed >= 16 and len(results) == 20
-    path = REPORTS / f"{date.today().isoformat()}__agent.md"
-    lines = [f"# Agent eval, {date.today().isoformat()}", "",
+    suffix = "" if purpose == "agent" else f"__{purpose}"
+    path = REPORTS / f"{date.today().isoformat()}__agent{suffix}.md"
+    lines = [f"# Agent eval, {date.today().isoformat()} (purpose {purpose})", "",
              f"{passed}/{len(results)} pass. Spend this run ${cost:.4f} (cached calls cost $0).", "",
              f"**Day 6 gate: {'PASS' if gate else 'FAIL'}** (≥16/20; every dollar figure traces to a tool result).",
              "", "| Q | Result | Turns | Tools | Why it failed |", "|---|---|---:|---|---|"]
@@ -153,6 +156,7 @@ if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO, format="%(message)s")
     ap = argparse.ArgumentParser()
     ap.add_argument("--only")
+    ap.add_argument("--purpose", default="agent")
     a = ap.parse_args()
-    main(set(a.only.split(",")) if a.only else None)
+    main(set(a.only.split(",")) if a.only else None, a.purpose)
     print_spend()
