@@ -1,0 +1,157 @@
+"""Export what the site shows and what the live agent reads, from the same queries the agent's tools run.
+
+    python -m tools.export_site_data
+
+Writes:
+  web/data/site.json          meta + one row per community (map pins) + every home, cheapest guaranteed true
+                              price first + a plan index (to resolve [P<id>] citations)
+  web/data/c/<id>.json        one community: homes with their offers, plans (rooms when the image was read),
+                              incentives with dollar values, past sales
+  web/data/demo_answers.json  hand-checked agent answers (eval runs that passed), keyed by question_key, so the
+                              site answers its example questions for $0 and without the API
+  data/site.db                the slim DB the live agent queries: listings, incentives, prices and community
+                              past-sales aggregates only. No parcels, transfers or LLM ledger: per-address
+                              assessor data never leaves this machine.
+
+Builder fine print stays out of the JSON (the source link is there instead).
+"""
+import json
+import logging
+import re
+import shutil
+from datetime import date
+from pathlib import Path
+
+from tools import db
+from tools.agent_tools import (
+    HOME_SQL,
+    SORTS,
+    _county_name,
+    _home,
+    get_community,
+    get_plan,
+)
+from tools.eval_agent import RUNS, cited
+
+ROOT = Path(__file__).resolve().parent.parent
+WEB = ROOT / "web" / "data"
+SITE_DB = ROOT / "data" / "site.db"
+# FK order. Everything else (parcels, community_parcels, transfers, llm_calls, eval_results) stays behind.
+SHIP = ("builders", "communities", "plans", "homes", "incentives", "market_rates", "incentive_values",
+        "true_prices", "past_sales")
+log = logging.getLogger(__name__)
+
+
+def question_key(q: str) -> str:
+    """Case, spacing and punctuation don't matter: '4 bed, under $1.1M!' -> '4 bed under $1.1m'."""
+    s = re.sub(r"[^a-z0-9$.%\s]", " ", q.lower())
+    s = re.sub(r"\.(?!\d)", " ", s)
+    return " ".join(s.split())
+
+
+def _pct(part, whole):
+    return round(100 * part / whole, 1) if part is not None and whole else None
+
+
+def summarize(conn, today: str) -> list[dict]:
+    """One row per community that has homes or a map position."""
+    rows = conn.execute(
+        "SELECT c.*, b.name builder, COUNT(h.id) n, MIN(h.price) min_asking, MIN(t.true_high) min_true, "
+        "MAX(1.0 * t.value_low / t.asking) dlo, MAX(1.0 * t.value_high / t.asking) dhi, "
+        "SUM(h.move_in_status = 'now') ready_now, ps.n past_n FROM communities c "
+        "JOIN builders b ON b.id = c.builder_id LEFT JOIN homes h ON h.community_id = c.id "
+        "LEFT JOIN true_prices t ON t.home_id = h.id LEFT JOIN past_sales ps ON ps.community_id = c.id "
+        "GROUP BY c.id HAVING COUNT(h.id) > 0 OR c.lat IS NOT NULL ORDER BY c.id").fetchall()
+    return [{"id": r["id"], "name": r["name"], "builder": r["builder"],
+             "city": re.sub(r",\s*CA$", "", r["city"] or ""), "county": _county_name(r["county_fips"]),
+             "lat": r["lat"], "lng": r["lng"], "geo_method": r["geo_method"], "product": r["product"],
+             "status": r["status"], "age_restricted": bool(r["age_restricted"]), "source_url": r["url"],
+             "fetched": (r["fetched_at"] or "")[:10] or None, "homes": r["n"], "ready_now": r["ready_now"] or 0,
+             "min_asking": r["min_asking"], "min_true_price": r["min_true"],
+             "max_discount_pct": round(100 * r["dlo"], 1) if r["dlo"] is not None else None,
+             "max_discount_pct_best": round(100 * r["dhi"], 1) if r["dhi"] is not None else None,
+             "has_past_sales": r["past_n"] is not None} for r in rows]
+
+
+def community_detail(conn, cid: int, today: str) -> dict:
+    d = get_community(conn, cid, today)
+    d["plans"] = [get_plan(conn, p["plan_id"], rooms=True) for p in d["plans"]]
+    for i in d["incentives"]:
+        i.pop("fine_print", None)
+    offers = {}
+    for r in conn.execute("SELECT v.home_id, v.incentive_id, v.value_low, v.value_high, v.flags FROM incentive_values v "
+                          "JOIN homes h ON h.id = v.home_id WHERE h.community_id = ? ORDER BY v.value_high DESC",
+                          (cid,)):
+        offers.setdefault(r["home_id"], []).append(
+            {"incentive_id": r["incentive_id"], "value_low": r["value_low"], "value_high": r["value_high"],
+             "counted": "not_counted" not in (r["flags"] or "")})
+    for h in d["homes"]:
+        h["offers"] = offers.get(h["home_id"], [])
+    return d
+
+
+def demo_answers(conn, runs: Path) -> dict:
+    """Passed eval answers whose every cited id still exists (a reload renumbers ids)."""
+    known = {k: {r[0] for r in conn.execute(f"SELECT id FROM {t}")}
+             for k, t in (("H", "homes"), ("C", "communities"), ("P", "plans"))}
+    out = {}
+    for f in sorted(runs.glob("*.json")):
+        r = json.loads(f.read_text())
+        if not (r.get("score") or {}).get("pass"):
+            continue
+        ids = cited(r["answer"])
+        if any(i not in known[k] for k in ids for i in ids[k]):
+            log.warning("%s cites ids no longer in the DB; dropped", f.name)
+            continue
+        out[question_key(r["question"])] = {"question": r["question"], "answer": r["answer"]}
+    return out
+
+
+def slim_db(conn, path: Path) -> None:
+    path.unlink(missing_ok=True)
+    out = db.connect(path)
+    for t in SHIP:
+        cur = conn.execute(f"SELECT * FROM {t}")
+        cols = [c[0] for c in cur.description]
+        out.executemany(f"INSERT INTO {t} ({','.join(cols)}) VALUES ({','.join('?' * len(cols))})",
+                        [tuple(r) for r in cur])
+    out.commit()
+    out.execute("VACUUM")
+    out.close()
+
+
+def export(conn, out_dir: Path = WEB, db_path: Path = SITE_DB, today: str | None = None,
+           runs: Path | None = None) -> dict:
+    today = today or date.today().isoformat()
+    comms = summarize(conn, today)
+    homes = [_home(r, today) for r in conn.execute(HOME_SQL + f" ORDER BY {SORTS['true_price']}, h.id")]
+    rate = conn.execute("SELECT as_of, rate FROM market_rates WHERE series = 'MORTGAGE30US' "
+                        "ORDER BY as_of DESC LIMIT 1").fetchone()
+    meta = {"generated": today, "market_rate": rate["rate"] if rate else None,
+            "rate_date": rate["as_of"] if rate else None, "rate_source": "FRED MORTGAGE30US",
+            "assumptions": {"down_payment_pct": 20, "term_years": 30},
+            "communities": len(comms), "mapped": sum(c["lat"] is not None for c in comms),
+            "homes": len(homes), "builders": len({c["builder"] for c in comms}),
+            "with_past_sales": sum(c["has_past_sales"] for c in comms)}
+    if (out_dir / "c").exists():
+        shutil.rmtree(out_dir / "c")
+    (out_dir / "c").mkdir(parents=True)
+    shown = {c["id"] for c in comms}
+    plans = [{"plan_id": r[0], "community_id": r[1], "name": r[2]}
+             for r in conn.execute("SELECT id, community_id, name FROM plans ORDER BY id") if r[1] in shown]
+    (out_dir / "site.json").write_text(json.dumps({"meta": meta, "communities": comms, "homes": homes, "plans": plans},
+                                                  separators=(",", ":"), default=str))
+    for c in comms:
+        (out_dir / "c" / f"{c['id']}.json").write_text(
+            json.dumps(community_detail(conn, c["id"], today), separators=(",", ":"), default=str))
+    if runs is not None:
+        (out_dir / "demo_answers.json").write_text(json.dumps(demo_answers(conn, runs), indent=1))
+    slim_db(conn, db_path)
+    return meta
+
+
+if __name__ == "__main__":
+    logging.basicConfig(level=logging.INFO, format="%(message)s")
+    m = export(db.connect(), runs=RUNS)
+    print(f"{m['communities']} communities ({m['mapped']} on the map), {m['homes']} homes, "
+          f"{m['with_past_sales']} with past sales -> {WEB.relative_to(ROOT)}/, {SITE_DB.relative_to(ROOT)}")

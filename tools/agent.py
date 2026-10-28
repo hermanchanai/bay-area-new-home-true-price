@@ -40,7 +40,8 @@ say so, say which condition rules them out, and offer to relax it; do not list h
 - Be brief: under 200 words, plain markdown, no tables."""
 
 
-def run(question: str, conn=None, chat=llm.chat, today: str | None = None, max_turns: int = MAX_TURNS) -> dict:
+def run(question: str, conn=None, chat=llm.chat, today: str | None = None, max_turns: int = MAX_TURNS,
+        purpose: str = "agent") -> dict:
     conn = conn or db.connect()
     messages = [{"role": "system", "content": SYSTEM.format(today=today or date.today().isoformat())},
                 {"role": "user", "content": question}]
@@ -49,7 +50,7 @@ def run(question: str, conn=None, chat=llm.chat, today: str | None = None, max_t
         last = turn == max_turns
         if last:
             messages.append({"role": "user", "content": "Answer now with what the tools returned so far."})
-        r = chat(messages, purpose="agent", tools=None if last else TOOLS, conn=conn)
+        r = chat(messages, purpose=purpose, tools=None if last else TOOLS, conn=conn)
         cost += r.cost_usd
         if not r.tool_calls:
             return {"question": question, "answer": r.text, "trace": trace, "turns": turn, "cost_usd": cost,

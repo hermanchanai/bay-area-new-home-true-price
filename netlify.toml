@@ -1,0 +1,10 @@
+# Static site. The agent API runs as a separate Python service (tools/server.py, deployed from
+# tools/build_bundle's folder); the /api proxy to it is added with that deploy.
+[build]
+  publish = "web"
+  command = ""
+
+[[headers]]
+  for = "/data/*"
+  [headers.values]
+    Cache-Control = "public, max-age=600"

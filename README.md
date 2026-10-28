@@ -38,7 +38,7 @@ Every model call in the product goes to a Meta model. The code itself was writte
 | Floor plans (`tools/read_floorplan.py`, Muse Spark vision): 107 Lennar plans | 98.7% of printed room labels read exactly ([report](eval/reports/2026-10-27__floorplans.md)) |
 | Parcel linking + past sales (`tools/link_parcels.py`, no model) | Day 5 gate PASS: 27 communities show what earlier buyers paid ([report](eval/reports/2026-10-27__past_sales.md)) |
 | Buyer agent (`tools/agent.py` + `tools/agent_tools.py`, Muse Spark native tool calls, 7 read-only tools) | Day 6 gate PASS: 20/20 hand-checked questions, every dollar figure traced to a tool result ([report](eval/reports/2026-10-27__agent.md)) |
-| Map + web app | next |
+| Map + web app (`web/`, `tools/server.py`): map of 101 communities, home list, community pages, agent box | Built and checked locally on desktop and a 375 px phone; not deployed yet |
 
 ## How incentives become dollars
 
@@ -65,6 +65,10 @@ uv venv --python 3.12 .venv && uv pip install --python .venv/bin/python -r requi
 .venv/bin/python -m tools.link_parcels --spot-check   # past sales per community + live assessor checks
 .venv/bin/python -m tools.agent "4 bed under $1.1M true price, ready by January, Contra Costa or San Joaquin"
 .venv/bin/python -m tools.eval_agent          # 20-question agent eval -> eval/reports/<date>__agent.md
+.venv/bin/python -m tools.geocode_communities # map pins for communities the assessor roll can't place yet
+.venv/bin/python -m tools.export_site_data    # web/data/*.json + data/site.db (the live agent's slim DB)
+.venv/bin/python -m tools.server              # site + agent API at http://localhost:8787
+.venv/bin/python -m tools.build_bundle        # allowlisted deploy folder for the agent API -> .tmp/bundle/
 ```
 
 ## What existed before the event
@@ -113,3 +117,12 @@ building period.
     re-pricing tool reproduces all 456 stored true prices at 20% down. 20-question eval: 17/20 on
     the first run, 20/20 after adding address lookup and tightening the prompt; 5 held-out questions
     also checked correct by hand. Whole eval $0.05 in contributor mode.
+  - Day 7 (Oct 28): web app. Leaflet map of 101 communities (72 placed by their assessor parcels,
+    29 by the builder's own map pin or OpenStreetMap street centres; 15 with streets too new for any
+    public map are listed, not pinned), a home list sorted by guaranteed true price, community pages
+    (homes with each offer, incentives in dollars, earlier buyers, floor plans with rooms read by Muse
+    Spark) and the agent box. Agent citations become numbered sources with the builder page and the
+    date it was read. Visitors' questions run in standard mode (Meta doesn't train on them; ~$0.01 a
+    question) behind per-IP limits and a $2/day, $10 total cap; the 20 hand-checked eval answers
+    are served free as examples. The re-price endpoint reruns the incentive math for any down
+    payment. The deployed DB holds listings, prices and community aggregates only, no parcels.
