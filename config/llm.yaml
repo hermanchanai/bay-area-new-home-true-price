@@ -61,9 +61,11 @@ purposes:
     model: accounts/fireworks/models/muse-spark-open
     reasoning_effort: low
     max_completion_tokens: 6000
-  agent_live:       # visitors' questions on the live site: standard mode, so Meta does not train on what they type
-    provider: meta
-    model: muse-spark-1.3
+  agent_live:       # visitors' questions on the live site: Muse Spark Open (open weights) on Fireworks, which
+                    # doesn't log or store prompts for open models (docs.fireworks.ai data handling, read 2026-10-28).
+                    # 20/20 on the agent eval (eval/reports/2026-10-28__agent__agent_open.md).
+    provider: fireworks
+    model: accounts/fireworks/models/muse-spark-open
     reasoning_effort: low
     max_completion_tokens: 6000
   ping:

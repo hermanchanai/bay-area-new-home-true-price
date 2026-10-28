@@ -7,7 +7,7 @@ POST /api/ask {"question": ...}
   1. An example question (web/data/demo_answers.json, hand-checked eval answers) is answered from that file:
      free, not rate-limited.
   2. The same question asked again today is answered from memory.
-  3. Otherwise the agent runs in standard mode (purpose agent_live: Meta does not train on visitors' questions),
+  3. Otherwise the agent runs on Muse Spark Open via Fireworks (purpose agent_live; prompts not stored),
      behind a per-IP hourly and daily limit and a daily and total spend cap (config/llm.yaml `live`), summed
      from this server's own llm_calls ledger. A cap is checked before a question, so one question can overshoot
      it by its own cost (cents).
