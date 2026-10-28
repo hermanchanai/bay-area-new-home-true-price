@@ -75,3 +75,15 @@ def test_offers_do_not_stack_unless_the_fine_print_says_so():
     assert counted[0]["pool_id"] is None                                  # stated as combinable: stacks
     never = inc("flat_cash", amount_usd=10_000, fine_print="Cannot be combined with any other offer.")
     assert pricing_set([never, arm], "h1")[0][0]["pool_id"] == "h1:one-offer"
+
+
+def test_only_offers_limited_to_a_buyer_group_are_left_out():
+    from tools.load_records import pricing_set
+    general = [inc("perm_rate", rate=4.99, eligibility="Qualified buyers"),
+               inc("temp_buydown", rate=4.99, structure="2-1", eligibility="new buyers only on select quick move-in homes"),
+               inc("arm_promo", rate=4.99, structure="5/1 ARM", eligibility="FHA")]
+    group = [inc("closing_credit", amount_usd=2_000, eligibility="Nation's Heroes"),
+             inc("flat_cash", amount_usd=2_000, eligibility="active teachers, nurses, EMS, police, firefighters & military")]
+    counted, excluded = pricing_set(general + group, "h1")
+    assert [i["kind"] for i in counted] == ["perm_rate", "temp_buydown", "arm_promo"]
+    assert [r for _, r in excluded] == ["eligibility_limited", "eligibility_limited"]

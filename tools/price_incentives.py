@@ -133,17 +133,20 @@ def value_incentive(inc: Incentive, price: float, market_rate_pct: float, a: Ass
 
 def true_price(price: float, incentives: list[Incentive], market_rate_pct: float,
                a: Assumptions = Assumptions()) -> TruePrice:
-    """Asking minus incentives. Incentives sharing a pool_id are one choice: only the biggest counts."""
+    """Asking minus incentives. Incentives sharing a pool_id are one choice: the buyer takes the best, so
+    the pool is worth its best guaranteed value (floor) up to its best possible value (ceiling)."""
     valued = [(inc, value_incentive(inc, price, market_rate_pct, a)) for inc in incentives]
     pools: dict[object, tuple[Incentive, Value]] = {}
+    floors: dict[object, int] = {}
     for idx, (inc, v) in enumerate(valued):
         key = inc.pool_id if inc.pool_id is not None else ("solo", idx)
         if key not in pools or v.high > pools[key][1].high:
             pools[key] = (inc, v)
+        floors[key] = max(floors.get(key, 0), v.low)
     counted = tuple(pools.values())
     counted_ids = {id(inc) for inc, _ in counted}
     not_counted = tuple((inc, v) for inc, v in valued if id(inc) not in counted_ids)
-    lo = sum(v.low for _, v in counted)
+    lo = sum(floors.values())
     hi = sum(v.high for _, v in counted)
     return TruePrice(asking=round(price), value_low=lo, value_high=hi,
                      true_low=round(price - hi), true_high=round(price - lo),

@@ -32,6 +32,11 @@ purposes:
     model: muse-spark-1.3
     reasoning_effort: medium
     max_completion_tokens: 32000
+  vision:            # floor-plan images (tools/read_floorplan.py)
+    provider: meta
+    model: muse-spark-1.3-contributor
+    reasoning_effort: low
+    max_completion_tokens: 8000
   ping:
     provider: meta
     model: muse-spark-1.3-contributor

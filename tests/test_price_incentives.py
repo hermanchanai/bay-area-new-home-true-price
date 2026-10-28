@@ -109,3 +109,13 @@ def test_pool_counts_only_its_biggest_option_and_other_pools_stack():
 def test_no_incentives_true_price_is_asking():
     tp = true_price(P, [], MKT)
     assert (tp.true_low, tp.true_high) == (P, P)
+
+
+def test_choose_one_pool_guarantees_the_best_floor_and_caps_at_the_best_ceiling():
+    # "up to $250K flex cash" ($0-$250K) OR a 7/6 ARM worth a sure ~$56K: the buyer can always take the ARM
+    from tools.price_incentives import Incentive, true_price
+    cash = Incentive("flat_cash", amount_usd=250_000, amount_is_up_to=True, pool_id="one")
+    arm = Incentive("arm_promo", rate=4.99, structure="7/6 ARM", pool_id="one")
+    tp = true_price(708_990, [cash, arm], 7.32)
+    arm_alone = true_price(708_990, [Incentive("arm_promo", rate=4.99, structure="7/6 ARM")], 7.32)
+    assert tp.value_high == 250_000 and tp.value_low == arm_alone.value_low > 0

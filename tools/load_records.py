@@ -11,7 +11,8 @@ Rules
   stacked as extra offers.
 - A price cut matching was-price minus price is already in the asking price: shown, valued at $0.
 - Offers don't stack unless the fine print says they combine (plan §6.7): by default a home's offers
-  are one choice and the biggest counts. Offers limited to some buyers are shown, not counted.
+  are one choice and the best counts. Offers limited to a buyer group (teachers, military ...) are
+  shown, not counted.
 """
 import argparse
 import json
@@ -116,6 +117,9 @@ def fill_from_offers(incs: list[dict], offers: list[dict]) -> list[dict]:
     return out
 
 
+# offers only some buyers can get; "qualified buyers", "FHA", "select homes" stay open to everyone
+BUYER_GROUP = re.compile(r"(?i)teacher|nurse|\bems\b|police|firefight|first responder|military|veteran|hero|"
+                         r"educator|healthcare|employee")
 COMBINABLE = re.compile(r"(?i)\b(?:may|can) be combined\b|\bcombinable with\b")
 NOT_COMBINABLE = re.compile(r"(?i)\b(?:cannot|can ?not|may not|not) be combined\b|\bnot combinable\b")
 
@@ -128,7 +132,7 @@ def pricing_set(incs: list[dict], home_key: str) -> tuple[list[dict], list[tuple
     for i in incs:
         if i.get("included_in_price"):
             excluded.append((i, "in_asking_price"))
-        elif i.get("eligibility"):
+        elif BUYER_GROUP.search(i.get("eligibility") or ""):
             excluded.append((i, "eligibility_limited"))
         else:
             text = " ".join(filter(None, [i.get("fine_print"), i.get("label")]))
@@ -171,7 +175,7 @@ def load(date: str, conn) -> dict:
     stats = {"homes": 0, "priced": 0, "no_price": 0, "with_incentive": 0, "incentives": 0, "review_pages_used": 0}
 
     with conn:
-        for t in ("true_prices", "incentive_values", "incentives", "homes", "plans"):
+        for t in ("true_prices", "incentive_values", "incentives", "homes"):  # plans keep their floor-plan reads
             conn.execute(f"DELETE FROM {t}")
         cid = {}
         for p in pages:
@@ -189,8 +193,12 @@ def load(date: str, conn) -> dict:
                          (c.get("name"), c.get("city"), counties.get(m.get("county"), {}).get("fips"),
                           c.get("status"), PRODUCT.get(c.get("product")), int(bool(c.get("age_restricted"))), row[0]))
             for pl in p["record"].get("plans") or []:
-                conn.execute("INSERT OR IGNORE INTO plans (community_id, name, beds_min, beds_max, baths, sqft_min, "
-                             "sqft_max, stories, garage, from_price) VALUES (?,?,?,?,?,?,?,?,?,?)",
+                conn.execute("INSERT INTO plans (community_id, name, beds_min, beds_max, baths, sqft_min, "
+                             "sqft_max, stories, garage, from_price) VALUES (?,?,?,?,?,?,?,?,?,?) "
+                             "ON CONFLICT(community_id, name) DO UPDATE SET beds_min=excluded.beds_min, "
+                             "beds_max=excluded.beds_max, baths=excluded.baths, sqft_min=excluded.sqft_min, "
+                             "sqft_max=excluded.sqft_max, stories=excluded.stories, garage=excluded.garage, "
+                             "from_price=excluded.from_price",
                              (row[0], pl["name"], pl.get("beds_min"), pl.get("beds_max"), pl.get("baths_max"),
                               pl.get("sqft_min"), pl.get("sqft_max"), pl.get("stories"), pl.get("garage"),
                               pl.get("from_price")))
@@ -264,8 +272,45 @@ def _inc(i: dict) -> Incentive:
                      rate=i.get("rate"), structure=i.get("structure"), pool_id=i.get("pool_id"), label=i["label"])
 
 
+def report(date: str, stats: dict, conn) -> Path:
+    q = lambda sql: conn.execute(sql).fetchall()  # noqa: E731
+    gap = q("SELECT count(*) FROM homes h WHERE h.price IS NOT NULL AND NOT EXISTS (SELECT 1 FROM true_prices t "
+            "WHERE t.home_id = h.id) AND EXISTS (SELECT 1 FROM incentive_values v WHERE v.home_id = h.id)")[0][0]
+    lines = [f"# True prices, pages fetched {date}", "",
+             f"Market rate {stats['market_rate']} (FRED MORTGAGE30US); 20% down, 30-year term; jumbo loans "
+             f"+0.25 pt. {stats['homes']} homes, {stats['priced']} with an asking price, {stats['with_incentive']} "
+             f"with at least one offer.", "",
+             f"**Day 4 gate: {'PASS' if gap == 0 else 'FAIL'}**: homes with a price and an offer but no "
+             f"true-price range: {gap}.", "",
+             "| Offer kind | Offers × homes | Counted | Not counted: in price | Not counted: buyer-limited | "
+             "Filled from offers page | Avg value high |", "|---|---:|---:|---:|---:|---:|---:|"]
+    for r in q("SELECT i.kind, count(*), sum(v.flags NOT LIKE '%not_counted%'), sum(v.method='in_asking_price'), "
+               "sum(v.flags LIKE '%eligibility_limited%'), sum(i.filled_from_offers), round(avg(v.value_high)) "
+               "FROM incentive_values v JOIN incentives i ON i.id = v.incentive_id GROUP BY 1 ORDER BY 2 DESC"):
+        lines.append("| " + " | ".join(str(x) for x in r) + " |")
+    lo, hi, n = q("SELECT avg(1.0*value_low/asking), avg(1.0*value_high/asking), sum(value_high > 0) "
+                  "FROM true_prices")[0]
+    lines += ["", f"Average discount {lo:.1%} guaranteed to {hi:.1%} at most; {n} homes have an offer worth "
+              "more than $0 (offers don't stack unless the fine print says they combine).", "",
+              "## Ten biggest discounts", "", "| Home | Asking | True price | Counted offers |", "|---|---:|---:|---|"]
+    for hid, addr, page, ask, tl, th in q("SELECT h.id, h.address, h.source_page, t.asking, t.true_low, t.true_high "
+                                           "FROM true_prices t JOIN homes h ON h.id = t.home_id "
+                                           "ORDER BY 1.0*t.value_high/t.asking DESC LIMIT 10"):
+        offers = q(f"SELECT i.label, v.value_low, v.value_high FROM incentive_values v JOIN incentives i ON "
+                   f"i.id = v.incentive_id WHERE v.home_id = {hid} AND v.flags NOT LIKE '%not_counted%' "
+                   f"AND v.value_high > 0")
+        lines.append(f"| {addr} ({page.split('/')[0]}) | ${ask:,} | ${tl:,}–${th:,} | "
+                     + "; ".join(f"{(l or '')[:50]} (${a:,}–${b:,})" for l, a, b in offers) + " |")
+    path = ROOT / "eval" / "reports" / f"{date}__true_prices.md"
+    path.write_text("\n".join(lines) + "\n")
+    return path
+
+
 if __name__ == "__main__":
     ap = argparse.ArgumentParser()
     ap.add_argument("--date", default=None)
     date = ap.parse_args().date or sorted(p.name for p in EXTRACT.iterdir() if p.is_dir())[-1]
-    print(json.dumps(load(date, db.connect()), indent=1))
+    conn = db.connect()
+    stats = load(date, conn)
+    print(json.dumps(stats, indent=1))
+    print(report(date, stats, conn))
