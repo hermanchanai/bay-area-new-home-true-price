@@ -38,8 +38,19 @@ All on **Muse Spark 1.3** through the Meta Model API:
 | Buyer agent for site visitors | standard | live | capped at $2/day |
 
 Contributor mode lets Meta train on the request and is about 12× cheaper. It only ever sees public
-builder pages and my own test questions. Visitors' questions use standard mode. Muse Spark Open (via
-Baseten or Modal) was planned for bulk extraction, but no partner credits arrived in time.
+builder pages and my own test questions. Visitors' questions use standard mode.
+
+**Muse Spark Open** (open weights, on Fireworks) ran the same 43-page extraction eval and also passes
+the 90% gate ([report](eval/reports/2026-10-27__accounts_fireworks_models_muse-spark-open__taylor_morrison-pulte-trumark.md),
+$1.04). Against Muse Spark contributor on the same pages ([report](eval/reports/2026-10-27__muse-spark-1.3-contributor__taylor_morrison-pulte-trumark.md)):
+
+| Field | Muse Spark (contributor) | Muse Spark Open |
+|---|---:|---:|
+| Home recall / price / beds / sq ft | 99.3% / 100% / 100% / 100% | 99.3% / 100% / 100% / 100% |
+| Baths | 99.3% | 98.5% |
+| Incentive kinds: recall / precision | 95.7% / 100% | 96.7% / 97.5% |
+| Plan beds | 100% | 95.1% |
+| Pages failed | 0 of 43 | 1 of 43 (output ran on to the 32k-token limit) |
 
 Every model call in the product goes to a Meta model. The code itself was written with Claude Code.
 
