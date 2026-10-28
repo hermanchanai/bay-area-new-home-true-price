@@ -35,10 +35,9 @@ All on **Muse Spark 1.3** through the Meta Model API:
 | Re-extract pages that fail validation | standard | 28 | $0.73 |
 | Read room labels off floor-plan images (vision) | contributor | 432 | $0.10 |
 | Buyer agent with 7 read-only database tools (native tool calls), eval runs | contributor | 173 | $0.05 |
-| Buyer agent for site visitors | standard | live | capped at $2/day |
 
 Contributor mode lets Meta train on the request and is about 12× cheaper. It only ever sees public
-builder pages and my own test questions. Visitors' questions use standard mode.
+builder pages and my own test questions.
 
 **Muse Spark Open** (open weights, on Fireworks) ran the same 43-page extraction eval and also passes
 the 90% gate ([report](eval/reports/2026-10-27__accounts_fireworks_models_muse-spark-open__taylor_morrison-pulte-trumark.md),
@@ -54,7 +53,9 @@ $1.04). Against Muse Spark contributor on the same pages ([report](eval/reports/
 
 The buyer agent on Muse Spark Open passes the same 20 hand-checked questions, 20/20, with every dollar
 figure traced to a tool result, for $0.14 ([report](eval/reports/2026-10-28__agent__agent_open.md);
-`python -m tools.eval_agent --purpose agent_open`).
+`python -m tools.eval_agent --purpose agent_open`). **Since 2026-10-28 the live site's agent runs on Muse Spark
+Open** via Fireworks, which doesn't store prompts for open models; `/api/health` names the model.
+Visitor questions are capped at $2/day.
 
 Every model call in the product goes to a Meta model. The code itself was written with Claude Code.
 
@@ -194,3 +195,7 @@ building period.
     payment. The deployed DB holds listings, prices and community aggregates only, no parcels.
     Deployed the same day: Netlify for the static site, Railway for the agent API (the Meta key is a
     Railway variable, never a file). A live question on the deployed site cost $0.007.
+  - Day 8 (Oct 28, same day): secret scan of the whole history (gitleaks: no leaks), README for
+    public readers. Muse Spark Open (open weights) wired on Fireworks and Baseten: the 43-page
+    extraction eval passes the gate ($1.04) and the buyer agent scores 20/20 ($0.14), so the live
+    site's agent now runs on Muse Spark Open.
