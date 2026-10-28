@@ -37,6 +37,12 @@ purposes:
     model: muse-spark-1.3-contributor
     reasoning_effort: low
     max_completion_tokens: 8000
+  agent:            # buyer questions with tools (tools/agent.py). Contributor mode for our own eval questions;
+                    # the live site's choice (visitors' questions) is decided with the Day 7 deploy.
+    provider: meta
+    model: muse-spark-1.3-contributor
+    reasoning_effort: low
+    max_completion_tokens: 6000
   ping:
     provider: meta
     model: muse-spark-1.3-contributor

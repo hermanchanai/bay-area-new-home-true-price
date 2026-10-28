@@ -1,0 +1,519 @@
+# Agent eval: 20 buyer questions with hand-checked answers (tools/eval_agent.py scores them).
+# Derived 2026-10-27 from the loaded DB with SQL written separately from tools/agent_tools.py, not from agent
+# output. Homes are matched by address (or lot), so a reload that renumbers ids keeps the truth valid; a data
+# refresh that changes prices or listings means re-deriving it.
+# - top3_any_of / top3_all_of: homes the answer must rank in its first 3 [H<id>] citations
+# - eligible: every home meeting all the question's conditions; nothing else may be in the top 3
+#   (true price = the guaranteed end, asking minus offers every buyer gets; "ready by" = the builder's date)
+# - must_mention: text the answer must contain (a list = any one of them), case-insensitive
+# - no_homes: the right answer is "none"; citing any home fails
+# Hand-computed values: q13 1576 Torrey Dr at 10% down: up to $250K flex cash vs the 4.99% 7/6 ARM worth
+#   $63,798 (one choice) -> true price $467,215 to $653,417. q14 337 E Beatrice Ave at 5% down: ARM worth
+#   $74,169 (market 7.32%, FRED 2026-10-22). q10 Cairnway median $804,200 (n 43). q11 Orchard Grove $1,320,100.
+#   q16 Driftway: Residence 1, 1X, 2, 3 all have a downstairs bedroom. q17 Residence 1X owner's suite 14' x 14' 5".
+questions:
+- id: q01
+  question: I need at least 4 bedrooms, a true price under $1.1M, and to move in by January. Contra Costa or San Joaquin County.
+    What are my best options?
+  expect:
+    top3_any_of:
+    - 3139 Workman Avenue
+    - 266 Victorious St.
+    - 4008 Keith Lane
+    eligible:
+    - 3139 Workman Avenue
+    - 266 Victorious St.
+    - 4008 Keith Lane
+    - 4846 Badger Creek Court
+    - 339 Astilbe Street
+    - 728 Villa Ticino Dr.
+    - 2003 Wildcat Street
+    - 748 Villa Ticino Dr.
+    - 4841 Badger Creek Court
+    - 2977 DAWSON CREEK ST
+    - 2867 DAWSON CREEK ST
+    - 1016 Bluebell Circle
+    - 717 Villa Ticino Dr.
+    - 722 Schut Court
+    - 884 Shasta Avenue
+    - 887 W. Shasta Avenue
+    - 907 Shasta Court
+    - 1576 TORREY DR
+    - 2401 DIABLO VIEW DR
+    - 1964 GUINNESS LN
+    - 2228 HEWINS ST
+    - 1936 GUINNESS LN
+    - 10682 Aretha Ln.
+    - 2167 Cyclone Drive
+    - 2447 GOLDEN BEAR ST
+    - 504 Spruce Way
+    - 882 Shasta Avenue
+    - 2231 HEWINS ST
+    - 2143 Cyclone Drive
+    - Lot 263
+    - 520 Spruce Way
+    - 10657 Aretha Ln.
+    - Lot 264
+    - 2147 Trojan Street
+    - 1717 EAGLE RIVER AV
+    - 524 Spruce Way
+    - 2425 GOLDEN BEAR ST
+    - 2491 GOLDEN BEAR ST
+    - 508 Spruce Way
+    - 2362 LAZIO ST
+    - 2419 DIABLO VIEW DR
+    - 2881 DAWSON CREEK ST
+    - 7435 Forbes Avenue
+    - 521 Headwater way
+    - 2270 HEWINS ST
+    - 1028 Bluebell Circle
+    - 519 Spruce Way
+    - 1928 GUINNESS LN
+    - 2458 GOLDEN BEAR ST
+    - 1210 N Robiolo Lane
+    - 1950 GUINNESS LN
+    - 2402 GOLDEN BEAR ST
+    - 574 Lee Loop
+    - 2907 DAWSON CREEK ST
+    - 3199 Scott Edwards Lane
+    - 1914 GUINNESS LN
+    - 2871 DAWSON CREEK ST
+    - 393 Badlands Circle
+    - 2379 ZELLERBACH ST
+    - 2338 LAZIO ST
+    - 2384 LAZIO ST
+    - 605 Channel Circle
+    - 1270 N Robiolo Lane
+    - 337 E Beatrice Avenue
+    - 2240 HEWINS ST
+    - 15871 Cleary Court
+    - 361 E Beatrice Avenue
+    - 1162 Bradbury Drive
+    - 515 Spruce Way
+    - 2294 HEWINS ST
+    - 1935 S. Vivani St.
+    - 7399 Forbes Avenue
+    - 324 Clodius Way
+    - 2363 EMMA DR
+    - 323 Viceroy Way
+    - 5432 Harrier Way
+    - 609 Channel Circle
+    - 10732 Stevie Dr.
+    - 2881 Chauncy Street
+    - 461 W Calabria Drive
+    - 392 Badlands Circle
+    - 316 Clodius Way
+    - 332 Clodius Way
+    - 528 Spruce Way
+    - 299 Viceroy Way
+    - 2706 Emery Street
+    - 5208 Kestrel Street
+    - 2376 LAZIO ST
+    - 5212 Kestrel Street
+    - 621 Channel Circle
+    - 3151 Scott Edwards Lane
+    - 7423 Forbes Avenue
+    - 533 Headwater way
+    - 2216 HEWINS ST
+    - 389 Badlands Circle
+    - 517 Headwater way
+    - 401 Badlands Circle
+    - 15866 Cleary Court
+    - 308 Clodius Way
+    - 471 W Calabria Drive
+    - 331 Viceroy Way
+    - 298 Viceroy Way
+    - 16441 Barnett Court
+    - 2282 HEWINS ST
+    - 2258 HEWINS ST
+    - 5211 Kestrel Street
+    - 1044 Bluebell Circle
+    - 1530 TEAK AVE
+    - 481 W Calabria Drive
+    - 404 Badlands Circle
+    - 7266 Oscar Drive
+    - 7930 Punjya Brothers Drive
+    - 7971 Floyd Glenn Wise Drive
+    - 396 Badlands Circle
+    - 397 Badlands Circle
+    - 411 W Calabria Drive
+    - 5216 Kestrel Street
+    - 3163 Scott Edwards Lane
+    - 264 W Adriana Drive
+    - 5223 Kestrel Street
+    - 1486 PRAIRIE OAK AVE
+    - 401 W Calabria Drive
+    - 385 Badlands Circle
+    - 5440 Harrier Way
+    - 15874 Cleary Court
+    - 1233 N. Girardi Drive
+    - 1458 PRAIRIE OAK AVE
+    - 2675 Kester Way
+    - 5219 Kestrel Street
+    - 3315 Layla Way
+    - 2617 Emery Street
+    - 2665 Dashwood Street
+    - 5628 Fallen Leaf Lane
+    - 329 E CLYDESDALE COURT
+    - 1423 N. Girardi Drive
+    - 17131 St. James Lane
+    - 3339 Layla Way
+    - 17173 Coral Tree Lane
+    - 227 W Pasqua Glen
+    - 5620 Fallen Leaf Lane
+    - 1975 S. Vivani St.
+    - 1461 N Padano Lane
+    - 5625 Fallen Leaf Lane
+    - 3767 Scholl Lane
+    - 16449 Barnett Court
+    - 17165 Coral Tree Lane
+    - 1431 N Padano Lane
+    - 16507 Barnett Street
+    - 93 W. Semolina Lane
+    - 320 W Nasergholi Avenue
+    - 1221 N. Girardi Drive
+    - 317 E CLYDESDALE COURT
+    - 16519 Barnett Street
+    - 5684 Wildrye Lane
+    - 7957 Floyd Glenn Wise Drive
+    - 314 E CLYDESDALE COURT
+    - 313 E Gobind Blvd
+    - 228 W Nasergholi Avenue
+    - 1322 N. Martorella Avenue
+    - 1529 Riverfront Drive
+    - 5680 Wildrye Lane
+    - 3753 Scholl Lane
+    - 1589 Strathaven Place
+    - 1590 Ponza Circle
+    - 5676 Wildrye Lane
+    - 1904 S LAZULI STREET
+- id: q02
+  question: What's the cheapest home I can move into right now in Alameda County, counting incentives?
+  expect:
+    top3_all_of:
+    - 4894 Las Positas Road
+    eligible:
+    - 4894 Las Positas Road
+    - 4540 Dolcetto Common
+    - 4898 Las Positas Road
+    - '138 Sedona Common Unit #3'
+    - 4810 Dolcetto Common
+    - '109 Sedona Common Unit #2'
+    - '105 Sedona Common Unit #1'
+    - 4695 Marengo Common
+    - 4832 Las Positas Road
+    - 4744 Las Positas Road
+    - 4724 Las Positas Road
+    - 4707 Marengo Common
+    - 1715 Central Parkway
+    - 1717 Central Parkway
+    - 1733 Central Parkway
+    - 1719 Central Parkway
+    - 4648 Vilana Street
+    - 4686 Vilana Street
+    - 37433 Fremont Blvd.
+    - 37425 Fremont Blvd.
+    - 2037 Santa Rita Road
+    - 2043 Santa Rita Road
+    - 2031 Santa Rita Road
+    - 3960 Viggo Way
+    - 1949 Michael Avenue
+    - 1607 Walsh Avenue
+    - 1775 Sill Ave
+    - 4296 Langley Road
+    - 1637 Wren Court
+    - 1640 Savanna Court
+- id: q03
+  question: Are there any 3-bedroom townhomes in Santa Clara County under $1.3M after incentives?
+  expect:
+    no_homes: true
+- id: q04
+  question: Which home in San Joaquin County has the biggest discount from builder incentives?
+  expect:
+    top3_any_of:
+    - 1576 TORREY DR
+    eligible:
+    - 1576 TORREY DR
+    - 337 E Beatrice Avenue
+    - 361 E Beatrice Avenue
+    - 1520 TORREY DR
+    - 1518 PRAIRIE OAK AVE
+    - 3348 ANDEAN WAY
+    - 1530 TEAK AVE
+    - 1486 PRAIRIE OAK AVE
+    - 1458 PRAIRIE OAK AVE
+    - 325 E Beatrice Avenue MOD
+    - 329 E CLYDESDALE COURT
+    - 17131 St. James Lane
+    - 17173 Coral Tree Lane
+    - 3767 Scholl Lane
+    - 17165 Coral Tree Lane
+    - 317 E CLYDESDALE COURT
+    - 314 E CLYDESDALE COURT
+    - 313 E Gobind Blvd
+    - 1529 Riverfront Drive
+    - 3753 Scholl Lane
+    - Lot 346
+    - Lot 421
+    - Lot 93
+    - '34'
+    - Lot 263
+    - Lot 264
+    - '28'
+    - Lot 348
+    - Lot 94
+    - 1904 S LAZULI STREET
+    - 1627 Riverfront Drive
+    - 3513 Caples Way
+    - 3514 Lakeshore Ave
+    - 411 W Calabria Drive
+    - 444 W Volta Street
+    - 1431 N Padano Lane
+    - 16441 Barnett Court
+    - 461 W Calabria Drive
+    - 401 W Calabria Drive
+    - 471 W Calabria Drive
+    - 1461 N Padano Lane
+    - 433 W Volta Street
+    - 481 W Calabria Drive
+    - 1270 N Robiolo Lane
+    - 10612 Stevie Dr.
+    - 10597 Aretha Ln.
+    - 10657 Aretha Ln.
+    - 4008 Keith Lane
+    - 10694 Aretha Ln.
+    - 10682 Aretha Ln.
+    - 10732 Stevie Dr.
+    - 10646 Aretha Ln.
+    - 10641 Coolio Way
+    - 1210 N Robiolo Lane
+    - 748 Villa Ticino Dr.
+    - 1975 S. Vivani St.
+    - 728 Villa Ticino Dr.
+    - 717 Villa Ticino Dr.
+    - 1935 S. Vivani St.
+    - 266 Victorious St.
+    - 3161 Echo Way
+    - 3137 Phoenix Ave
+    - 1852 Serene Ct
+    - 1860 Serene Ct
+    - 3199 Boca Way
+    - 1897 Island Ln
+    - 1881 Island Lane
+    - 1868 Serene Ct
+    - 3171 Boca Way
+    - 1851 Serene Ct
+    - 1720 EAGLE RIVER AV
+    - 2401 DIABLO VIEW DR
+    - 2228 HEWINS ST
+    - 1936 GUINNESS LN
+    - 1717 EAGLE RIVER AV
+    - 2425 GOLDEN BEAR ST
+    - 2881 DAWSON CREEK ST
+    - 2871 DAWSON CREEK ST
+    - 2338 LAZIO ST
+    - 2363 EMMA DR
+    - 2282 HEWINS ST
+    - 2258 HEWINS ST
+- id: q05
+  question: Five bedrooms in Mountain House, ready to move in now. Cheapest first?
+  expect:
+    top3_any_of:
+    - 337 E Beatrice Avenue
+    eligible:
+    - 337 E Beatrice Avenue
+    - 361 E Beatrice Avenue
+    - 481 W Calabria Drive
+    - 264 W Adriana Drive
+    - 1461 N Padano Lane
+    - 1431 N Padano Lane
+    - 93 W. Semolina Lane
+    - 1221 N. Girardi Drive
+    - 317 E CLYDESDALE COURT
+    - 314 E CLYDESDALE COURT
+    - 313 E Gobind Blvd
+    - 1904 S LAZULI STREET
+    - 69 W. Farinata Court
+    - 53 W. Farinata Court
+- id: q06
+  question: Show me homes with a bedroom on the ground floor for under $650k after incentives.
+  expect:
+    top3_any_of:
+    - 1082 Bruin Road
+    - 3139 Workman Avenue
+    - 830 Jazz Way
+    eligible:
+    - 1082 Bruin Road
+    - 3139 Workman Avenue
+    - 830 Jazz Way
+    - 4846 Badger Creek Court
+    - 866 Jazz Way
+    - 2003 Wildcat Street
+    - 4841 Badger Creek Court
+    - 1561 Saint Ellias Ave
+    - 1979 Wildcat Street
+    - 1991 Wildcat Street
+    - 884 Shasta Avenue
+    - 893 Commodore Lane
+- id: q07
+  question: What's for sale in Tracy under $800,000?
+  expect:
+    top3_any_of:
+    - Lot 93
+    - 3514 Lakeshore Ave
+    - Lot 94
+    eligible:
+    - Lot 93
+    - 3514 Lakeshore Ave
+    - Lot 94
+    - 3513 Caples Way
+    - Lot 346
+    - Lot 421
+    - 1851 Serene Ct
+    - 1868 Serene Ct
+    - 7435 Forbes Avenue
+    - 1860 Serene Ct
+    - 1852 Serene Ct
+    - 2857 Chauncy Street
+    - 7278 Oscar Drive
+    - 7399 Forbes Avenue
+    - 2881 Chauncy Street
+    - 2706 Emery Street
+    - 7423 Forbes Avenue
+- id: q08
+  question: Any condos in Santa Clara County under $1M after incentives that are ready by December?
+  expect:
+    top3_any_of:
+    - 1351 Laurel Way
+    - 1249 Pueblo Ln.
+    - 1307 Laurel Way
+    eligible:
+    - 1351 Laurel Way
+    - 1249 Pueblo Ln.
+    - 1307 Laurel Way
+    - 1357 Laurel Way
+    - 660 South Main St
+    - 1319 Laurel Way
+    - 401 Tonkin Terrace, Unit 6
+    - 1200 Althea Terr, Unit 312
+- id: q09
+  question: What incentives does Lilac at Oakwood Trails offer, and what are they worth?
+  expect:
+    must_mention:
+    - '250'
+    - '4.99'
+- id: q10
+  question: What did earlier buyers pay at Cairnway in Tracy, compared with today's asking prices?
+  expect:
+    must_mention:
+    - '804'
+    - asking
+- id: q11
+  question: What did buyers pay for homes at Orchard Grove in Brentwood?
+  expect:
+    must_mention:
+    - - '1.32'
+      - 1,320
+- id: q12
+  question: What did earlier buyers pay at The District in Milpitas?
+  expect:
+    must_mention:
+    - Santa Clara
+- id: q13
+  question: If I put 10% down on 1576 Torrey Dr in Manteca, what's its true price?
+  expect:
+    must_mention:
+    - '653'
+    - '467'
+- id: q14
+  question: With 5% down, how much is the 4.99% ARM offer on 337 E Beatrice Avenue worth?
+  expect:
+    must_mention:
+    - - 74,169
+      - 74k
+      - '74.2'
+- id: q15
+  question: Compare 337 E Beatrice Avenue in Mountain House with 1162 Bradbury Drive in Discovery Bay.
+  expect:
+    top3_all_of:
+    - 337 E Beatrice Avenue
+    - 1162 Bradbury Drive
+    must_mention:
+    - - 789,925
+      - 790k
+      - '789.9'
+    - - 796,437
+      - 796k
+      - '796.4'
+- id: q16
+  question: Which floor plans at Driftway in Lathrop have a bedroom downstairs?
+  expect:
+    must_mention:
+    - Residence 1
+    - Residence 2
+    - Residence 3
+- id: q17
+  question: How big is the owner's suite in the home at 3139 Workman Avenue?
+  expect:
+    must_mention:
+    - - 14' x 14' 5
+      - 14'x14'5
+      - 14' x 14'5
+      - 14 ft x 14 ft 5
+      - 14′ x 14′ 5
+- id: q18
+  question: Any new homes in Napa under $900k?
+  expect:
+    no_homes: true
+    must_mention:
+    - Napa
+- id: q19
+  question: What's the cheapest home in a 55+ community?
+  expect:
+    top3_all_of:
+    - 1319 Marceline Drive
+    eligible:
+    - 1319 Marceline Drive
+    - 1306 Parkcrest Circle
+    - 3514 Lakeshore Ave
+    - 1312 Parkcrest Circle
+    - 3513 Caples Way
+    - 1453 Sparrow Ave
+    - 1851 Serene Ct
+    - 1095 Riverbend Drive
+    - 1135 Riverbend Drive
+    - 1151 Riverbend Drive
+    - 1127 Riverbend Drive
+    - 927 Conrad Street
+    - 1079 Riverbend Drive
+    - 1288 Parkcrest Circle
+    - 1063 Riverbend Drive
+    - 1143 Riverbend Drive
+    - 1868 Serene Ct
+    - 1087 Riverbend Drive
+    - 1055 Riverbend Drive
+    - 940 Conrad Street
+    - 1860 Serene Ct
+    - 1254 Parkcrest Circle
+    - 1852 Serene Ct
+    - 1276 Parkcrest Circle
+    - 3137 Phoenix Ave
+    - 3161 Echo Way
+    - 1897 Island Ln
+    - 1881 Island Lane
+    - 3199 Boca Way
+    - 3171 Boca Way
+- id: q20
+  question: Anything in Dublin with 4 bedrooms for under $1.6M after incentives?
+  expect:
+    top3_any_of:
+    - 1715 Central Parkway
+    - 1717 Central Parkway
+    - 1733 Central Parkway
+    eligible:
+    - 1715 Central Parkway
+    - 1717 Central Parkway
+    - 1733 Central Parkway
+    - 1719 Central Parkway
+    - 1732 Wayfairing Ave
+    - 3960 Viggo Way

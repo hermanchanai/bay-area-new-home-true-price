@@ -116,3 +116,17 @@ def test_http_error_is_logged_and_raised(env, monkeypatch):
 def test_parse_json_strips_fences():
     assert llm.parse_json('```json\n{"a": 1}\n```') == {"a": 1}
     assert llm.parse_json('{"a": 2}') == {"a": 2}
+
+
+def test_tool_calls_are_sent_returned_and_replayed_from_cache(env):
+    calls = [{"id": "c1", "type": "function", "function": {"name": "f", "arguments": "{\"x\": 1}"}}]
+    resp = FakeResp(200, {"choices": [{"message": {"role": "assistant", "content": None, "tool_calls": calls},
+                                       "finish_reason": "tool_calls"}],
+                          "usage": {"prompt_tokens": 100, "completion_tokens": 10}})
+    tools = [{"type": "function", "function": {"name": "f", "parameters": {"type": "object", "properties": {}}}}]
+    s = FakeSession(resp)
+    r = llm.chat([{"role": "user", "content": "q"}], purpose="t", tools=tools, session=s, **env)
+    assert s.calls[0]["json"]["tools"] == tools
+    assert (r.text, r.tool_calls, r.finish_reason) == ("", calls, "tool_calls")
+    again = llm.chat([{"role": "user", "content": "q"}], purpose="t", tools=tools, session=FakeSession(), **env)
+    assert again.from_cache and again.tool_calls == calls        # agent eval re-runs cost $0

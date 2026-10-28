@@ -48,6 +48,7 @@ class Result:
     from_cache: bool
     model: str
     finish_reason: str | None
+    tool_calls: list | None = None
 
 
 def load_config(path: Path = CONFIG) -> dict:
@@ -93,7 +94,7 @@ def _record(conn, *, provider, model, purpose, key, usage=None, cost=0.0, latenc
 
 
 def chat(messages: list[dict], *, purpose: str, provider: str | None = None, model: str | None = None,
-         response_format: dict | None = None, reasoning_effort: str | None = None,
+         response_format: dict | None = None, tools: list | None = None, reasoning_effort: str | None = None,
          max_completion_tokens: int | None = None, conn=None, cfg: dict | None = None,
          cache_dir: Path = CACHE_DIR, session=None, timeout: int = 600) -> Result:
     cfg = cfg or load_config()
@@ -110,6 +111,8 @@ def chat(messages: list[dict], *, purpose: str, provider: str | None = None, mod
         body["max_completion_tokens"] = max_out
     if response_format:
         body["response_format"] = response_format
+    if tools:
+        body["tools"] = tools
 
     key = hashlib.sha256(json.dumps({"provider": provider, **body}, sort_keys=True).encode()).hexdigest()
     conn = conn or db.connect()
@@ -117,7 +120,7 @@ def chat(messages: list[dict], *, purpose: str, provider: str | None = None, mod
     if cache_file.exists():
         hit = json.loads(cache_file.read_text())
         _record(conn, provider=provider, model=model, purpose=purpose, key=key, from_cache=True)
-        return Result(hit["text"], hit["usage"], 0.0, True, model, hit.get("finish_reason"))
+        return Result(hit["text"], hit["usage"], 0.0, True, model, hit.get("finish_reason"), hit.get("tool_calls"))
 
     # Budget guard: refuse unless the worst case (estimated input + full output allowance) fits.
     price = prov["models"].get(model) or {}
@@ -166,12 +169,14 @@ def chat(messages: list[dict], *, purpose: str, provider: str | None = None, mod
     choice = data["choices"][0]
     text = choice["message"].get("content") or ""
     finish = choice.get("finish_reason")
+    tool_calls = choice["message"].get("tool_calls") or None
     _record(conn, provider=provider, model=model, purpose=purpose, key=key, usage=usage,
             cost=cost, latency_ms=latency)
-    if finish == "stop":  # only complete answers are worth replaying
+    if finish in ("stop", "tool_calls"):  # only complete replies are worth replaying
         cache_file.parent.mkdir(parents=True, exist_ok=True)
-        cache_file.write_text(json.dumps({"text": text, "usage": usage, "finish_reason": finish}))
-    return Result(text, usage, cost, False, model, finish)
+        cache_file.write_text(json.dumps({"text": text, "usage": usage, "finish_reason": finish,
+                                          "tool_calls": tool_calls}))
+    return Result(text, usage, cost, False, model, finish, tool_calls)
 
 
 def print_spend(conn=None, cfg=None):

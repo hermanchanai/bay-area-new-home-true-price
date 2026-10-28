@@ -37,7 +37,8 @@ Every model call in the product goes to a Meta model. The code itself was writte
 | True prices (`tools/load_records.py`): 462 homes loaded, 456 priced | Day 4 gate PASS ([report](eval/reports/2026-10-27__true_prices.md)) |
 | Floor plans (`tools/read_floorplan.py`, Muse Spark vision): 107 Lennar plans | 98.7% of printed room labels read exactly ([report](eval/reports/2026-10-27__floorplans.md)) |
 | Parcel linking + past sales (`tools/link_parcels.py`, no model) | Day 5 gate PASS: 27 communities show what earlier buyers paid ([report](eval/reports/2026-10-27__past_sales.md)) |
-| Agent, map | next |
+| Buyer agent (`tools/agent.py` + `tools/agent_tools.py`, Muse Spark native tool calls, 7 read-only tools) | Day 6 gate PASS: 20/20 hand-checked questions, every dollar figure traced to a tool result ([report](eval/reports/2026-10-27__agent.md)) |
+| Map + web app | next |
 
 ## How incentives become dollars
 
@@ -62,6 +63,8 @@ uv venv --python 3.12 .venv && uv pip install --python .venv/bin/python -r requi
 .venv/bin/python -m tools.db                  # create data/trueprice.db
 .venv/bin/python -m tools.fetch_market_rate   # latest 30-yr rate
 .venv/bin/python -m tools.link_parcels --spot-check   # past sales per community + live assessor checks
+.venv/bin/python -m tools.agent "4 bed under $1.1M true price, ready by January, Contra Costa or San Joaquin"
+.venv/bin/python -m tools.eval_agent          # 20-question agent eval -> eval/reports/<date>__agent.md
 ```
 
 ## What existed before the event
@@ -104,3 +107,9 @@ building period.
     sales (5 Contra Costa / Alameda, 22 San Joaquin). Alameda's 14.5k recorded prices confirmed the
     Prop 13 rule used everywhere else (value = price × 1.02 per July-1 roll since the sale, 2025-26
     roll). Most Alameda communities selling now have no closed sales yet (lots still use code 0800).
+  - Day 6 (same day): buyer agent on Muse Spark with native tool calls (search homes, find/get
+    community, plan, past sales, compare, re-price with the buyer's own down payment). Rankings and
+    budgets use the guaranteed end of the true price, since an "up to $250K" offer may pay $0. The
+    re-pricing tool reproduces all 456 stored true prices at 20% down. 20-question eval: 17/20 on
+    the first run, 20/20 after adding address lookup and tightening the prompt; 5 held-out questions
+    also checked correct by hand. Whole eval $0.05 in contributor mode.
