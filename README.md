@@ -38,7 +38,7 @@ Every model call in the product goes to a Meta model. The code itself was writte
 | Floor plans (`tools/read_floorplan.py`, Muse Spark vision): 107 Lennar plans | 98.7% of printed room labels read exactly ([report](eval/reports/2026-10-27__floorplans.md)) |
 | Parcel linking + past sales (`tools/link_parcels.py`, no model) | Day 5 gate PASS: 27 communities show what earlier buyers paid ([report](eval/reports/2026-10-27__past_sales.md)) |
 | Buyer agent (`tools/agent.py` + `tools/agent_tools.py`, Muse Spark native tool calls, 7 read-only tools) | Day 6 gate PASS: 20/20 hand-checked questions, every dollar figure traced to a tool result ([report](eval/reports/2026-10-27__agent.md)) |
-| Map + web app (`web/`, `tools/server.py`): map of 101 communities, home list, community pages, agent box | Built and checked locally on desktop and a 375 px phone; not deployed yet |
+| Map + web app (`web/`, `tools/server.py`): map of 101 communities, home list, community pages, agent box | **Live: https://bay-area-true-price.netlify.app** (site on Netlify; agent API on Railway behind Netlify's `/api` proxy). Checked on desktop and a 375 px phone; live answers verified against the DB |
 
 ## How incentives become dollars
 
@@ -126,3 +126,5 @@ building period.
     question) behind per-IP limits and a $2/day, $10 total cap; the 20 hand-checked eval answers
     are served free as examples. The re-price endpoint reruns the incentive math for any down
     payment. The deployed DB holds listings, prices and community aggregates only, no parcels.
+    Deployed the same day: Netlify for the static site, Railway for the agent API (the Meta key is a
+    Railway variable, never a file). A live question on the deployed site cost $0.007.
