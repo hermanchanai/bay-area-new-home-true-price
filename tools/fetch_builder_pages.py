@@ -162,8 +162,10 @@ def fetch_builder(b: dict, cfg: dict, city_county: dict, conn=None, out_root: Pa
         # middle level: city pages (Pulte) or master-plan pages (Lennar), keyed by path since a city can hold several
         mids = {m["path"]: m for t in pages for m in in_scope(find_paths(t, b["city_pattern"]), city_county)}
         pages = [save(urljoin(b["site"], path), "city", {"city": m["city"]}) for path, m in sorted(mids.items())]
-    communities, unplaced = {}, {}
+    communities, unplaced, homes = {}, {}, {}
     for t in pages:
+        for m in find_paths(t, b["home_pattern"]) if b.get("home_pattern") else []:  # one page per home (Meritage)
+            homes.setdefault(urljoin(b["site"], m["path"]), m)
         found = find_paths(t, b["community_pattern"])
         for m in found:
             url = urljoin(b["site"], m["path"]).rstrip("/") + ("/" if m["path"].endswith("/") else "")
@@ -173,24 +175,31 @@ def fetch_builder(b: dict, cfg: dict, city_county: dict, conn=None, out_root: Pa
                 unplaced.setdefault(url, m)
     for url, m in communities.items():
         save(url, "community", {"city": m["city"], "county": m["county"], "slug": m["slug"]})
-    for url, m in unplaced.items():  # the URL doesn't name the city: read it from the page, keep only in-scope
-        if url in communities:
-            continue
-        text = save(url, "community", {"slug": m["slug"]})
+    def place(url: str, m: dict, kind: str) -> dict | None:
+        """The URL doesn't name the city: read it from the page; keep only in-scope pages."""
+        text = save(url, kind, {"slug": m["slug"]})
         rec, city = manifest[-1], page_city(text, b.get("page_city_pattern", PAGE_CITY))
         rec["city"] = city
         if city in city_county:
             rec["county"] = city_county[city]
-            communities[url] = rec
-        elif rec["file"]:
+            return rec
+        if rec["file"]:
             (out_dir / rec["file"]).unlink()
             rec.update(kind="out_of_scope", file=None)
+        return None
+
+    for url, m in unplaced.items():
+        if url not in communities and (rec := place(url, m, "community")):
+            communities[url] = rec
+    for url, m in homes.items():
+        place(url, m, "home")
     for u in b.get("extra_pages", []):
         save(u, "extra")
 
     (out_dir / "manifest.json").write_text(json.dumps(manifest, indent=1))
     got = [r for r in manifest if r["kind"] == "community" and r["status"] == 200]
     result = {"builder": b["key"], "communities_found": len(communities), "communities_fetched": len(got),
+              "homes_fetched": sum(r["kind"] == "home" for r in manifest),
               "expected": b["expected_communities"], "blocked_by_robots": sum(r["status"] == -1 for r in manifest),
               "errors": sum(r["status"] not in (200, -1) for r in manifest), "dir": str(out_dir)}
     result["floor_ok"] = floor_ok(len(got), b["expected_communities"])

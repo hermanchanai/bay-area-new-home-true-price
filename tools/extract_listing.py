@@ -90,7 +90,8 @@ Rules
 
 
 def messages_for(doc_text: str, builder: str, url: str, kind: str) -> list[dict]:
-    page_type = {"community": "community page", "extra": "offers / listing page"}.get(kind, kind)
+    page_type = {"community": "community page", "extra": "offers / listing page",
+                 "home": "single home page (one quick move-in home)"}.get(kind, kind)
     return [{"role": "developer", "content": INSTRUCTIONS},
             {"role": "user", "content": f"Builder: {builder}\nPage type: {page_type}\nURL: {url}\n\n{doc_text}"}]
 
@@ -140,7 +141,7 @@ def targets(date: str, builders: list[str] | None, truth_pages: bool) -> list[di
         if not bdir.is_dir() or (builders and bdir.name not in builders):
             continue
         for rec in json.loads((bdir / "manifest.json").read_text()):
-            if rec.get("status") != 200 or rec["kind"] not in ("community", "extra") or not rec.get("file"):
+            if rec.get("status") != 200 or rec["kind"] not in ("community", "extra", "home") or not rec.get("file"):
                 continue
             stem = rec["file"].removesuffix(".html")
             if wanted is not None and f"{bdir.name}/{stem}" not in wanted:

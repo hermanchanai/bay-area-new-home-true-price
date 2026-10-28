@@ -127,6 +127,8 @@ def validate(rec: dict, page_text: "Page | str") -> list[dict]:
                 issues.append(_issue(w, "arm_structure", i["structure"]))
         price = by_addr.get(i.get("home_address")) if i.get("scope") == "home" else None
         price = price or base
+        if price and i.get("kind") == "price_cut" and i.get("included_in_price") and i.get("amount_usd"):
+            price += i["amount_usd"]  # the shown price is already cut: judge the cut against the original
         if i.get("amount_usd") and price and i["amount_usd"] > 0.25 * price:
             # real Bay Area cuts reach ~40% ("$300,000 in savings" on $789,925); past half the price is an error
             over = i["amount_usd"] > 0.5 * price

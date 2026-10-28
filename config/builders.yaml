@@ -73,6 +73,8 @@ builders:
     community_pattern: '/state/ca/bay-area/(?P<slug>[a-z][a-z0-9-]*)(?=<)'
     city_from_page: true
     page_city_pattern: '<input id="city" type="hidden" value="(?P<city>[^"]+)"'  # no JSON-LD address
+    # its community pages only count quick move-ins ("totalQmis"); each home has its own page
+    home_pattern: '/state/ca/bay-area/(?P<slug>\d[a-z0-9-]*)(?=<)'
     expected_communities: 8
 
   - key: tri_pointe

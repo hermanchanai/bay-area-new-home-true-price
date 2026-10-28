@@ -109,3 +109,12 @@ def test_home_quote_drift_is_a_warning_when_address_and_price_check_out():
     # homes are verified field by field (address, price on the page); a paraphrased quote isn't a fabrication
     got = validate(rec([home(evidence="1607 Walsh Avenue $1,234,500 Available Now")]), PAGE)
     assert [(i["rule"], i["severity"]) for i in got] == [("evidence_not_on_page", "warn")]
+
+
+def test_price_cut_size_is_judged_against_the_original_price():
+    # Century: "was $1,236,615 now $779,000" -> a $457,615 cut is 37% of the original price, not 59% of the new one
+    page = PAGE + "Was $1,236,615 now $779,000\n"
+    cut = inc(kind="price_cut", rate=None, structure=None, amount_usd=457615, included_in_price=True,
+              evidence="Was $1,236,615 now $779,000")
+    got = validate({**rec([home()], [cut]), "community": {"price_from": 779000}}, page)
+    assert [(i["rule"], i["severity"]) for i in got] == [("amount_over_25pct", "warn")]
