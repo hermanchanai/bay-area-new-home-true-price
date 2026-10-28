@@ -10,7 +10,7 @@ def repo(tmp_path):
     r = tmp_path / "repo"
     for f, text in {"tools/server.py": "x", "tools/__init__.py": "", "config/llm.yaml": "a: 1",
                     "web/index.html": "<html>", "web/data/site.json": "{}", "requirements.txt": "flask",
-                    "data/trueprice.db": "big", ".env": "META_API_KEY=secret",
+                    "data/trueprice.db": "big", ".env": "NOT_A_REAL_KEY=1",
                     "tools/.env": "X=1", ".tmp/raw/page.html": "raw", "tools/__pycache__/a.pyc": "c"}.items():
         (r / f).parent.mkdir(parents=True, exist_ok=True)
         (r / f).write_text(text)
