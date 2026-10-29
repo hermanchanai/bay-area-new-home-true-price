@@ -363,7 +363,7 @@ async function ask() {
     box.innerHTML = `<p class="text-sm text-rose-700">${esc(res.error)}</p>`;
     return;
   }
-  const label = { checked: "Answer checked by hand", cached: "Live answer from Muse Spark Open (asked earlier today)",
+  const label = { checked: `Answer checked by hand${res.checked ? " on " + day(res.checked) + "; prices may have moved since" : ""}`, cached: "Live answer from Muse Spark Open (asked earlier today)",
     live: `Live answer from Muse Spark Open · ${res.turns} steps · $${(res.cost_usd ?? 0).toFixed(3)}` }[res.source] || "";
   box.innerHTML = `<div class="text-[11px] uppercase tracking-wide text-slate-400 mb-1">${label}</div>${answerHTML(res.answer)}`;
 }

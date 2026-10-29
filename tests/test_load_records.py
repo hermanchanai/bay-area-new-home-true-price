@@ -117,3 +117,20 @@ def test_a_closing_date_guarantee_is_not_a_discount():
     counted, excluded = pricing_set([guarantee, inc("perm_rate", rate=5.25)], "h1")
     assert [i["kind"] for i in counted] == ["perm_rate"]
     assert [r for _, r in excluded] == ["conditional"]
+
+
+def test_a_home_keeps_its_id_across_daily_reloads():
+    # [H<id>] citations in saved answers and #h/<id> links must keep pointing at the same home after a reload in
+    # which other homes sold or appeared (2026-10-28: 38 of 40 example-answer citations moved to other homes).
+    from tools import db
+    from tools.load_records import stable_home_id
+    conn = db.connect(":memory:")
+    conn.execute("INSERT INTO builders (id, name, site) VALUES (1, 'B', 'https://b.example')")
+    conn.execute("INSERT INTO communities (id, builder_id, name, url) VALUES (7, 1, 'Oak', 'https://b.example/oak')")
+    first = [stable_home_id(conn, 7, a, None) for a in ("1 Oak St", "3 Oak St", "5 Oak St")]
+    assert first == [1, 2, 3]
+    conn.execute("DELETE FROM homes")                                  # next day's reload: 3 Oak St sold, one new
+    assert stable_home_id(conn, 7, "5 Oak Street", None) == 3          # same home, spelled differently
+    assert stable_home_id(conn, 7, "9 Oak St", None) == 4              # new home: a new id, never a retired one
+    assert stable_home_id(conn, 7, "1 Oak St", None) == 1
+    assert stable_home_id(conn, 7, None, "Lot 12") == 5

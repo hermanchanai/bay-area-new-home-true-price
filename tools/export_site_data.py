@@ -90,7 +90,7 @@ def history_meta(conn) -> dict:
     out = {"first": days[0] if days else None, "last": days[-1] if days else None, "checks": len(days)}
     if len(days) > 1:
         prev, last = days[-2], days[-1]
-        q = lambda sql: conn.execute(sql, (prev, last)).fetchone()[0]  # noqa: E731
+        q = lambda sql: conn.execute(sql, (prev, last)).fetchone()[0]
         out.update(
             price_changed=q("SELECT COUNT(*) FROM price_history a JOIN price_history b ON b.home_key = a.home_key "
                             "WHERE a.snapshot_date = ? AND b.snapshot_date = ? AND a.asking != b.asking"),
@@ -125,7 +125,7 @@ def community_detail(conn, cid: int, today: str) -> dict:
 
 
 def demo_answers(conn, runs: Path) -> dict:
-    """Passed eval answers whose every cited id still exists (a reload renumbers ids)."""
+    """Passed eval answers whose every cited id still exists (a home that sold drops its answers)."""
     known = {k: {r[0] for r in conn.execute(f"SELECT id FROM {t}")}
              for k, t in (("H", "homes"), ("C", "communities"), ("P", "plans"))}
     out = {}
@@ -137,7 +137,8 @@ def demo_answers(conn, runs: Path) -> dict:
         if any(i not in known[k] for k in ids for i in ids[k]):
             log.warning("%s cites ids no longer in the DB; dropped", f.name)
             continue
-        out[question_key(r["question"])] = {"question": r["question"], "answer": r["answer"]}
+        checked = date.fromtimestamp(f.stat().st_mtime).isoformat()     # the eval run that passed it
+        out[question_key(r["question"])] = {"question": r["question"], "answer": r["answer"], "checked": checked}
     return out
 
 

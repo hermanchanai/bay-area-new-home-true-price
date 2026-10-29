@@ -97,7 +97,7 @@ def create_app(db_path: Path = SITE_DB, run=run_agent, live: dict | None = None,
             return jsonify(error=f"Keep it under {live['max_question_chars']} characters."), 400
         key = question_key(q)
         if key in demo:
-            return jsonify(answer=demo[key]["answer"], source="checked", cost_usd=0)
+            return jsonify(answer=demo[key]["answer"], source="checked", checked=demo[key].get("checked"), cost_usd=0)
         if (today(), key) in answered:
             return jsonify(answer=answered[(today(), key)], source="cached", cost_usd=0)
         conn = db.connect(db_path)

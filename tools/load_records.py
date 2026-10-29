@@ -88,6 +88,21 @@ def _already_in_price(i: dict, home: dict) -> bool:
     return i["kind"] == "price_cut" and bool(amt) and abs((was - price) - amt) <= max(1000, 0.01 * amt)
 
 
+def stable_home_id(conn, community_id: int, address: str | None, lot: str | None) -> int:
+    """The home's permanent id (migrations/007_home_ids.sql): the same home keeps it across daily reloads."""
+    from tools.snapshot_prices import home_key
+    builder_id, url = conn.execute("SELECT builder_id, url FROM communities WHERE id = ?", (community_id,)).fetchone()
+    key = home_key(builder_id, url, address, lot)
+    row = conn.execute("SELECT id FROM home_ids WHERE home_key = ?", (key,)).fetchone()
+    if row and not conn.execute("SELECT 1 FROM homes WHERE id = ?", (row[0],)).fetchone():
+        return row[0]
+    new = conn.execute("SELECT MAX(m) + 1 FROM (SELECT COALESCE(MAX(id), 0) m FROM home_ids "
+                       "UNION ALL SELECT COALESCE(MAX(id), 0) FROM homes)").fetchone()[0]
+    if not row:                     # a key already used today (no address or lot to tell homes apart): unmapped id
+        conn.execute("INSERT INTO home_ids VALUES (?, ?)", (key, new))
+    return new
+
+
 def home_incentives(home: dict, page: dict, community_page: dict) -> list[dict]:
     me = norm_address(home["address"]) if home.get("address") else None
     out, seen = [], set()
@@ -221,10 +236,11 @@ def load(date: str, conn) -> dict:
             plan = conn.execute("SELECT id FROM plans WHERE community_id=? AND name=?",
                                 (community_id, h.get("plan_name"))).fetchone()
             home_id = conn.execute(
-                "INSERT INTO homes (community_id, plan_id, address, lot, price, was_price, price_basis, move_in_status,"
-                " ready_date, beds, baths, sqft, url, fetched_at, source_page) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)"
-                " RETURNING id",
-                (community_id, plan[0] if plan else None, h.get("address"), h.get("lot"), h.get("price"),
+                "INSERT INTO homes (id, community_id, plan_id, address, lot, price, was_price, price_basis, "
+                "move_in_status, ready_date, beds, baths, sqft, url, fetched_at, source_page) "
+                "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?) RETURNING id",
+                (stable_home_id(conn, community_id, h.get("address"), h.get("lot")),
+                 community_id, plan[0] if plan else None, h.get("address"), h.get("lot"), h.get("price"),
                  h.get("was_price"), "quick_move_in", MOVE_IN.get(h.get("move_in_status")), h.get("ready_date"),
                  h.get("beds"), h.get("baths"), h.get("sqft"), p["url"], p["manifest"].get("fetched_at"),
                  p["page"])).fetchone()[0]

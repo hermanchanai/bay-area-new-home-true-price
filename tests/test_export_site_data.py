@@ -1,5 +1,6 @@
 """export_site_data: the static site's JSON and the live agent's slim DB, both from the same queries."""
 import json
+import re
 import sqlite3
 
 import pytest
@@ -49,8 +50,9 @@ def test_demo_answers_keep_only_answers_whose_citations_exist(conn, tmp_path):
     failed = {"question": "Bad?", "answer": "[H1]", "score": {"pass": False}}
     for i, r in enumerate([ok, stale, failed]):
         (runs / f"q{i}.json").write_text(json.dumps(r))
-    assert demo_answers(conn, runs) == {"homes in tracy": {"question": "Homes in Tracy?",
-                                                            "answer": "1 Oak St [H1] in Oak Grove [C1]"}}
+    got = demo_answers(conn, runs)
+    assert list(got) == ["homes in tracy"] and got["homes in tracy"]["answer"] == "1 Oak St [H1] in Oak Grove [C1]"
+    assert re.fullmatch(r"\d{4}-\d{2}-\d{2}", got["homes in tracy"]["checked"])     # the day its eval run passed
 
 
 @pytest.mark.parametrize("q,key", [("  Homes in TRACY? ", "homes in tracy"), ("4 bed, under $1.1M!", "4 bed under $1.1m")])
