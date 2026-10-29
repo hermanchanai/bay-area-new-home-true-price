@@ -70,6 +70,16 @@ county assessor layers (ArcGIS) ──► link parcels by street ──► past-
 SQLite ──► export ──► static site (Netlify)       SQLite ──► agent API (Flask on Railway, /api proxy)
 ```
 
+## Daily price check
+
+Every morning `python -m tools.daily_refresh` (a launchd job on the build machine) fetches every builder again,
+re-extracts only pages whose prices, amounts or rates changed (pages change other text daily: office hours,
+tracking tokens), reprices, records each home's asking and true price in `price_history`, and redeploys.
+Meta spend is capped at $1 a day; a page that misses extraction keeps its last one, and a day that loads under
+70% of the previous day's homes is not published. Each home keeps a permanent id, so links and cited answers
+stay on the same home. The site shows each home's price history, and the whole series is a CSV:
+https://bay-area-true-price.netlify.app/data/price_history.csv
+
 ## Data and rules
 
 - Public data only: builders' own public pages, county assessor open data, FRED.
@@ -136,6 +146,7 @@ uv venv --python 3.12 .venv && uv pip install --python .venv/bin/python -r requi
 .venv/bin/python -m tools.export_site_data    # web/data/*.json + data/site.db (the live agent's slim DB)
 .venv/bin/python -m tools.server              # site + agent API at http://localhost:8787
 .venv/bin/python -m tools.build_bundle        # allowlisted deploy folder for the agent API -> .tmp/bundle/
+.venv/bin/python -m tools.daily_refresh --no-deploy   # the daily price check, without publishing
 ```
 
 ## What existed before the event
@@ -204,3 +215,6 @@ building period.
     guarantees and offers naming a buyer group in their label aren't counted either. Best-case prices
     changed on 80 homes (average best-case discount 6.0% -> 4.1%); guaranteed prices changed on none.
     Agent eval re-derived for the two affected questions, 20/20.
+    Daily price check built and scheduled; first daily run (10-28): 319 pages, 93 with changed figures
+    re-extracted for $0.68, 2 asking prices changed, 3 homes listed and 4 gone. Homes now keep permanent ids
+    (a reload had moved 38 of 40 example-answer citations onto other homes).
