@@ -5,20 +5,23 @@
     python -m tools.daily_refresh --skip-fetch    # rerun today from the pages already fetched
 
 Run by launchd every morning at 05:30 (~/Library/LaunchAgents/com.hermanchan.true-price-daily.plist; log in
-~/Library/Logs/true-price-daily.log and .tmp/logs/daily_<date>.log). Fetching ~19 builders one at a time,
-2 s per request, takes 1-2 hours. Steps, in order:
+~/Library/Logs/true-price-daily.log and .tmp/logs/daily_<date>.log). The fetch takes ~15 minutes. Steps:
   1. market rate (FRED)         2. fetch all builders        3. preprocess
-  4. extract (cached pages $0; Meta daily cap in config/llm.yaml stops new calls, the run goes on)
-  5. carry forward: a page fetched today whose extraction didn't run (cap, error) reuses its latest earlier
-     extraction, so its homes don't vanish for a day; listed in the log
-  6. load + price               7. map pins for new communities          8. snapshot into price_history
-  9. export site data + price_history.csv                                  10. deploy
+  4. reuse: a page whose prices, amounts and rates are the same as at its last extraction reuses that
+     extraction ($0). Pages change text every day (office hours, tracking tokens), so the text itself can't
+     be the test; on 10-27 -> 10-28, 226 of 319 pages had the same figures.
+  5. extract the rest (Meta daily cap in config/llm.yaml stops new calls; the run goes on)
+  6. carry forward: a page whose extraction didn't run today (cap, error) reuses its latest earlier one,
+     so its homes don't vanish for a day; listed in the log
+  7. load + price               8. map pins for new communities          9. snapshot into price_history
+  10. export site data + price_history.csv                                 11. deploy
 Guard: if today's load has fewer than MIN_SHARE of the last snapshot's homes (a blocked fetch, a bad parse),
 the run stops before the snapshot and nothing is published.
 """
 import argparse
 import json
 import logging
+import re
 import shutil
 import subprocess
 import sys
@@ -27,7 +30,7 @@ from pathlib import Path
 
 from tools import db
 from tools.extract_listing import OUT as EXTRACT
-from tools.preprocess_page import RAW
+from tools.preprocess_page import PRE, RAW
 from tools.snapshot_prices import snapshot, write_csv
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -46,29 +49,68 @@ def py(module: str, *args: str) -> None:
     step(sys.executable, "-m", module, *args)
 
 
+MONEY = re.compile(r"\$\s?\d{1,3}(?:,\d{3})+|\$\s?\d+(?:\.\d+)?\s?[kKmM]\b|\b\d+(?:\.\d+)?\s?%")
+BARE = re.compile(r"(?<![\w.\-])[1-9]\d{5,7}(?![\w.\-])")      # 100,000-99,999,999 unformatted: prices in page data
+
+
+def fingerprint(text: str) -> list[str]:
+    """Every dollar amount, percentage and price-sized number on the page, sorted. Same list = same listing."""
+    return sorted([m.replace(" ", "") for m in MONEY.findall(text)] + BARE.findall(text))
+
+
+def _fetched(day: str, raw: Path) -> list[str]:
+    return [f"{m.parent.name}/{r['file'].removesuffix('.html')}" for m in sorted((raw / day).glob("*/manifest.json"))
+            for r in json.loads(m.read_text())
+            if r.get("file") and r.get("status") == 200 and r.get("kind") in ("community", "extra", "home")]
+
+
+def _latest_route(page: str, day: str, extract: Path) -> tuple[str, dict] | None:
+    for d in sorted((d for d in extract.iterdir() if d.is_dir() and d.name < day), reverse=True):
+        routes = d / "routes.json"
+        if routes.exists():
+            for r in json.loads(routes.read_text()):
+                if r["page"] == page:
+                    return d.name, r
+    return None
+
+
+def _reuse(day: str, src_day: str, r: dict, extract: Path, **extra) -> dict:
+    dst = extract / day / r["model"] / f"{r['page']}.json"
+    dst.parent.mkdir(parents=True, exist_ok=True)
+    shutil.copy2(extract / src_day / r["model"] / f"{r['page']}.json", dst)
+    return {**r, "carried_from": r.get("carried_from") or src_day, **extra}
+
+
+def reuse_unchanged(day: str, raw: Path = RAW, pre: Path = PRE, extract: Path = EXTRACT) -> list[str]:
+    """Pages fetched on `day` whose figures match the day they were last extracted from: reuse, $0."""
+    routes_path = extract / day / "routes.json"
+    routes = {r["page"]: r for r in json.loads(routes_path.read_text())} if routes_path.exists() else {}
+    reused = []
+    for page in _fetched(day, raw):
+        today_md = pre / day / f"{page}.md"
+        found = _latest_route(page, day, extract)
+        if page in routes or not today_md.exists() or not found:
+            continue
+        src_day, r = found
+        then_md = pre / src_day / f"{page}.md"
+        if then_md.exists() and fingerprint(then_md.read_text()) == fingerprint(today_md.read_text()):
+            routes[page] = _reuse(day, src_day, r, extract, unchanged=True)
+            reused.append(page)
+    routes_path.parent.mkdir(parents=True, exist_ok=True)
+    routes_path.write_text(json.dumps(sorted(routes.values(), key=lambda r: r["page"]), indent=1))
+    return reused
+
+
 def carry_forward(day: str, raw: Path = RAW, extract: Path = EXTRACT) -> list[str]:
     """Pages fetched on `day` with no extraction get their latest earlier one. Returns the pages carried."""
     routes_path = extract / day / "routes.json"
     routes = json.loads(routes_path.read_text()) if routes_path.exists() else []
     have = {r["page"] for r in routes}
-    fetched = [f"{m.parent.name}/{r['file'].removesuffix('.html')}" for m in sorted((raw / day).glob("*/manifest.json"))
-               for r in json.loads(m.read_text())
-               if r.get("file") and r.get("status") == 200 and r.get("kind") in ("community", "extra", "home")]
-    earlier = sorted((d for d in extract.iterdir() if d.is_dir() and d.name < day), reverse=True)
     carried = []
-    for page in fetched:
-        if page in have:
-            continue
-        for d in earlier:
-            old = {r["page"]: r for r in json.loads((d / "routes.json").read_text())} if (d / "routes.json").exists() else {}
-            if page in old:
-                r = old[page]
-                dst = extract / day / r["model"] / f"{page}.json"
-                dst.parent.mkdir(parents=True, exist_ok=True)
-                shutil.copy2(d / r["model"] / f"{page}.json", dst)
-                routes.append({**r, "carried_from": r.get("carried_from") or d.name})
-                carried.append(page)
-                break
+    for page in _fetched(day, raw):
+        if page not in have and (found := _latest_route(page, day, extract)):
+            routes.append(_reuse(day, *found, extract))
+            carried.append(page)
     routes_path.parent.mkdir(parents=True, exist_ok=True)
     routes_path.write_text(json.dumps(sorted(routes, key=lambda r: r["page"]), indent=1))
     return carried
@@ -87,7 +129,9 @@ def run(day: str, deploy: bool, fetch: bool = True) -> dict:
     if fetch:
         py("tools.fetch_builder_pages", "--builder", "all")
     py("tools.preprocess_page", "--date", day)
-    py("tools.extract_listing", "--date", day)
+    reused = reuse_unchanged(day)
+    log.info("reused %d unchanged pages", len(reused))
+    py("tools.extract_listing", "--date", day, "--skip-done")
     carried = carry_forward(day)
     log.info("carried forward %d pages: %s", len(carried), carried)
     py("tools.load_records", "--date", day)
@@ -104,7 +148,8 @@ def run(day: str, deploy: bool, fetch: bool = True) -> dict:
         py("tools.build_bundle")
         step("railway", "up", ".tmp/bundle", "--path-as-root", "-s", "api", "--ci")
     py("tools.llm", "--spend")
-    return {"day": day, "homes": now, "snapshot": n, "history_rows": rows, "carried": len(carried), "deployed": deploy}
+    return {"day": day, "homes": now, "snapshot": n, "history_rows": rows, "reused": len(reused), "carried": len(carried),
+            "deployed": deploy}
 
 
 if __name__ == "__main__":

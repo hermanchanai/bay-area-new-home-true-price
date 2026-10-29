@@ -160,9 +160,13 @@ if __name__ == "__main__":
     ap.add_argument("--model", default=None)
     ap.add_argument("--limit", type=int, default=None)
     ap.add_argument("--workers", type=int, default=4)
+    ap.add_argument("--skip-done", action="store_true", help="skip pages already in this date's routes.json")
     a = ap.parse_args()
     date = a.date or latest_date()
     todo = targets(date, a.builder, a.truth_pages)[:a.limit]
+    if a.skip_done and (OUT / date / "routes.json").exists():
+        done = {r["page"] for r in json.loads((OUT / date / "routes.json").read_text())}
+        todo = [t for t in todo if f"{t['builder']}/{t['stem']}" not in done]
     db.connect()  # apply migrations once before threads start
     failed = []
 
@@ -181,7 +185,7 @@ if __name__ == "__main__":
             routes.append({"page": f"{t['builder']}/{t['stem']}", "url": t["url"], "model": r["model"],
                            "escalated": r["escalated"], "needs_review": r["needs_review"], "issues": r["issues"]})
             return t, r["record"], None
-        except Exception as e:  # one bad page never sinks the run (a spent cap included); it's listed below
+        except Exception as e:  # one bad page never sinks the run (a spent cap included); it's listed below  # noqa: BLE001
             return t, None, f"{type(e).__name__}: {str(e)[:300]}"
 
     with ThreadPoolExecutor(a.workers) as pool:
