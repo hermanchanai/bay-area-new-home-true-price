@@ -1,4 +1,9 @@
 """Hand-made snippets only; no network."""
+import types
+
+import requests
+
+import tools.fetch_builder_pages as fbp
 from tools.fetch_builder_pages import find_paths, floor_ok, in_scope, page_filename, robots_from_response
 
 UA = "Mozilla/5.0 (compatible; bay-area-new-home-true-price/0.1)"
@@ -76,3 +81,45 @@ def test_page_city_reads_the_community_pages_own_address():
     assert page_city(html) == "lathrop"
     assert page_city("<html>no address</html>") is None
     assert page_city('{"city":"Tracy"}', r'"city":"(?P<city>[^"]+)"') == "tracy"
+
+
+class FakeSession:
+    """Answers in order: an exception instance is raised, an int is a status with that body."""
+    def __init__(self, answers):
+        self.answers, self.calls, self.headers = list(answers), [], {}
+
+    def get(self, url, timeout):
+        self.calls.append(url)
+        a = self.answers.pop(0)
+        if isinstance(a, Exception):
+            raise a
+        return types.SimpleNamespace(status_code=a, text=f"body {a}")
+
+
+def fetcher(answers, monkeypatch):
+    waits = []
+    monkeypatch.setattr(fbp.time, "sleep", waits.append)
+    f = fbp.Fetcher("ua", 0)
+    f.s = FakeSession(answers)
+    f.allowed = lambda url: True
+    return f, waits
+
+
+def test_a_dropped_connection_or_5xx_is_retried_after_a_wait(monkeypatch):
+    f, waits = fetcher([requests.ConnectionError("Remote end closed connection"), 503, 200], monkeypatch)
+    assert f.get("https://x/a") == (200, "body 200")
+    assert len(f.s.calls) == 3 and sum(waits) >= sum(fbp.RETRY_WAITS_S[:2])
+
+
+def test_retries_give_up_and_a_404_or_403_is_never_retried(monkeypatch):
+    f, _ = fetcher([requests.ReadTimeout("read timed out")] * (len(fbp.RETRY_WAITS_S) + 1), monkeypatch)
+    assert f.get("https://x/a") == (0, "")
+    for status in (404, 403, 429):                         # gone, or a block: politeness says stop
+        f, _ = fetcher([status], monkeypatch)
+        assert f.get("https://x/a")[0] == status and len(f.s.calls) == 1
+
+
+def test_robots_txt_survives_one_dropped_connection(monkeypatch):
+    f, _ = fetcher([requests.ConnectionError("x"), 404], monkeypatch)
+    del f.allowed
+    assert f.allowed("https://x/a")                        # not disallow-all for the whole builder

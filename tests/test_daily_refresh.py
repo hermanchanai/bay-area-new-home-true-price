@@ -1,7 +1,9 @@
 """daily_refresh: a page with no extraction today reuses its latest one; a thin load never gets published."""
 import json
+import subprocess
 
 from tests.test_agent_tools import conn  # noqa: F401  (fixture)
+import tools.daily_refresh as dr
 from tools.daily_refresh import (
     carry_forward,
     enough_homes,
@@ -73,3 +75,49 @@ def test_unchanged_pages_reuse_their_last_extraction_and_changed_ones_wait_for_t
     assert reuse_unchanged("2026-10-28", raw, pre, ex) == ["b/a"]
     routes = json.loads((ex / "2026-10-28" / "routes.json").read_text())
     assert [(r["page"], r["carried_from"], r["unchanged"]) for r in routes] == [("b/a", "2026-10-27", True)]
+
+
+def test_a_builder_below_its_floor_or_a_page_that_failed_today_keeps_its_last_extraction(tmp_path):
+    """10-29: Shea's start page timed out (0 communities, below floor) and Pulte lost 2 pages to dropped
+    connections. Their homes stay on the site from the last extraction; a page that 404s or that the
+    builder no longer lists is gone and is not carried."""
+    raw, ex = tmp_path / "raw", tmp_path / "extract"
+    route = lambda page: {"page": page, "model": "m", "escalated": False, "needs_review": False}
+    extraction(ex, "2026-10-28", [route(p) for p in ("shea/a", "shea/b", "pulte/ok", "pulte/flaky", "pulte/gone",
+                                                     "pulte/sold-out", "pulte/broken")])
+    d = raw / "2026-10-29"
+    for b, recs in {"shea": [(None, 0, "start", "https://shea/start")],
+                    "pulte": [("ok.html", 200, "community", "https://pulte/ok"),
+                              (None, 0, "community", "https://pulte/flaky"),
+                              (None, 502, "community", "https://pulte/broken"),
+                              (None, 404, "community", "https://pulte/gone")]}.items():
+        (d / b).mkdir(parents=True)
+        (d / b / "manifest.json").write_text(json.dumps(
+            [{"file": f, "status": s, "kind": k, "url": u} for f, s, k, u in recs]))
+    extraction(ex, "2026-10-29", [route("pulte/ok")])
+    carried = dr.carry_unfetched("2026-10-29", {"shea": 2, "pulte": 1}, raw, ex)
+    assert sorted(carried) == ["pulte/broken", "pulte/flaky", "shea/a", "shea/b"]
+    routes = {r["page"]: r for r in json.loads((ex / "2026-10-29" / "routes.json").read_text())}
+    assert routes["shea/a"]["carried_from"] == "2026-10-28" and routes["shea/a"]["unfetched"]
+    assert "pulte/gone" not in routes and "pulte/sold-out" not in routes
+    assert dr.carry_unfetched("2026-10-29", {"shea": 2, "pulte": 1}, raw, ex) == []      # idempotent
+
+
+def test_one_builder_failing_its_floor_does_not_stop_the_day(monkeypatch):
+    """The fetcher exits 1 when a builder is below its floor; the daily run carries on to publish."""
+    ran = []
+
+    def fake_run(args, cwd, check=True):
+        ran.append(args)
+        code = 1 if "tools.fetch_builder_pages" in args else 0
+        if check and code:
+            raise subprocess.CalledProcessError(code, args)
+        return subprocess.CompletedProcess(args, code)
+
+    monkeypatch.setattr(dr.subprocess, "run", fake_run)
+    for name, value in {"reuse_unchanged": [], "carry_forward": [], "carry_unfetched": [], "snapshot": 5,
+                        "write_csv": 5, "enough_homes": (True, 5, 5), "expected_communities": {}}.items():
+        monkeypatch.setattr(dr, name, lambda *a, _v=value, **k: _v, raising=False)
+    monkeypatch.setattr(dr.db, "connect", lambda: None)
+    out = dr.run("2026-10-29", deploy=False)
+    assert out["homes"] == 5 and any("tools.export_site_data" in a for a in ran)

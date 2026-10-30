@@ -168,15 +168,24 @@ def pricing_set(incs: list[dict], home_key: str) -> tuple[list[dict], list[tuple
 
 # ---------- I/O ----------
 
-def read_pages(date: str) -> list[dict]:
+def _manifest_records(date: str) -> dict[str, dict]:
     kinds = {}
     for man in (RAW / date).glob("*/manifest.json"):
         for r in json.loads(man.read_text()):
             if r.get("file"):
                 kinds[f"{man.parent.name}/{r['file'].removesuffix('.html')}"] = r
+    return kinds
+
+
+def read_pages(date: str) -> list[dict]:
+    """A page not fetched today (builder below its floor, a failed fetch) but carried from an earlier
+    extraction takes its record from the manifest of the day it was fetched."""
+    days = {date: _manifest_records(date)}
     pages = []
     for r in json.loads((EXTRACT / date / "routes.json").read_text()):
-        m = kinds[r["page"]]
+        m = days[date].get(r["page"])
+        if m is None and r.get("carried_from"):
+            m = days.setdefault(r["carried_from"], _manifest_records(r["carried_from"]))[r["page"]]
         rec = json.loads((EXTRACT / date / r["model"] / f"{r['page']}.json").read_text())
         pages.append({"page": r["page"], "builder": r["page"].split("/")[0], "kind": m["kind"], "url": m["url"],
                       "manifest": m, "record": rec, "needs_review": r["needs_review"]})

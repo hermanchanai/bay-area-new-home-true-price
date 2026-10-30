@@ -75,8 +75,9 @@ SQLite ──► export ──► static site (Netlify)       SQLite ──► a
 Every morning `python -m tools.daily_refresh` (a launchd job on the build machine) fetches every builder again,
 re-extracts only pages whose prices, amounts or rates changed (pages change other text daily: office hours,
 tracking tokens), reprices, records each home's asking and true price in `price_history`, and redeploys.
-Meta spend is capped at $1 a day; a page that misses extraction keeps its last one, and a day that loads under
-70% of the previous day's homes is not published. Each home keeps a permanent id, so links and cited answers
+Meta spend is capped at $1 a day; a page that misses extraction keeps its last one, as does a builder whose site
+fails that morning (dropped connections are retried first), and a day that loads under 70% of the previous day's
+homes is not published. Each home keeps a permanent id, so links and cited answers
 stay on the same home. The site shows each home's price history, and the whole series is a CSV:
 https://bay-area-true-price.netlify.app/data/price_history.csv
 

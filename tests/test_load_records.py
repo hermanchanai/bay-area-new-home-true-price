@@ -1,4 +1,7 @@
 """load_records: dedupe homes across pages, attach incentives, never double-count a cut already in the price."""
+import json
+
+import tools.load_records as lr
 from tools.load_records import assign_homes, fill_from_offers, home_incentives
 
 
@@ -134,3 +137,23 @@ def test_a_home_keeps_its_id_across_daily_reloads():
     assert stable_home_id(conn, 7, "9 Oak St", None) == 4              # new home: a new id, never a retired one
     assert stable_home_id(conn, 7, "1 Oak St", None) == 1
     assert stable_home_id(conn, 7, None, "Lot 12") == 5
+
+
+def test_a_page_carried_without_a_fetch_today_reads_its_page_record_from_the_day_it_was_fetched(tmp_path, monkeypatch):
+    """Shea's pages weren't fetched on 10-29 (below floor) but carry 10-28's extraction; the loader takes
+    the url / kind / fetched_at from 10-28's manifest instead of failing on a missing key."""
+    raw, ex = tmp_path / "raw", tmp_path / "extract"
+    monkeypatch.setattr(lr, "RAW", raw)
+    monkeypatch.setattr(lr, "EXTRACT", ex)
+    (raw / "2026-10-28" / "shea").mkdir(parents=True)
+    (raw / "2026-10-28" / "shea" / "manifest.json").write_text(json.dumps(
+        [{"file": "a.html", "status": 200, "kind": "community", "url": "https://shea/a", "fetched_at": "2026-10-28T12:00:00+00:00"}]))
+    (raw / "2026-10-29" / "shea").mkdir(parents=True)
+    (raw / "2026-10-29" / "shea" / "manifest.json").write_text(json.dumps(
+        [{"file": None, "status": 0, "kind": "start", "url": "https://shea/start"}]))
+    (ex / "2026-10-29" / "m" / "shea").mkdir(parents=True)
+    (ex / "2026-10-29" / "m" / "shea" / "a.json").write_text(json.dumps({"community": {"name": "A"}, "homes": []}))
+    (ex / "2026-10-29" / "routes.json").write_text(json.dumps(
+        [{"page": "shea/a", "model": "m", "needs_review": False, "carried_from": "2026-10-28", "unfetched": True}]))
+    [p] = lr.read_pages("2026-10-29")
+    assert (p["url"], p["kind"], p["manifest"]["fetched_at"][:10]) == ("https://shea/a", "community", "2026-10-28")

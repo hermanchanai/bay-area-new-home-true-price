@@ -4,7 +4,8 @@
 
 Writes .tmp/raw/<date>/<builder>/*.html plus manifest.json, and upserts `builders` / `communities`
 (url, city, county; names and details come from extraction). Honors robots.txt read with our own
-User-Agent, waits `delay_s` between requests to a host, never retries past a block.
+User-Agent, waits `delay_s` between requests to a host, never retries past a block (403/429) or a 404.
+A dropped connection, timeout or 5xx is retried after RETRY_WAITS_S (10-29: 16 pages lost to those).
 """
 import argparse
 import hashlib
@@ -25,6 +26,7 @@ from tools import db
 ROOT = Path(__file__).resolve().parent.parent
 RAW = ROOT / ".tmp" / "raw"
 MIN_FLOOR = 0.6
+RETRY_WAITS_S = (30, 120)           # dropped connection / timeout / 5xx: wait, try again
 
 log = logging.getLogger(__name__)
 
@@ -113,29 +115,33 @@ class Fetcher:
             time.sleep(self.delay - gap)
         self.last[host] = time.monotonic()
 
+    def _request(self, url: str, timeout: int) -> tuple[int, str]:
+        """GET with retries for trouble on the way (0 = no response at all); a real answer is final."""
+        for wait in (*RETRY_WAITS_S, None):
+            self._wait(urlparse(url).netloc)
+            try:
+                r = self.s.get(url, timeout=timeout)
+                status, text = r.status_code, r.text
+            except requests.RequestException as e:
+                log.warning("fetch failed %s: %s", url, e)
+                status, text = 0, ""
+            if not (status == 0 or status >= 500) or wait is None:
+                return status, text
+            log.info("retrying %s in %ss", url, wait)
+            time.sleep(wait)
+
     def allowed(self, url: str) -> bool:
         p = urlparse(url)
         host = f"{p.scheme}://{p.netloc}"
         if host not in self.robots:
-            self._wait(host)
-            try:
-                r = self.s.get(host + "/robots.txt", timeout=30)
-                self.robots[host] = robots_from_response(r.status_code, r.text, host + "/robots.txt")
-            except requests.RequestException:
-                self.robots[host] = robots_from_response(599, "", host + "/robots.txt")
+            status, text = self._request(host + "/robots.txt", timeout=30)
+            self.robots[host] = robots_from_response(status or 599, text, host + "/robots.txt")
         return self.robots[host].can_fetch(self.ua, url)
 
     def get(self, url: str) -> tuple[int, str]:
         if not self.allowed(url):
             return -1, ""  # robots.txt says no
-        p = urlparse(url)
-        self._wait(p.netloc)
-        try:
-            r = self.s.get(url, timeout=45)
-            return r.status_code, r.text
-        except requests.RequestException as e:
-            log.warning("fetch failed %s: %s", url, e)
-            return 0, ""
+        return self._request(url, timeout=45)
 
 
 def fetch_builder(b: dict, cfg: dict, city_county: dict, conn=None, out_root: Path = RAW) -> dict:

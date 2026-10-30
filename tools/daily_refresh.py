@@ -12,15 +12,21 @@ Run by launchd every morning at 05:30 (~/Library/LaunchAgents/com.hermanchan.tru
      be the test; on 10-27 -> 10-28, 226 of 319 pages had the same figures.
   5. extract the rest (Meta daily cap in config/llm.yaml stops new calls; the run goes on)
   6. carry forward: a page whose extraction didn't run today (cap, error) reuses its latest earlier one,
-     so its homes don't vanish for a day; listed in the log
+     so its homes don't vanish for a day; listed in the log. Same for pages not fetched today: every page of
+     a builder below its floor (10-29: Shea's start page timed out) and a page whose fetch failed (no answer
+     or 5xx; a 404 or a page the builder stopped listing is gone and is not carried)
   7. load + price               8. map pins for new communities          9. snapshot into price_history
   10. export site data + price_history.csv                                 11. deploy
+A builder below its floor makes the fetcher exit 1; the day goes on (its pages are carried, step 6).
+The run holds a `caffeinate` assertion so the Mac doesn't sleep mid-fetch (10-29: the 15-minute fetch took
+4 hours in dark-wake bursts, and the connections dropped as it slept).
 Guard: if today's load has fewer than MIN_SHARE of the last snapshot's homes (a blocked fetch, a bad parse),
 the run stops before the snapshot and nothing is published.
 """
 import argparse
 import json
 import logging
+import os
 import re
 import shutil
 import subprocess
@@ -28,7 +34,10 @@ import sys
 from datetime import date as Date
 from pathlib import Path
 
+import yaml
+
 from tools import db
+from tools.fetch_builder_pages import floor_ok, page_filename
 from tools.extract_listing import OUT as EXTRACT
 from tools.preprocess_page import PRE, RAW
 from tools.snapshot_prices import snapshot, write_csv
@@ -40,13 +49,18 @@ MIN_SHARE = 0.7
 log = logging.getLogger("daily_refresh")
 
 
-def step(*args: str) -> None:
+def step(*args: str, check: bool = True) -> int:
     log.info("$ %s", " ".join(args))
-    subprocess.run(args, cwd=ROOT, check=True)
+    return subprocess.run(args, cwd=ROOT, check=check).returncode
 
 
-def py(module: str, *args: str) -> None:
-    step(sys.executable, "-m", module, *args)
+def py(module: str, *args: str, check: bool = True) -> int:
+    return step(sys.executable, "-m", module, *args, check=check)
+
+
+def expected_communities() -> dict[str, int]:
+    cfg = yaml.safe_load((ROOT / "config" / "builders.yaml").read_text())
+    return {b["key"]: b["expected_communities"] for b in cfg["builders"] if b.get("enabled", True)}
 
 
 MONEY = re.compile(r"\$\s?\d{1,3}(?:,\d{3})+|\$\s?\d+(?:\.\d+)?\s?[kKmM]\b|\b\d+(?:\.\d+)?\s?%")
@@ -116,6 +130,44 @@ def carry_forward(day: str, raw: Path = RAW, extract: Path = EXTRACT) -> list[st
     return carried
 
 
+def _latest_builder_routes(builder: str, day: str, extract: Path) -> list[tuple[str, dict]]:
+    for d in sorted((d for d in extract.iterdir() if d.is_dir() and d.name < day), reverse=True):
+        routes = d / "routes.json"
+        if routes.exists() and (mine := [r for r in json.loads(routes.read_text()) if r["page"].startswith(f"{builder}/")]):
+            return [(d.name, r) for r in mine]
+    return []
+
+
+def carry_unfetched(day: str, expected: dict[str, int], raw: Path = RAW, extract: Path = EXTRACT) -> list[str]:
+    """Pages with no fetch today keep their latest extraction: all of a builder's pages when it is below its
+    floor (or has no manifest), and any page whose fetch got no answer or a 5xx. Returns the pages carried."""
+    routes_path = extract / day / "routes.json"
+    routes = json.loads(routes_path.read_text()) if routes_path.exists() else []
+    have = {r["page"] for r in routes}
+    todo: list[tuple[str, dict]] = []
+    for builder, exp in expected.items():
+        man = raw / day / builder / "manifest.json"
+        recs = json.loads(man.read_text()) if man.exists() else []
+        got = sum(r["kind"] == "community" and r["status"] == 200 for r in recs)
+        if not floor_ok(got, exp):
+            log.warning("%s below its floor today (%d of %d communities): keeping its last extraction", builder, got, exp)
+            todo += _latest_builder_routes(builder, day, extract)
+            continue
+        for r in recs:
+            if r["status"] == 0 or r["status"] >= 500:
+                page = f"{builder}/{page_filename(r['url']).removesuffix('.html')}"
+                todo += [found] if (found := _latest_route(page, day, extract)) else []
+    carried = []
+    for src_day, r in todo:
+        if r["page"] not in have:
+            routes.append(_reuse(day, src_day, r, extract, unfetched=True))
+            have.add(r["page"])
+            carried.append(r["page"])
+    routes_path.parent.mkdir(parents=True, exist_ok=True)
+    routes_path.write_text(json.dumps(sorted(routes, key=lambda r: r["page"]), indent=1))
+    return carried
+
+
 def enough_homes(conn) -> tuple[bool, int, int]:
     """Today's load against the last snapshot's home count."""
     now = conn.execute("SELECT COUNT(*) FROM homes").fetchone()[0]
@@ -127,13 +179,16 @@ def enough_homes(conn) -> tuple[bool, int, int]:
 def run(day: str, deploy: bool, fetch: bool = True) -> dict:
     py("tools.fetch_market_rate")
     if fetch:
-        py("tools.fetch_builder_pages", "--builder", "all")
+        if code := py("tools.fetch_builder_pages", "--builder", "all", check=False):
+            log.warning("fetch exited %d (a builder below its floor); going on, its pages are carried", code)
     py("tools.preprocess_page", "--date", day)
     reused = reuse_unchanged(day)
     log.info("reused %d unchanged pages", len(reused))
     py("tools.extract_listing", "--date", day, "--skip-done")
     carried = carry_forward(day)
     log.info("carried forward %d pages: %s", len(carried), carried)
+    unfetched = carry_unfetched(day, expected_communities())
+    log.info("carried %d pages not fetched today: %s", len(unfetched), unfetched)
     py("tools.load_records", "--date", day)
     conn = db.connect()
     ok, now, last = enough_homes(conn)
@@ -149,7 +204,7 @@ def run(day: str, deploy: bool, fetch: bool = True) -> dict:
         step("railway", "up", ".tmp/bundle", "--path-as-root", "-s", "api", "--ci")
     py("tools.llm", "--spend")
     return {"day": day, "homes": now, "snapshot": n, "history_rows": rows, "reused": len(reused), "carried": len(carried),
-            "deployed": deploy}
+            "unfetched": len(unfetched), "deployed": deploy}
 
 
 if __name__ == "__main__":
@@ -159,6 +214,8 @@ if __name__ == "__main__":
     a = ap.parse_args()
     day = Date.today().isoformat()          # the fetcher names its folder by the local date
     LOGS.mkdir(parents=True, exist_ok=True)
+    if shutil.which("caffeinate"):          # no idle/system sleep until this process exits
+        subprocess.Popen(["caffeinate", "-is", "-w", str(os.getpid())])
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(message)s", datefmt="%H:%M:%S",
                         handlers=[logging.StreamHandler(), logging.FileHandler(LOGS / f"daily_{day}.log")])
     log.info("done: %s", run(day, deploy=not a.no_deploy, fetch=not a.skip_fetch))
