@@ -22,8 +22,9 @@ Built for the Meta Global AI Developer Hackathon (Indie track, "Build for Your W
 - 27 communities show what earlier buyers paid, from county assessor records.
 - Extraction accuracy on 43 hand-checked pages: home recall 99.3%; price, beds and sq ft 100%.
   Hold-out builder (never tuned on): 151/151 homes.
-- Agent: 20/20 hand-checked questions, every dollar figure traced to a database row.
-- Total Meta model spend for the whole build: about $2.50.
+- Agent: 20/20 hand-checked questions on Muse Spark Open (the live model; Muse Spark 19/20), every dollar
+  figure traced to a database row.
+- Total Meta model spend for the whole build, daily price checks included: about $4.
 
 ## Meta models used
 
@@ -52,8 +53,10 @@ $1.04). Against Muse Spark contributor on the same pages ([report](eval/reports/
 | Pages failed | 0 of 43 | 1 of 43 (output ran on to the 32k-token limit) |
 
 The buyer agent on Muse Spark Open passes the same 20 hand-checked questions, 20/20, with every dollar
-figure traced to a tool result, for $0.14 ([report](eval/reports/2026-10-28__agent__agent_open.md);
-`python -m tools.eval_agent --purpose agent_open`). **Since 2026-10-28 the live site's agent runs on Muse Spark
+figure traced to a tool result ([report](eval/reports/2026-10-30__agent__agent_open.md);
+`python -m tools.eval_agent --purpose agent_open`). The eval runs on a frozen copy of the 10-30 data, so the
+daily refresh can't move its answers; `python -m tools.derive_agent_truth --freeze` rebuilds the key from
+newer data with SQL written apart from the agent's tools. **Since 2026-10-28 the live site's agent runs on Muse Spark
 Open** via Fireworks, which doesn't store prompts for open models; `/api/health` names the model.
 Visitor questions are capped at $2/day.
 
@@ -219,3 +222,9 @@ building period.
     Daily price check built and scheduled; first daily run (10-28): 319 pages, 93 with changed figures
     re-extracted for $0.68, 2 asking prices changed, 3 homes listed and 4 gone. Homes now keep permanent ids
     (a reload had moved 38 of 40 example-answer citations onto other homes).
+- **2026-10-29 / 10-30:** The 10-29 morning run stopped when one builder's site timed out (the laptop slept
+    through the fetch). Now a dropped connection is retried, a builder that fails keeps its last prices, and
+    the run keeps the machine awake; 10-29 republished with 18 pages carried over. 10-30: 457 homes, 2 price
+    changes, 9 sold or withdrawn, 5 new; Pulte ended its up-to-$250K FLEX Cash offer. The agent eval moved
+    to a frozen copy of the data with a committed key builder: Muse Spark Open 20/20, Muse Spark 19/20
+    (one figure it made up was caught by the trace check).
