@@ -7,17 +7,22 @@
 A question passes when the homes the answer ranks first (in order of their [H<id>] citations) include the
 expected ones and nothing outside the eligible set, every required fact is mentioned, and every dollar figure
 in the answer traces to a value some tool returned from the database (or to the question itself).
+
+The tools query the frozen DB the answer key names (`db:` in eval/agent_questions.yaml), so the daily refresh
+can't make the key stale; tools/derive_agent_truth.py rebuilds the key from that copy. Spend is still logged
+to the main DB, which holds the caps.
 """
 import argparse
 import json
 import logging
 import re
+import sqlite3
 from datetime import date
 from pathlib import Path
 
 import yaml
 
-from tools import db
+from tools import db, llm
 from tools.agent import run as run_agent
 from tools.llm import print_spend
 
@@ -115,9 +120,20 @@ def score(q: dict, answer: str, trace: list[dict], homes: dict, known: dict | No
     return {"id": q["id"], "pass": not reasons, "reasons": reasons, "top3": top3}
 
 
+def frozen(path: str | Path) -> sqlite3.Connection:
+    p = Path(path) if Path(path).is_absolute() else ROOT / path
+    if not p.exists():
+        raise SystemExit(f"frozen eval DB {p} is missing: rebuild it with tools/derive_agent_truth.py --freeze")
+    conn = sqlite3.connect(f"file:{p}?mode=ro", uri=True)
+    conn.row_factory = sqlite3.Row
+    return conn
+
+
 def main(only: set[str] | None = None, purpose: str = "agent") -> Path:
-    conn = db.connect()
-    qs = [q for q in yaml.safe_load(QUESTIONS.read_text())["questions"] if not only or q["id"] in only]
+    spec = yaml.safe_load(QUESTIONS.read_text())
+    conn, ledger = frozen(spec["db"]), db.connect()
+    chat = lambda messages, conn=None, **k: llm.chat(messages, conn=ledger, **k)  # noqa: E731
+    qs = [q for q in spec["questions"] if not only or q["id"] in only]
     homes = {r[0]: r[1] or r[2] or "" for r in conn.execute("SELECT id, address, lot FROM homes")}
     known = {"C": {r[0] for r in conn.execute("SELECT id FROM communities")},
              "P": {r[0] for r in conn.execute("SELECT id FROM plans")}}
@@ -125,7 +141,7 @@ def main(only: set[str] | None = None, purpose: str = "agent") -> Path:
     runs.mkdir(parents=True, exist_ok=True)
     results, cost = [], 0.0
     for q in qs:
-        r = run_agent(q["question"], conn=conn, purpose=purpose)
+        r = run_agent(q["question"], conn=conn, purpose=purpose, chat=chat)
         s = score(q, r["answer"], r["trace"], homes, known)
         s.update(cost=r["cost_usd"], turns=r["turns"], tools=[t["tool"] for t in r["trace"]], answer=r["answer"])
         (runs / f"{q['id']}.json").write_text(json.dumps({**r, "score": s}, indent=1, default=str))
@@ -136,7 +152,7 @@ def main(only: set[str] | None = None, purpose: str = "agent") -> Path:
     gate = passed >= 16 and len(results) == 20
     suffix = "" if purpose == "agent" else f"__{purpose}"
     path = REPORTS / f"{date.today().isoformat()}__agent{suffix}.md"
-    lines = [f"# Agent eval, {date.today().isoformat()} (purpose {purpose})", "",
+    lines = [f"# Agent eval, {date.today().isoformat()} (purpose {purpose}, data {spec['db']})", "",
              f"{passed}/{len(results)} pass. Spend this run ${cost:.4f} (cached calls cost $0).", "",
              f"**Day 6 gate: {'PASS' if gate else 'FAIL'}** (≥16/20; every dollar figure traces to a tool result).",
              "", "| Q | Result | Turns | Tools | Why it failed |", "|---|---|---:|---|---|"]

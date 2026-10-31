@@ -42,3 +42,36 @@ def test_untraced_also_checks_bare_numbers_written_without_a_dollar_sign():
     assert untraced("Asking 1079990, true 1020500 [H11]", TRACE, "") == []
     assert untraced("Asking 1079999 [H11]", TRACE, "") == [1_079_999]
     assert untraced("Built 2024, 2178 sqft, ZIP 95391", TRACE, "") == []             # not money-sized
+
+
+def test_the_eval_queries_the_frozen_db_its_answer_key_names_and_logs_spend_to_the_main_db(tmp_path, monkeypatch):
+    """The daily refresh changes homes and prices, so a key derived from live data goes stale in a day
+    (10-30: 5 of 6 misses). The key names a frozen copy; tools read it, the LLM ledger stays in the main DB."""
+    import sqlite3
+
+    import yaml
+
+    import tools.eval_agent as ev
+    frozen = tmp_path / "frozen.db"
+    c = sqlite3.connect(frozen)
+    c.executescript("CREATE TABLE homes (id INTEGER, address TEXT, lot TEXT); INSERT INTO homes VALUES (7, '1 Oak St', NULL);"
+                    "CREATE TABLE communities (id INTEGER); CREATE TABLE plans (id INTEGER);")
+    c.commit()
+    c.close()
+    key = tmp_path / "key.yaml"
+    key.write_text(yaml.safe_dump({"db": str(frozen), "questions": [
+        {"id": "q01", "question": "Cheapest?", "expect": {"top3_all_of": ["1 Oak St"]}}]}))
+    ledger, seen = object(), {}
+
+    def fake_run(question, conn, purpose, chat):
+        seen["homes"] = conn.execute("SELECT address FROM homes").fetchall()[0][0]
+        chat([], purpose=purpose, conn=conn)
+        return {"answer": "1 Oak St [H7]", "trace": [], "cost_usd": 0.0, "turns": 1}
+
+    monkeypatch.setattr(ev, "QUESTIONS", key)
+    monkeypatch.setattr(ev, "run_agent", fake_run)
+    monkeypatch.setattr(ev.db, "connect", lambda *a, **k: ledger)
+    monkeypatch.setattr(ev.llm, "chat", lambda messages, conn=None, **k: seen.setdefault("ledger", conn))
+    monkeypatch.setattr(ev, "RUNS", tmp_path / "runs")
+    ev.main(only={"q01"})
+    assert seen == {"homes": "1 Oak St", "ledger": ledger}

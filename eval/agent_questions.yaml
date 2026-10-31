@@ -1,17 +1,23 @@
 # Agent eval: 20 buyer questions with hand-checked answers (tools/eval_agent.py scores them).
-# Derived 2026-10-27 from the loaded DB with SQL written separately from tools/agent_tools.py, not from agent
-# output. Homes are matched by address (or lot), so a reload that renumbers ids keeps the truth valid; a data
-# refresh that changes prices or listings means re-deriving it.
+# Derived by tools/derive_agent_truth.py from the frozen DB named in `db` (data as published on 2026-10-30),
+# with SQL written apart from tools/agent_tools.py. The eval's tools query that same copy, so the daily refresh
+# can't make the key stale; re-freeze and re-derive to move the eval to newer data.
 # - top3_any_of / top3_all_of: homes the answer must rank in its first 3 [H<id>] citations
 # - eligible: every home meeting all the question's conditions; nothing else may be in the top 3
 #   (true price = the guaranteed end, asking minus offers every buyer gets; "ready by" = the builder's date)
 # - must_mention: text the answer must contain (a list = any one of them), case-insensitive
 # - no_homes: the right answer is "none"; citing any home fails
-# Hand-computed values: q13 1576 Torrey Dr at 10% down: its "$80,000 in Savings" is Pulte's FLEX Cash already
-#   applied (re-derived 2026-10-28), so only the 4.99% 7/6 ARM counts, worth $63,798 -> true price $653,417.
-#   q04 (re-derived 2026-10-28): the biggest "up to" discount, $250,000, is on 8 homes that show no savings yet. q14 337 E Beatrice Ave at 5% down: ARM worth
-#   $74,169 (market 7.32%, FRED 2026-10-22). q10 Cairnway median $804,200 (n 43). q11 Orchard Grove $1,320,100.
-#   q16 Driftway: Residence 1, 1X, 2, 3 all have a downstairs bedroom. q17 Residence 1X owner's suite 14' x 14' 5".
+# - q04: top 3 by the guaranteed or by the best-case discount; q07: cheapest by true price or by asking
+# Hand-computed values (ARM worth = PV over the fixed years of the payment saved vs the market rate, at the
+# market rate; loan = price less the down payment; market 7.24% FRED 2026-10-29):
+#   q09 Lilac at Oakwood Trails offers: $75,000 in Savings; $80,000 in Savings; 4.99% / 5.892% APR 7/6 ARM rate fixed for 7 years on select quick move-in homes; Appliance Package; Honoring Our Hometown Heroes $2,000 incentive.
+#   q10 Cairnway median $804,200 (n 43).
+#   q11 Orchard Grove median $1,320,100 (n 15).
+#   q13 1576 TORREY DR at 10% down: 4.99% 7-yr ARM worth $61,657 -> true price $655,558 (asking $717,215).
+#   q14 361 E Beatrice Avenue at 5% down: 4.99% 7-yr ARM worth $71,973 -> true price $721,173 (asking $793,146).
+#   q16 Driftway plans with a downstairs bedroom: Residence 1, Residence 1X, Residence 2, Residence 3.
+#   q17 3139 Workman Avenue owner's suite 14' x 14' 5".
+db: data/eval_2026-10-30.db
 questions:
 - id: q01
   question: I need at least 4 bedrooms, a true price under $1.1M, and to move in by January. Contra Costa or San Joaquin County.
@@ -26,21 +32,21 @@ questions:
     - 266 Victorious St.
     - 4008 Keith Lane
     - 4846 Badger Creek Court
+    - 748 Villa Ticino Dr.
     - 339 Astilbe Street
     - 728 Villa Ticino Dr.
     - 2003 Wildcat Street
-    - 748 Villa Ticino Dr.
     - 4841 Badger Creek Court
     - 2977 DAWSON CREEK ST
     - 2867 DAWSON CREEK ST
+    - 722 Schut Court
     - 1016 Bluebell Circle
     - 717 Villa Ticino Dr.
-    - 722 Schut Court
     - 884 Shasta Avenue
     - 887 W. Shasta Avenue
     - 907 Shasta Court
-    - 1576 TORREY DR
     - 2401 DIABLO VIEW DR
+    - 1576 TORREY DR
     - 1964 GUINNESS LN
     - 2228 HEWINS ST
     - 1936 GUINNESS LN
@@ -51,17 +57,17 @@ questions:
     - 882 Shasta Avenue
     - 2231 HEWINS ST
     - 2143 Cyclone Drive
-    - Lot 263
     - 520 Spruce Way
     - 10657 Aretha Ln.
-    - Lot 264
+    - Lot 263
     - 2147 Trojan Street
-    - 1717 EAGLE RIVER AV
+    - 324 Solis Ct.
     - 524 Spruce Way
     - 2425 GOLDEN BEAR ST
     - 2491 GOLDEN BEAR ST
     - 508 Spruce Way
     - 2362 LAZIO ST
+    - Lot 264
     - 2419 DIABLO VIEW DR
     - 2881 DAWSON CREEK ST
     - 7435 Forbes Avenue
@@ -74,24 +80,22 @@ questions:
     - 1210 N Robiolo Lane
     - 1950 GUINNESS LN
     - 2402 GOLDEN BEAR ST
-    - 574 Lee Loop
-    - 2907 DAWSON CREEK ST
     - 3199 Scott Edwards Lane
+    - 2907 DAWSON CREEK ST
+    - 574 Lee Loop
     - 1914 GUINNESS LN
     - 2871 DAWSON CREEK ST
     - 393 Badlands Circle
     - 2379 ZELLERBACH ST
-    - 2338 LAZIO ST
-    - 2384 LAZIO ST
     - 605 Channel Circle
-    - 1270 N Robiolo Lane
-    - 337 E Beatrice Avenue
-    - 2240 HEWINS ST
     - 15871 Cleary Court
+    - 1270 N Robiolo Lane
+    - 2240 HEWINS ST
     - 361 E Beatrice Avenue
     - 1162 Bradbury Drive
     - 515 Spruce Way
     - 2294 HEWINS ST
+    - 1012 Bluebell Circle
     - 1935 S. Vivani St.
     - 7399 Forbes Avenue
     - 324 Clodius Way
@@ -106,26 +110,27 @@ questions:
     - 316 Clodius Way
     - 332 Clodius Way
     - 528 Spruce Way
+    - 1130 N. Salvin Court
     - 299 Viceroy Way
     - 2706 Emery Street
-    - 5208 Kestrel Street
+    - 3151 Scott Edwards Lane
     - 2376 LAZIO ST
     - 5212 Kestrel Street
     - 621 Channel Circle
-    - 3151 Scott Edwards Lane
+    - 5208 Kestrel Street
     - 7423 Forbes Avenue
     - 533 Headwater way
     - 2216 HEWINS ST
     - 389 Badlands Circle
+    - 15866 Cleary Court
     - 517 Headwater way
     - 401 Badlands Circle
-    - 15866 Cleary Court
     - 308 Clodius Way
-    - 471 W Calabria Drive
     - 331 Viceroy Way
     - 298 Viceroy Way
-    - 16441 Barnett Court
+    - 471 W Calabria Drive
     - 2282 HEWINS ST
+    - 16441 Barnett Court
     - 2258 HEWINS ST
     - 5211 Kestrel Street
     - 1044 Bluebell Circle
@@ -134,55 +139,51 @@ questions:
     - 404 Badlands Circle
     - 7266 Oscar Drive
     - 7930 Punjya Brothers Drive
+    - 3163 Scott Edwards Lane
     - 7971 Floyd Glenn Wise Drive
     - 396 Badlands Circle
     - 397 Badlands Circle
-    - 411 W Calabria Drive
     - 5216 Kestrel Street
-    - 3163 Scott Edwards Lane
-    - 264 W Adriana Drive
     - 5223 Kestrel Street
     - 1486 PRAIRIE OAK AVE
     - 401 W Calabria Drive
     - 385 Badlands Circle
-    - 5440 Harrier Way
     - 15874 Cleary Court
+    - 5440 Harrier Way
+    - 3442 RED OAK ST
     - 1233 N. Girardi Drive
     - 1458 PRAIRIE OAK AVE
     - 2675 Kester Way
     - 5219 Kestrel Street
     - 3315 Layla Way
     - 2617 Emery Street
-    - 2665 Dashwood Street
     - 5628 Fallen Leaf Lane
+    - 2665 Dashwood Street
     - 329 E CLYDESDALE COURT
     - 1423 N. Girardi Drive
-    - 17131 St. James Lane
-    - 3339 Layla Way
-    - 17173 Coral Tree Lane
     - 227 W Pasqua Glen
-    - 5620 Fallen Leaf Lane
-    - 1975 S. Vivani St.
-    - 1461 N Padano Lane
+    - 17131 St. James Lane
+    - 17173 Coral Tree Lane
     - 5625 Fallen Leaf Lane
+    - 1975 S. Vivani St.
     - 3767 Scholl Lane
-    - 16449 Barnett Court
     - 17165 Coral Tree Lane
-    - 1431 N Padano Lane
+    - 5629 Fallen Leaf Lane
     - 16507 Barnett Street
-    - 93 W. Semolina Lane
     - 320 W Nasergholi Avenue
+    - 93 W. Semolina Lane
     - 1221 N. Girardi Drive
     - 317 E CLYDESDALE COURT
     - 16519 Barnett Street
     - 5684 Wildrye Lane
     - 7957 Floyd Glenn Wise Drive
+    - 228 W Nasergholi Avenue
     - 314 E CLYDESDALE COURT
     - 313 E Gobind Blvd
-    - 228 W Nasergholi Avenue
     - 1322 N. Martorella Avenue
     - 1529 Riverfront Drive
     - 5680 Wildrye Lane
+    - 1461 N Padano Lane
     - 3753 Scholl Lane
     - 1589 Strathaven Place
     - 1590 Ponza Circle
@@ -201,8 +202,8 @@ questions:
     - 4810 Dolcetto Common
     - '109 Sedona Common Unit #2'
     - '105 Sedona Common Unit #1'
-    - 4695 Marengo Common
     - 4832 Las Positas Road
+    - 4695 Marengo Common
     - 4744 Las Positas Road
     - 4724 Las Positas Road
     - 4707 Marengo Common
@@ -232,121 +233,101 @@ questions:
   question: Which home in San Joaquin County has the biggest discount from builder incentives?
   expect:
     top3_any_of:
-    - 3348 ANDEAN WAY
-    - 17131 St. James Lane
-    - 17173 Coral Tree Lane
-    - 3767 Scholl Lane
-    - 17165 Coral Tree Lane
-    - 3753 Scholl Lane
-    - 1529 Riverfront Drive
-    - 1627 Riverfront Drive
+    - '34'
+    - Lot 264
+    - Lot 348
     eligible:
-    - 17131 St. James Lane
-    - 17173 Coral Tree Lane
-    - 3767 Scholl Lane
-    - 17165 Coral Tree Lane
-    - 3753 Scholl Lane
-    - 1529 Riverfront Drive
-    - 1627 Riverfront Drive
-    - 1576 TORREY DR
-    - 337 E Beatrice Avenue
-    - 361 E Beatrice Avenue
-    - 1520 TORREY DR
-    - 1518 PRAIRIE OAK AVE
-    - 3348 ANDEAN WAY
-    - 1530 TEAK AVE
-    - 1486 PRAIRIE OAK AVE
-    - 1458 PRAIRIE OAK AVE
-    - 325 E Beatrice Avenue MOD
-    - 329 E CLYDESDALE COURT
-    - 17131 St. James Lane
-    - 17173 Coral Tree Lane
-    - 3767 Scholl Lane
-    - 17165 Coral Tree Lane
-    - 317 E CLYDESDALE COURT
-    - 314 E CLYDESDALE COURT
-    - 313 E Gobind Blvd
-    - 1529 Riverfront Drive
-    - 3753 Scholl Lane
+    - 10641 Coolio Way
+    - 10597 Aretha Ln.
+    - 10612 Stevie Dr.
+    - 10646 Aretha Ln.
+    - Lot 93
+    - 3514 Lakeshore Ave
+    - 266 Victorious St.
+    - 4008 Keith Lane
+    - Lot 94
+    - 748 Villa Ticino Dr.
+    - 728 Villa Ticino Dr.
+    - 3513 Caples Way
+    - 10694 Aretha Ln.
+    - 717 Villa Ticino Dr.
     - Lot 346
     - Lot 421
-    - Lot 93
-    - '34'
-    - Lot 263
-    - Lot 264
+    - 1851 Serene Ct
+    - 1576 TORREY DR
+    - 10682 Aretha Ln.
     - '28'
+    - 10657 Aretha Ln.
+    - Lot 263
+    - 1868 Serene Ct
+    - 324 Solis Ct.
     - Lot 348
-    - Lot 94
+    - Lot 264
+    - 1860 Serene Ct
+    - 1210 N Robiolo Lane
+    - 3199 Scott Edwards Lane
+    - 1852 Serene Ct
+    - 15871 Cleary Court
+    - 1270 N Robiolo Lane
+    - 361 E Beatrice Avenue
+    - 1520 TORREY DR
+    - 1935 S. Vivani St.
+    - 10732 Stevie Dr.
+    - 1518 PRAIRIE OAK AVE
+    - 461 W Calabria Drive
+    - 3151 Scott Edwards Lane
+    - 3348 ANDEAN WAY
+    - '34'
+    - 15866 Cleary Court
+    - 471 W Calabria Drive
+    - 16441 Barnett Court
+    - 3137 Phoenix Ave
+    - 1530 TEAK AVE
+    - 481 W Calabria Drive
+    - 3163 Scott Edwards Lane
+    - 444 W Volta Street
+    - 1486 PRAIRIE OAK AVE
+    - 401 W Calabria Drive
+    - 15874 Cleary Court
+    - 3442 RED OAK ST
+    - 1458 PRAIRIE OAK AVE
+    - 433 W Volta Street
+    - 325 E Beatrice Avenue MOD
+    - 329 E CLYDESDALE COURT
+    - 3161 Echo Way
+    - 227 W Pasqua Glen
+    - 17131 St. James Lane
+    - 17173 Coral Tree Lane
+    - 1975 S. Vivani St.
+    - 3767 Scholl Lane
+    - 17165 Coral Tree Lane
+    - 320 W Nasergholi Avenue
+    - 317 E CLYDESDALE COURT
+    - 1897 Island Ln
+    - 228 W Nasergholi Avenue
+    - 314 E CLYDESDALE COURT
+    - 313 E Gobind Blvd
+    - 1881 Island Lane
+    - 3199 Boca Way
+    - 1529 Riverfront Drive
+    - 3753 Scholl Lane
+    - 3171 Boca Way
     - 1904 S LAZULI STREET
     - 1627 Riverfront Drive
-    - 3513 Caples Way
-    - 3514 Lakeshore Ave
-    - 411 W Calabria Drive
-    - 444 W Volta Street
-    - 1431 N Padano Lane
-    - 16441 Barnett Court
-    - 461 W Calabria Drive
-    - 401 W Calabria Drive
-    - 471 W Calabria Drive
-    - 1461 N Padano Lane
-    - 433 W Volta Street
-    - 481 W Calabria Drive
-    - 1270 N Robiolo Lane
-    - 10612 Stevie Dr.
-    - 10597 Aretha Ln.
-    - 10657 Aretha Ln.
-    - 4008 Keith Lane
-    - 10694 Aretha Ln.
-    - 10682 Aretha Ln.
-    - 10732 Stevie Dr.
-    - 10646 Aretha Ln.
-    - 10641 Coolio Way
-    - 1210 N Robiolo Lane
-    - 748 Villa Ticino Dr.
-    - 1975 S. Vivani St.
-    - 728 Villa Ticino Dr.
-    - 717 Villa Ticino Dr.
-    - 1935 S. Vivani St.
-    - 266 Victorious St.
-    - 3161 Echo Way
-    - 3137 Phoenix Ave
-    - 1852 Serene Ct
-    - 1860 Serene Ct
-    - 3199 Boca Way
-    - 1897 Island Ln
-    - 1881 Island Lane
-    - 1868 Serene Ct
-    - 3171 Boca Way
-    - 1851 Serene Ct
-    - 1720 EAGLE RIVER AV
-    - 2401 DIABLO VIEW DR
-    - 2228 HEWINS ST
-    - 1936 GUINNESS LN
-    - 1717 EAGLE RIVER AV
-    - 2425 GOLDEN BEAR ST
-    - 2881 DAWSON CREEK ST
-    - 2871 DAWSON CREEK ST
-    - 2338 LAZIO ST
-    - 2363 EMMA DR
-    - 2282 HEWINS ST
-    - 2258 HEWINS ST
 - id: q05
   question: Five bedrooms in Mountain House, ready to move in now. Cheapest first?
   expect:
     top3_any_of:
-    - 337 E Beatrice Avenue
+    - 361 E Beatrice Avenue
     eligible:
-    - 337 E Beatrice Avenue
     - 361 E Beatrice Avenue
     - 481 W Calabria Drive
-    - 264 W Adriana Drive
-    - 1461 N Padano Lane
-    - 1431 N Padano Lane
     - 93 W. Semolina Lane
     - 1221 N. Girardi Drive
     - 317 E CLYDESDALE COURT
     - 314 E CLYDESDALE COURT
     - 313 E Gobind Blvd
+    - 1461 N Padano Lane
     - 1904 S LAZULI STREET
     - 69 W. Farinata Court
     - 53 W. Farinata Court
@@ -377,6 +358,7 @@ questions:
     - Lot 93
     - 3514 Lakeshore Ave
     - Lot 94
+    - 1851 Serene Ct
     eligible:
     - Lot 93
     - 3514 Lakeshore Ave
@@ -385,16 +367,20 @@ questions:
     - Lot 346
     - Lot 421
     - 1851 Serene Ct
+    - '28'
+    - Lot 263
     - 1868 Serene Ct
+    - Lot 348
+    - Lot 264
     - 7435 Forbes Avenue
     - 1860 Serene Ct
     - 1852 Serene Ct
-    - 2857 Chauncy Street
     - 7278 Oscar Drive
     - 7399 Forbes Avenue
     - 2881 Chauncy Street
     - 2706 Emery Street
     - 7423 Forbes Avenue
+    - '34'
 - id: q08
   question: Any condos in Santa Clara County under $1M after incentives that are ready by December?
   expect:
@@ -415,8 +401,9 @@ questions:
   question: What incentives does Lilac at Oakwood Trails offer, and what are they worth?
   expect:
     must_mention:
-    - '250'
     - '4.99'
+    must_not_mention:
+    - FLEX Cash
 - id: q10
   question: What did earlier buyers pay at Cairnway in Tracy, compared with today's asking prices?
   expect:
@@ -438,24 +425,25 @@ questions:
   question: If I put 10% down on 1576 Torrey Dr in Manteca, what's its true price?
   expect:
     must_mention:
-    - '653'
+    - - 655,558
+      - 656k
 - id: q14
-  question: With 5% down, how much is the 4.99% ARM offer on 337 E Beatrice Avenue worth?
+  question: With 5% down, how much is the 4.99% ARM offer on 361 E Beatrice Avenue worth?
   expect:
     must_mention:
-    - - 74,169
-      - 74k
-      - '74.2'
+    - - 71,973
+      - 72k
+      - '72.0'
 - id: q15
-  question: Compare 337 E Beatrice Avenue in Mountain House with 1162 Bradbury Drive in Discovery Bay.
+  question: Compare 361 E Beatrice Avenue in Mountain House with 1162 Bradbury Drive in Discovery Bay.
   expect:
     top3_all_of:
-    - 337 E Beatrice Avenue
+    - 361 E Beatrice Avenue
     - 1162 Bradbury Drive
     must_mention:
-    - - 789,925
-      - 790k
-      - '789.9'
+    - - 793,146
+      - 793k
+      - '793.1'
     - - 796,437
       - 796k
       - '796.4'
