@@ -151,3 +151,10 @@ def test_search_finds_a_home_by_street_address(conn):
     assert addresses(search_homes(conn, address="9 oak street", today=TODAY)) == ["9 Oak St"]   # suffix spelled out
     assert addresses(search_homes(conn, address="7 Bay Court, Dublin", today=TODAY)) == ["7 Bay Ct"]
     assert addresses(search_homes(conn, address="99 Nowhere Rd", today=TODAY)) == []
+
+
+def test_ready_month_takes_the_year_written_next_to_the_last_month():
+    """Codex review 1 (chunk 4) #7: 'Dec 2026 / Jan 2027' read as 2026-01, so a January 2027 home passed a
+    'ready by December' filter."""
+    from tools.agent_tools import ready_month
+    assert ready_month("Dec 2026 / Jan 2027", "month", "2026-10-30") == "2027-01"

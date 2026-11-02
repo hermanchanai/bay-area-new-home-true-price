@@ -31,3 +31,15 @@ def test_a_series_continues_across_reloads_and_a_rerun_replaces_the_day(conn, tm
     assert write_csv(conn, out) == 9
     rows = list(csv.DictReader(out.open()))
     assert rows[0].keys() >= {"snapshot_date", "home_key", "asking", "true_low", "true_high"}
+
+
+def test_a_home_carried_from_an_earlier_fetch_is_marked_so_it_is_not_a_check(conn, tmp_path):  # noqa: F811
+    """Codex review 1 (chunk 2) #2: a carried home's old price was recorded as today's check. Its row is kept
+    (it is still listed, so it isn't 'gone') but marked carried, in the table and the CSV."""
+    with conn:
+        conn.execute("UPDATE homes SET source_page = 'b/p' || id")
+    snapshot(conn, "2026-10-29", carried=["b/p1"])
+    rows = dict(conn.execute("SELECT address, carried FROM price_history WHERE snapshot_date = '2026-10-29'").fetchall())
+    assert rows["1 Oak St"] == 1 and sum(rows.values()) == 1
+    write_csv(conn, tmp_path / "h.csv")
+    assert "carried" in next(csv.reader((tmp_path / "h.csv").open()))

@@ -109,7 +109,7 @@ def test_one_builder_failing_its_floor_does_not_stop_the_day(monkeypatch):
 
     def fake_run(args, cwd, check=True):
         ran.append(args)
-        code = 1 if "tools.fetch_builder_pages" in args else 0
+        code = 2 if "tools.fetch_builder_pages" in args else 0     # 2 = a builder below its floor
         if check and code:
             raise subprocess.CalledProcessError(code, args)
         return subprocess.CompletedProcess(args, code)
@@ -121,3 +121,86 @@ def test_one_builder_failing_its_floor_does_not_stop_the_day(monkeypatch):
     monkeypatch.setattr(dr.db, "connect", lambda: None)
     out = dr.run("2026-10-29", deploy=False)
     assert out["homes"] == 5 and any("tools.export_site_data" in a for a in ran)
+    fetch = next(a for a in ran if "tools.fetch_builder_pages" in a)
+    assert fetch[-2:] == ("--date", "2026-10-29")              # one folder for the whole run (Codex 1 #1)
+
+
+def stub_run(monkeypatch, fetch_code):
+    ran = []
+
+    def fake_run(args, cwd, check=True):
+        ran.append(args)
+        code = fetch_code if "tools.fetch_builder_pages" in args else 0
+        if check and code:
+            raise subprocess.CalledProcessError(code, args)
+        return subprocess.CompletedProcess(args, code)
+
+    monkeypatch.setattr(dr.subprocess, "run", fake_run)
+    for name, value in {"reuse_unchanged": [], "carry_forward": [], "carry_unfetched": [], "drop_carried": [],
+                        "snapshot": 5, "write_csv": 5, "enough_homes": (True, 5, 5), "expected_communities": {}}.items():
+        monkeypatch.setattr(dr, name, lambda *a, _v=value, **k: _v, raising=False)
+    monkeypatch.setattr(dr.db, "connect", lambda: None)
+    return ran
+
+
+def test_a_fetcher_crash_still_stops_the_day(monkeypatch):
+    """Codex review 1 (chunk 2) #4: check=False also swallowed a traceback (exit 1) or a kill (-9), and a
+    half-fetched day was published. Only exit 2 (a builder below its floor) lets the day go on."""
+    import pytest
+    for code in (1, -9):
+        ran = stub_run(monkeypatch, code)
+        with pytest.raises(SystemExit):
+            dr.run("2026-10-29", deploy=True)
+        assert not any("netlify" in a for a in ran)
+
+
+def routes_of(ex, day):
+    return {r["page"]: r for r in json.loads((ex / day / "routes.json").read_text())}
+
+
+def test_a_page_that_404s_today_is_not_carried_even_when_its_builder_is_below_floor(tmp_path):
+    """Codex review 1 (chunk 2) #1: the below-floor branch carried every earlier page, a 404 included."""
+    raw, ex = tmp_path / "raw", tmp_path / "extract"
+    route = lambda page: {"page": page, "model": "m", "escalated": False, "needs_review": False}
+    extraction(ex, "2026-10-28", [route("shea/a"), route("shea/b")])
+    (raw / "2026-10-29" / "shea").mkdir(parents=True)
+    (raw / "2026-10-29" / "shea" / "manifest.json").write_text(json.dumps(
+        [{"file": None, "status": 404, "kind": "community", "url": "https://shea/a"}]))
+    assert dr.carry_unfetched("2026-10-29", {"shea": 2}, raw, ex) == ["shea/b"]
+
+
+def test_a_page_is_carried_for_at_most_max_carry_days_after_its_last_real_fetch(tmp_path):
+    """Codex review 1 (chunk 2) #2: repeated outages re-carried yesterday's carry with no age limit, so a sold
+    home could stay listed forever at its old price."""
+    raw, ex = tmp_path / "raw", tmp_path / "extract"
+    route = lambda page, **k: {"page": page, "model": "m", "escalated": False, "needs_review": False, **k}
+    extraction(ex, "2026-10-25", [route("shea/a")])
+    for day in ("2026-10-26", "2026-10-27", "2026-10-28", "2026-10-29"):
+        (raw / day / "shea").mkdir(parents=True)
+        (raw / day / "shea" / "manifest.json").write_text("[]")      # nothing fetched: below floor every day
+        carried = dr.carry_unfetched(day, {"shea": 1}, raw, ex)
+        assert carried == (["shea/a"] if day <= "2026-10-28" else []), day
+    assert routes_of(ex, "2026-10-28")["shea/a"]["last_fetched"] == "2026-10-25"
+    assert dr.MAX_CARRY_DAYS == 3
+
+
+def test_a_rerun_drops_todays_carried_routes_so_fresh_pages_are_used(tmp_path):
+    """Codex review 1 (chunk 2) #3: a morning carry stayed in routes.json; the afternoon rerun fetched the page
+    fine but --skip-done skipped it, and yesterday's price went out stamped with today's fetch time."""
+    ex = tmp_path / "extract"
+    route = lambda page, **k: {"page": page, "model": "m", "escalated": False, "needs_review": False, **k}
+    extraction(ex, "2026-10-29", [route("b/fresh"), route("b/carried", carried_from="2026-10-28", unfetched=True),
+                                  route("b/same", carried_from="2026-10-27", unchanged=True),
+                                  route("b/cap", carried_from="2026-10-28")])
+    assert sorted(dr.drop_carried("2026-10-29", ex)) == ["b/cap", "b/carried", "b/same"]
+    assert list(routes_of(ex, "2026-10-29")) == ["b/fresh"]
+
+
+def test_the_guard_counts_only_homes_fetched_today(conn):  # noqa: F811
+    """Codex review 1 (chunk 2) #2: carried homes counted toward the 70% guard, so a day where every fetch
+    failed still published yesterday's prices as today's."""
+    snapshot(conn, "2026-10-28")
+    with conn:
+        conn.execute("UPDATE homes SET source_page = 'b/p' || id")
+    assert enough_homes(conn, ["b/p1", "b/p2"]) == (False, 3, 5)     # 3 of 5 fetched today < 70%
+    assert enough_homes(conn, []) == (True, 5, 5)

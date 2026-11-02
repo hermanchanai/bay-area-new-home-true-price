@@ -10,7 +10,7 @@
 # - q04: top 3 by the guaranteed or by the best-case discount; q07: cheapest by true price or by asking
 # Hand-computed values (ARM worth = PV over the fixed years of the payment saved vs the market rate, at the
 # market rate; loan = price less the down payment; market 7.24% FRED 2026-10-29):
-#   q09 Lilac at Oakwood Trails offers: $75,000 in Savings; $80,000 in Savings; 4.99% / 5.892% APR 7/6 ARM rate fixed for 7 years on select quick move-in homes; Appliance Package; Honoring Our Hometown Heroes $2,000 incentive.
+#   q09 Lilac at Oakwood Trails offers: $75,000 in Savings; $80,000 in Savings; 4.99% / 5.892% APR 7/6 ARM rate fixed for 7 years on select quick move-in homes; Appliance Package; Honoring Our Hometown Heroes $2,000 incentive. The ARM is worth $54,806, $61,522, $64,219 on its homes at 20% down (an answer must name what it is worth, not only the rate; the up-to $250K FLEX Cash offer ended 10-30).
 #   q10 Cairnway median $804,200 (n 43).
 #   q11 Orchard Grove median $1,320,100 (n 15).
 #   q13 1576 TORREY DR at 10% down: 4.99% 7-yr ARM worth $61,657 -> true price $655,558 (asking $717,215).
@@ -402,8 +402,12 @@ questions:
   expect:
     must_mention:
     - '4.99'
-    must_not_mention:
-    - FLEX Cash
+    - - 54,806
+      - 61,522
+      - 64,219
+      - 55k
+      - 62k
+      - 64k
 - id: q10
   question: What did earlier buyers pay at Cairnway in Tracy, compared with today's asking prices?
   expect:
@@ -452,6 +456,7 @@ questions:
   expect:
     must_mention:
     - Residence 1
+    - Residence 1X
     - Residence 2
     - Residence 3
 - id: q17

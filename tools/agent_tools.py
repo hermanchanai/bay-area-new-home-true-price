@@ -53,8 +53,8 @@ def ready_month(ready: str | None, status: str | None, today: str) -> str | None
     elif m := re.match(r"(\d{1,2})/\d{1,2}/(\d{4})", s):
         ym = f"{m[2]}-{int(m[1]):02d}"
     elif months := [MONTHS[w[:3].lower()] for w in re.findall(r"[A-Za-z]{3,}", s) if w[:3].lower() in MONTHS]:
-        if year := re.search(r"\b(20\d{2})\b", s):
-            ym = f"{year[1]}-{months[-1]:02d}"
+        if years := re.findall(r"\b(20\d{2})\b", s):       # 'Dec 2026 / Jan 2027': the last month's year
+            ym = f"{years[-1]}-{months[-1]:02d}"
         else:
             y, prev = int(today[:4]), int(today[5:7])
             for i, mo in enumerate(months):

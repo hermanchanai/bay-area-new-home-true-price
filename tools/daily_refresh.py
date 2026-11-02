@@ -14,13 +14,16 @@ Run by launchd every morning at 05:30 (~/Library/LaunchAgents/com.hermanchan.tru
   6. carry forward: a page whose extraction didn't run today (cap, error) reuses its latest earlier one,
      so its homes don't vanish for a day; listed in the log. Same for pages not fetched today: every page of
      a builder below its floor (10-29: Shea's start page timed out) and a page whose fetch failed (no answer
-     or 5xx; a 404 or a page the builder stopped listing is gone and is not carried)
+     or 5xx; a 404 or a page the builder stopped listing is gone and is not carried), for at most
+     MAX_CARRY_DAYS after the page was last fetched. Carried homes are marked in price_history and don't count
+     toward the guard. A rerun first drops the day's carried routes, so pages fetched since are used.
   7. load + price               8. map pins for new communities          9. snapshot into price_history
   10. export site data + price_history.csv                                 11. deploy
-A builder below its floor makes the fetcher exit 1; the day goes on (its pages are carried, step 6).
+A builder below its floor makes the fetcher exit 2; the day goes on (its pages are carried, step 6). Any
+other failure of the fetcher stops the run.
 The run holds a `caffeinate` assertion so the Mac doesn't sleep mid-fetch (10-29: the 15-minute fetch took
 4 hours in dark-wake bursts, and the connections dropped as it slept).
-Guard: if today's load has fewer than MIN_SHARE of the last snapshot's homes (a blocked fetch, a bad parse),
+Guard: if today's load has fewer than MIN_SHARE of the last snapshot's homes from pages fetched today (a blocked fetch, a bad parse),
 the run stops before the snapshot and nothing is published.
 """
 import argparse
@@ -46,6 +49,8 @@ ROOT = Path(__file__).resolve().parent.parent
 LOGS = ROOT / ".tmp" / "logs"
 HISTORY_CSV = ROOT / "web" / "data" / "price_history.csv"
 MIN_SHARE = 0.7
+MAX_CARRY_DAYS = 3                   # a page not fetched for longer than this drops its homes (sold or gone)
+FLOOR_FAILED = 2                     # fetcher exit code: some builder below its floor; anything else nonzero = crash
 log = logging.getLogger("daily_refresh")
 
 
@@ -95,6 +100,18 @@ def _reuse(day: str, src_day: str, r: dict, extract: Path, **extra) -> dict:
     return {**r, "carried_from": r.get("carried_from") or src_day, **extra}
 
 
+def drop_carried(day: str, extract: Path = EXTRACT) -> list[str]:
+    """Remove the day's carried and reused routes before a (re)run; the run recomputes them from what it has
+    now, so a page fetched since the last run is extracted instead of keeping its old extraction."""
+    routes_path = extract / day / "routes.json"
+    if not routes_path.exists():
+        return []
+    routes = json.loads(routes_path.read_text())
+    keep = [r for r in routes if not r.get("carried_from")]
+    routes_path.write_text(json.dumps(keep, indent=1))
+    return [r["page"] for r in routes if r.get("carried_from")]
+
+
 def reuse_unchanged(day: str, raw: Path = RAW, pre: Path = PRE, extract: Path = EXTRACT) -> list[str]:
     """Pages fetched on `day` whose figures match the day they were last extracted from: reuse, $0."""
     routes_path = extract / day / "routes.json"
@@ -138,16 +155,23 @@ def _latest_builder_routes(builder: str, day: str, extract: Path) -> list[tuple[
     return []
 
 
+def _page(builder: str, url: str) -> str:
+    return f"{builder}/{page_filename(url).removesuffix('.html')}"
+
+
 def carry_unfetched(day: str, expected: dict[str, int], raw: Path = RAW, extract: Path = EXTRACT) -> list[str]:
     """Pages with no fetch today keep their latest extraction: all of a builder's pages when it is below its
-    floor (or has no manifest), and any page whose fetch got no answer or a 5xx. Returns the pages carried."""
+    floor (or has no manifest), and any page whose fetch got no answer or a 5xx; never a page that 404'd today,
+    and never past MAX_CARRY_DAYS since the page was last fetched. Returns the pages carried."""
     routes_path = extract / day / "routes.json"
     routes = json.loads(routes_path.read_text()) if routes_path.exists() else []
     have = {r["page"] for r in routes}
     todo: list[tuple[str, dict]] = []
+    gone = set()
     for builder, exp in expected.items():
         man = raw / day / builder / "manifest.json"
         recs = json.loads(man.read_text()) if man.exists() else []
+        gone |= {_page(builder, r["url"]) for r in recs if r["status"] in (404, 410)}
         got = sum(r["kind"] == "community" and r["status"] == 200 for r in recs)
         if not floor_ok(got, exp):
             log.warning("%s below its floor today (%d of %d communities): keeping its last extraction", builder, got, exp)
@@ -155,22 +179,26 @@ def carry_unfetched(day: str, expected: dict[str, int], raw: Path = RAW, extract
             continue
         for r in recs:
             if r["status"] == 0 or r["status"] >= 500:
-                page = f"{builder}/{page_filename(r['url']).removesuffix('.html')}"
-                todo += [found] if (found := _latest_route(page, day, extract)) else []
+                todo += [found] if (found := _latest_route(_page(builder, r["url"]), day, extract)) else []
     carried = []
     for src_day, r in todo:
-        if r["page"] not in have:
-            routes.append(_reuse(day, src_day, r, extract, unfetched=True))
-            have.add(r["page"])
-            carried.append(r["page"])
+        seen = r.get("last_fetched") if r.get("unfetched") else src_day
+        if r["page"] in have or r["page"] in gone:
+            continue
+        if (Date.fromisoformat(day) - Date.fromisoformat(seen)).days > MAX_CARRY_DAYS:
+            log.warning("%s not fetched since %s: its homes are dropped", r["page"], seen)
+            continue
+        routes.append(_reuse(day, src_day, r, extract, unfetched=True, last_fetched=seen))
+        have.add(r["page"])
+        carried.append(r["page"])
     routes_path.parent.mkdir(parents=True, exist_ok=True)
     routes_path.write_text(json.dumps(sorted(routes, key=lambda r: r["page"]), indent=1))
     return carried
 
 
-def enough_homes(conn) -> tuple[bool, int, int]:
-    """Today's load against the last snapshot's home count."""
-    now = conn.execute("SELECT COUNT(*) FROM homes").fetchone()[0]
+def enough_homes(conn, carried: list[str] = ()) -> tuple[bool, int, int]:
+    """Homes from pages fetched today (not carried) against the last snapshot's home count."""
+    now = sum(r[0] not in set(carried) for r in conn.execute("SELECT source_page FROM homes"))
     last = conn.execute("SELECT COUNT(*) FROM price_history WHERE snapshot_date = "
                         "(SELECT MAX(snapshot_date) FROM price_history)").fetchone()[0]
     return (last == 0 or now >= MIN_SHARE * last), now, last
@@ -179,9 +207,14 @@ def enough_homes(conn) -> tuple[bool, int, int]:
 def run(day: str, deploy: bool, fetch: bool = True) -> dict:
     py("tools.fetch_market_rate")
     if fetch:
-        if code := py("tools.fetch_builder_pages", "--builder", "all", check=False):
-            log.warning("fetch exited %d (a builder below its floor); going on, its pages are carried", code)
+        code = py("tools.fetch_builder_pages", "--builder", "all", "--date", day, check=False)
+        if code == FLOOR_FAILED:
+            log.warning("a builder is below its floor; going on, its pages are carried")
+        elif code:
+            raise SystemExit(f"stopped: the fetcher failed (exit {code}); nothing published")
     py("tools.preprocess_page", "--date", day)
+    dropped = drop_carried(day)
+    log.info("dropped %d routes carried by an earlier run today", len(dropped))
     reused = reuse_unchanged(day)
     log.info("reused %d unchanged pages", len(reused))
     py("tools.extract_listing", "--date", day, "--skip-done")
@@ -191,11 +224,13 @@ def run(day: str, deploy: bool, fetch: bool = True) -> dict:
     log.info("carried %d pages not fetched today: %s", len(unfetched), unfetched)
     py("tools.load_records", "--date", day)
     conn = db.connect()
-    ok, now, last = enough_homes(conn)
+    stale = carried + unfetched
+    ok, now, last = enough_homes(conn, stale)
     if not ok:
-        raise SystemExit(f"stopped: {now} homes today vs {last} in the last snapshot (< {MIN_SHARE:.0%}); nothing published")
+        raise SystemExit(f"stopped: {now} homes fetched today vs {last} in the last snapshot (< {MIN_SHARE:.0%}); "
+                         "nothing published")
     py("tools.geocode_communities")
-    n = snapshot(conn, day)
+    n = snapshot(conn, day, carried=stale)
     rows = write_csv(conn, HISTORY_CSV)
     py("tools.export_site_data")
     if deploy:

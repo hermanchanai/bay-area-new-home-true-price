@@ -1,11 +1,15 @@
 """Fetch builders' community pages (raw, for extraction later). Deterministic, no model.
 
     python -m tools.fetch_builder_pages --builder trumark     # or pulte, taylor_morrison, all
+    python -m tools.fetch_builder_pages --builder all --date 2026-11-02   # the folder to write (default: today)
 
 Writes .tmp/raw/<date>/<builder>/*.html plus manifest.json, and upserts `builders` / `communities`
 (url, city, county; names and details come from extraction). Honors robots.txt read with our own
 User-Agent, waits `delay_s` between requests to a host, never retries past a block (403/429) or a 404.
-A dropped connection, timeout or 5xx is retried after RETRY_WAITS_S (10-29: 16 pages lost to those).
+A dropped connection, timeout or 5xx is retried after RETRY_WAITS_S (10-29: 16 pages lost to those); a host
+whose pages exhausted their retries HOST_GIVE_UP times gets one try per page after that, so a dead site can't
+stretch the run for hours. Exit 0 = every builder at its floor, 2 = some builder below it (the daily run goes
+on and keeps that builder's last prices), anything else = the fetcher itself failed.
 """
 import argparse
 import hashlib
@@ -27,6 +31,7 @@ ROOT = Path(__file__).resolve().parent.parent
 RAW = ROOT / ".tmp" / "raw"
 MIN_FLOOR = 0.6
 RETRY_WAITS_S = (30, 120)           # dropped connection / timeout / 5xx: wait, try again
+HOST_GIVE_UP = 2                    # pages per host allowed to exhaust their retries before retries stop
 
 log = logging.getLogger(__name__)
 
@@ -108,6 +113,7 @@ class Fetcher:
         self.ua, self.delay = user_agent, delay_s
         self.robots: dict[str, urllib.robotparser.RobotFileParser] = {}
         self.last: dict[str, float] = {}
+        self.exhausted: dict[str, int] = {}
 
     def _wait(self, host: str) -> None:
         gap = time.monotonic() - self.last.get(host, 0)
@@ -115,17 +121,30 @@ class Fetcher:
             time.sleep(self.delay - gap)
         self.last[host] = time.monotonic()
 
+    def _once(self, url: str, timeout: int) -> tuple[int, str]:
+        """One GET. The status is read before the body, so a block whose body breaks off is still a block."""
+        try:
+            r = self.s.get(url, timeout=timeout, stream=True)
+        except requests.RequestException as e:
+            log.warning("fetch failed %s: %s", url, e)
+            return 0, ""
+        try:
+            return r.status_code, r.text
+        except requests.RequestException as e:
+            log.warning("body failed %s (%s): %s", url, r.status_code, e)
+            return (0 if r.status_code == 200 or r.status_code >= 500 else r.status_code), ""
+
     def _request(self, url: str, timeout: int) -> tuple[int, str]:
         """GET with retries for trouble on the way (0 = no response at all); a real answer is final."""
-        for wait in (*RETRY_WAITS_S, None):
-            self._wait(urlparse(url).netloc)
-            try:
-                r = self.s.get(url, timeout=timeout)
-                status, text = r.status_code, r.text
-            except requests.RequestException as e:
-                log.warning("fetch failed %s: %s", url, e)
-                status, text = 0, ""
-            if not (status == 0 or status >= 500) or wait is None:
+        host = urlparse(url).netloc
+        waits = RETRY_WAITS_S if self.exhausted.get(host, 0) < HOST_GIVE_UP else ()
+        for wait in (*waits, None):
+            self._wait(host)
+            status, text = self._once(url, timeout)
+            if not (status == 0 or status >= 500):
+                return status, text
+            if wait is None:
+                self.exhausted[host] = self.exhausted.get(host, 0) + (1 if waits else 0)
                 return status, text
             log.info("retrying %s in %ss", url, wait)
             time.sleep(wait)
@@ -144,9 +163,10 @@ class Fetcher:
         return self._request(url, timeout=45)
 
 
-def fetch_builder(b: dict, cfg: dict, city_county: dict, conn=None, out_root: Path = RAW) -> dict:
+def fetch_builder(b: dict, cfg: dict, city_county: dict, conn=None, out_root: Path = RAW,
+                  day: str | None = None) -> dict:
     f = Fetcher(cfg["user_agent"], cfg["delay_s"])
-    out_dir = out_root / date.today().isoformat() / b["key"]
+    out_dir = out_root / (day or date.today().isoformat()) / b["key"]
     out_dir.mkdir(parents=True, exist_ok=True)
     manifest = []
 
@@ -230,7 +250,9 @@ if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO, format="%(message)s")
     ap = argparse.ArgumentParser()
     ap.add_argument("--builder", required=True)
+    ap.add_argument("--date", help="folder date for the whole run (a run past midnight stays in one folder)")
     args = ap.parse_args()
+    day = args.date or date.today().isoformat()
     cfg, city_county = load_config()
     todo = ([b for b in cfg["builders"] if b.get("enabled", True)] if args.builder == "all"
             else [b for b in cfg["builders"] if b["key"] == args.builder])
@@ -238,7 +260,11 @@ if __name__ == "__main__":
         raise SystemExit(f"unknown builder {args.builder}")
     failed = False
     for b in todo:
-        res = fetch_builder(b, cfg, city_county)
+        try:
+            res = fetch_builder(b, cfg, city_county, day=day)
+        except Exception:                     # one builder's crash (a site change) is that builder's failure
+            log.exception("%s failed", b["key"])
+            res = {"builder": b["key"], "floor_ok": False, "crashed": True}
         print(json.dumps(res))
         failed |= not res["floor_ok"]
-    raise SystemExit(1 if failed else 0)
+    raise SystemExit(2 if failed else 0)

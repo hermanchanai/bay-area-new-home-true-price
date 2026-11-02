@@ -119,7 +119,8 @@ def community_detail(conn, cid: int, today: str) -> dict:
     for h in d["homes"]:
         h["offers"] = offers.get(h["home_id"], [])
         h["history"] = [list(r) for r in conn.execute(      # [date, asking, guaranteed true price], one per daily check
-            "SELECT snapshot_date, asking, true_high FROM price_history WHERE home_key = ? ORDER BY snapshot_date",
+            "SELECT snapshot_date, asking, true_high FROM price_history WHERE home_key = ? AND carried = 0 "
+            "ORDER BY snapshot_date",
             (home_key(builder_id, url, h.get("address"), h.get("lot")),))]
     return d
 

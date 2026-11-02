@@ -88,12 +88,25 @@ class FakeSession:
     def __init__(self, answers):
         self.answers, self.calls, self.headers = list(answers), [], {}
 
-    def get(self, url, timeout):
+    def get(self, url, timeout, stream=False):
         self.calls.append(url)
         a = self.answers.pop(0)
         if isinstance(a, Exception):
             raise a
-        return types.SimpleNamespace(status_code=a, text=f"body {a}")
+        if isinstance(a, tuple):                           # (status, exception raised while reading the body)
+            return Resp(a[0], a[1])
+        return Resp(a, None)
+
+
+class Resp:
+    def __init__(self, status, body_error):
+        self.status_code, self._err = status, body_error
+
+    @property
+    def text(self):
+        if self._err:
+            raise self._err
+        return f"body {self.status_code}"
 
 
 def fetcher(answers, monkeypatch):
@@ -123,3 +136,42 @@ def test_robots_txt_survives_one_dropped_connection(monkeypatch):
     f, _ = fetcher([requests.ConnectionError("x"), 404], monkeypatch)
     del f.allowed
     assert f.allowed("https://x/a")                        # not disallow-all for the whole builder
+
+
+def test_a_block_whose_body_breaks_off_is_still_a_block_and_not_retried(monkeypatch):
+    """Codex review 1 #2: requests reads the body inside get(); a 403 with a truncated chunked body raised
+    ChunkedEncodingError, became status 0 and was retried 3 times past the block."""
+    for status in (403, 429, 404):
+        f, waits = fetcher([(status, requests.exceptions.ChunkedEncodingError("truncated"))], monkeypatch)
+        assert f.get("https://x/a") == (status, "") and len(f.s.calls) == 1 and not waits
+
+
+def test_a_host_that_keeps_failing_stops_getting_retries(monkeypatch):
+    """Codex review 1 #1: 3 tries x 45 s + 150 s of waits per page, with no limit, can run the fetch past
+    midnight. After HOST_GIVE_UP pages on one host exhaust their retries, that host gets one try per page."""
+    dead = [requests.ReadTimeout("x")] * ((len(fbp.RETRY_WAITS_S) + 1) * fbp.HOST_GIVE_UP)
+    f, waits = fetcher(dead + [requests.ReadTimeout("x")], monkeypatch)
+    for i in range(fbp.HOST_GIVE_UP):
+        assert f.get(f"https://x/{i}") == (0, "")
+    n, w = len(f.s.calls), sum(waits)
+    assert f.get("https://x/last") == (0, "") and len(f.s.calls) == n + 1 and sum(waits) == w
+
+
+def test_every_builder_lands_in_the_run_date_folder_even_past_midnight(tmp_path, monkeypatch):
+    """Codex review 1 #1: fetch_builder took date.today() per builder, so a run crossing midnight split across
+    two folders and the daily run (which reads its start date) missed the later builders."""
+    from tools import db
+
+    class Stub:
+        def __init__(self, *a):
+            pass
+
+        def get(self, url):
+            return 0, ""
+
+    monkeypatch.setattr(fbp, "Fetcher", Stub)
+    b = {"key": "kb", "name": "KB", "site": "https://kb", "start": ["https://kb/start"],
+         "community_pattern": "x", "expected_communities": 1}
+    res = fbp.fetch_builder(b, {"user_agent": "ua", "delay_s": 0}, {}, db.connect(":memory:"), tmp_path,
+                            day="2026-11-02")
+    assert res["dir"] == str(tmp_path / "2026-11-02" / "kb")

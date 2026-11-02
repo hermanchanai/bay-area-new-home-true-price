@@ -157,3 +157,20 @@ def test_a_page_carried_without_a_fetch_today_reads_its_page_record_from_the_day
         [{"page": "shea/a", "model": "m", "needs_review": False, "carried_from": "2026-10-28", "unfetched": True}]))
     [p] = lr.read_pages("2026-10-29")
     assert (p["url"], p["kind"], p["manifest"]["fetched_at"][:10]) == ("https://shea/a", "community", "2026-10-28")
+
+
+def test_a_carried_page_takes_its_record_from_its_last_real_fetch_not_its_first_extraction(tmp_path, monkeypatch):
+    """A page extracted 10-27, fetched unchanged 10-28, missed 10-29: its fetched_at is 10-28's."""
+    raw, ex = tmp_path / "raw", tmp_path / "extract"
+    monkeypatch.setattr(lr, "RAW", raw)
+    monkeypatch.setattr(lr, "EXTRACT", ex)
+    for day in ("2026-10-27", "2026-10-28"):
+        (raw / day / "shea").mkdir(parents=True)
+        (raw / day / "shea" / "manifest.json").write_text(json.dumps(
+            [{"file": "a.html", "status": 200, "kind": "community", "url": "https://shea/a", "fetched_at": f"{day}T12:00:00+00:00"}]))
+    (ex / "2026-10-29" / "m" / "shea").mkdir(parents=True)
+    (ex / "2026-10-29" / "m" / "shea" / "a.json").write_text(json.dumps({"community": {"name": "A"}, "homes": []}))
+    (ex / "2026-10-29" / "routes.json").write_text(json.dumps([{"page": "shea/a", "model": "m", "needs_review": False,
+        "carried_from": "2026-10-27", "unfetched": True, "last_fetched": "2026-10-28"}]))
+    [p] = lr.read_pages("2026-10-29")
+    assert p["manifest"]["fetched_at"][:10] == "2026-10-28"

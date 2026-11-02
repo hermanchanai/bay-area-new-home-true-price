@@ -57,8 +57,8 @@ def ready_month(ready: str | None, status: str | None, today: str) -> str | None
     else:
         names = [MONTHS[w[:3].lower()] for w in re.findall(r"[A-Za-z]+", s) if w[:3].lower() in MONTHS]
         if names:
-            y = re.search(r"20\d\d", s)
-            year, last = (int(y[0]), names[-1]) if y else (int(today[:4]), names[-1])
+            y = re.findall(r"20\d\d", s)                    # several years: the last one goes with the last month
+            year, last = (int(y[-1]), names[-1]) if y else (int(today[:4]), names[-1])
             if not y and (last < int(today[5:7]) or (len(names) > 1 and names[-1] < names[0])):
                 year += 1
             ym = f"{year}-{last:02d}"
@@ -101,13 +101,26 @@ def names(hs: list[dict]) -> list[str]:
 
 def pmt(rate_pct: float, loan: float) -> float:
     i = rate_pct / 1200
-    return loan * i / (1 - (1 + i) ** -360)
+    return loan / 360 if i == 0 else loan * i / (1 - (1 + i) ** -360)
 
 
 def arm_worth(price: int, down: float, market: float, promo: float, years: int) -> int:
+    """A promo at or above the market rate saves nothing: worth $0, never negative."""
+    if promo >= market:
+        return 0
     loan, i = price * (1 - down), market / 1200
     saving = pmt(market, loan) - pmt(promo, loan)
     return round(sum(saving / (1 + i) ** k for k in range(1, years * 12 + 1)))
+
+
+def cheapest_expect(hs: list[dict]) -> dict:
+    """The cheapest home must be in the top 3; with a tie, any of the tied homes will do."""
+    r = ranked(hs, 1)
+    return {"top3_all_of": r} if len(r) == 1 else {"top3_any_of": r}
+
+
+def comment(note: str) -> str:
+    return "#   " + " ".join(note.split()).removeprefix("#").strip()
 
 
 def one(conn, sql: str, *args):
@@ -130,7 +143,7 @@ def derive(conn, today: str) -> tuple[dict, list[str]]:
     e["q01"] = {"top3_any_of": ranked(q), "eligible": names(q)}
 
     q = [h for h in hs if h["fips"] == FIPS["alameda"] and h["status"] == "now"]
-    e["q02"] = {"top3_all_of": ranked(q, 1), "eligible": names(q)}
+    e["q02"] = {**cheapest_expect(q), "eligible": names(q)}
 
     q = [h for h in hs if h["fips"] == FIPS["santa_clara"] and h["product"] == "TH" and h["beds"] == 3
          and h["true_price"] < 1_300_000]
@@ -162,13 +175,18 @@ def derive(conn, today: str) -> tuple[dict, list[str]]:
         "scope_id IN (SELECT id FROM homes WHERE community_id=?))", (lilac, lilac))]
     if not any("4.99" in (x or "") for x in labels) or any("FLEX" in (x or "") for x in labels):
         raise SystemExit(f"q09: Lilac offers changed, re-check the question: {labels}")
-    e["q09"] = {"must_mention": ["4.99"], "must_not_mention": ["FLEX Cash"]}   # the up-to $250K offer ended 10-30
-    notes.append(f"#   q09 Lilac at Oakwood Trails offers: {'; '.join(sorted(x for x in labels if x))}.")
+    worth = [r[0] for r in conn.execute(
+        "SELECT DISTINCT v.value_high FROM incentive_values v JOIN incentives i ON i.id = v.incentive_id "
+        "JOIN homes h ON h.id = v.home_id WHERE h.community_id = ? AND i.kind = 'arm_promo' ORDER BY 1", (lilac,))]
+    e["q09"] = {"must_mention": ["4.99", [f"{w:,}" for w in worth] + [f"{w / 1000:.0f}k" for w in worth]]}
+    notes.append(f"q09 Lilac at Oakwood Trails offers: {'; '.join(sorted(x for x in labels if x))}. "
+                 f"The ARM is worth ${', $'.join(f'{w:,}' for w in worth)} on its homes at 20% down (an answer "
+                 "must name what it is worth, not only the rate; the up-to $250K FLEX Cash offer ended 10-30).")
 
     for qid, name, city in (("q10", "Cairnway", "Tracy"), ("q11", "Orchard Grove", "Brentwood")):
         n, med = one(conn, "SELECT ps.n, ps.median_est_price FROM past_sales ps JOIN communities c "
                            "ON c.id = ps.community_id WHERE c.name = ? AND c.city = ?", name, city)
-        notes.append(f"#   {qid} {name} median ${med:,} (n {n}).")
+        notes.append(f"{qid} {name} median ${med:,} (n {n}).")
         e[qid] = ({"must_mention": [str(med)[:3], "asking"]} if qid == "q10"
                   else {"must_mention": [[f"{med / 1e6:.2f}", f"{med // 1000:,}"]]})
     e["q12"] = {"must_mention": ["Santa Clara"]}
@@ -183,7 +201,7 @@ def derive(conn, today: str) -> tuple[dict, list[str]]:
             raise SystemExit(f"{qid}: expected one ARM offer on a San Joaquin home, got {arm} {fips}")
         promo, years = arm[0][0], int(re.search(r"\d+", arm[0][1])[0])
         worth = arm_worth(price, down, rate, promo, years)
-        notes.append(f"#   {qid} {addr} at {down:.0%} down: {promo}% {years}-yr ARM worth ${worth:,} "
+        notes.append(f"{qid} {addr} at {down:.0%} down: {promo}% {years}-yr ARM worth ${worth:,} "
                      f"-> true price ${price - worth:,} (asking ${price:,}).")
         e[qid] = ({"must_mention": [[f"{price - worth:,}", f"{(price - worth) / 1000:.0f}k"]]} if qid == "q13" else
                   {"must_mention": [[f"{worth:,}", f"{worth / 1000:.0f}k", f"{worth / 1000:.1f}"]]})
@@ -196,51 +214,61 @@ def derive(conn, today: str) -> tuple[dict, list[str]]:
     drift = conn.execute("SELECT p.name, p.layout_json FROM plans p JOIN communities c ON c.id = p.community_id "
                          "WHERE c.name = 'Driftway' AND c.city = 'Lathrop' ORDER BY p.name").fetchall()
     down = [n for n, lay in drift if lay and json.loads(lay).get("downstairs_bedroom") is True]
-    notes.append(f"#   q16 Driftway plans with a downstairs bedroom: {', '.join(down)}.")
-    e["q16"] = {"must_mention": [n for n in down if n != "Residence 1X"]}   # '1X' contains 'Residence 1'
+    notes.append(f"q16 Driftway plans with a downstairs bedroom: {', '.join(down)}.")
+    e["q16"] = {"must_mention": down}      # substring scoring: 'Residence 1X does not' would still pass; accepted
 
     lay = json.loads(one(conn, "SELECT p.layout_json FROM homes h JOIN plans p ON p.id = h.plan_id "
                                "WHERE h.address = '3139 Workman Avenue'")[0])
     suite = next(r for f in lay["floors"] for r in f["rooms"] if re.search(r"(?i)owner|primary", r["name"]))
     if suite["dims"] != "14' x 14' 5\"":
         raise SystemExit(f"q17: owner's suite now reads {suite['dims']}, update the must_mention forms")
-    notes.append(f"#   q17 3139 Workman Avenue owner's suite {suite['dims']}.")
+    notes.append(f"q17 3139 Workman Avenue owner's suite {suite['dims']}.")
     e["q17"] = {"must_mention": [["14' x 14' 5", "14'x14'5", "14' x 14'5", "14 ft x 14 ft 5", "14′ x 14′ 5"]]}
 
     e["q18"] = {"no_homes": True, "must_mention": ["Napa"]}
 
     q = [h for h in hs if h["age_restricted"]]
-    e["q19"] = {"top3_all_of": ranked(q, 1), "eligible": names(q)}
+    e["q19"] = {**cheapest_expect(q), "eligible": names(q)}
 
     q = [h for h in hs if h["city"] == "Dublin" and h["beds"] and h["beds"] >= 4 and h["true_price"] < 1_600_000]
     e["q20"] = {"top3_any_of": ranked(q), "eligible": names(q)}
-    return e, [f"#   rate {rate}% as of {rate_date}"] + notes
+    return e, [f"rate {rate}% as of {rate_date}"] + notes
 
 
 def main(freeze: bool) -> Path:
+    """--freeze never overwrites a snapshot (the key may point at it), and a new snapshot the key can't be
+    derived from is deleted again; the key is replaced only after the new one parses."""
     spec = yaml.safe_load(KEY.read_text())
-    today = date.today().isoformat()
+    new = None
     if freeze:
-        path = Path("data") / f"eval_{today}.db"
-        src = sqlite3.connect(LIVE)
-        dst = sqlite3.connect(ROOT / path)
+        path = Path("data") / f"eval_{date.today().isoformat()}.db"
+        if (ROOT / path).exists():
+            raise SystemExit(f"{ROOT / path} exists: the key may point at it; move it away to re-freeze today")
+        src, dst = sqlite3.connect(LIVE), sqlite3.connect(ROOT / path)
         src.backup(dst)
         dst.close()
         src.close()
-        spec["db"] = str(path)
-    day = re.search(r"\d{4}-\d{2}-\d{2}", spec["db"])[0]
-    conn = sqlite3.connect(f"file:{ROOT / spec['db']}?mode=ro", uri=True)
-    conn.row_factory = sqlite3.Row
-    expect, notes = derive(conn, day)
-    rate = notes.pop(0)
-    m = re.search(r"rate ([\d.]+)% as of (\S+)", rate)
-    for q in spec["questions"]:
-        q["expect"] = expect[q["id"]]
-    body = yaml.safe_dump({"db": spec["db"], "questions": spec["questions"]}, sort_keys=False, allow_unicode=True,
-                          width=120)
-    KEY.write_text(HEADER.format(day=day, rate=m[1], rate_date=m[2], notes="\n".join(notes)) + body)
+        new, spec["db"] = ROOT / path, str(path)
+    try:
+        day = re.search(r"\d{4}-\d{2}-\d{2}", spec["db"])[0]
+        conn = sqlite3.connect(f"file:{ROOT / spec['db']}?mode=ro", uri=True)
+        conn.row_factory = sqlite3.Row
+        expect, notes = derive(conn, day)
+        conn.close()
+        m = re.search(r"rate ([\d.]+)% as of (\S+)", notes.pop(0))
+        for q in spec["questions"]:
+            q["expect"] = expect[q["id"]]
+        body = yaml.safe_dump({"db": spec["db"], "questions": spec["questions"]}, sort_keys=False,
+                              allow_unicode=True, width=120)
+        text = HEADER.format(day=day, rate=m[1], rate_date=m[2], notes="\n".join(map(comment, notes))) + body
+        if yaml.safe_load(text)["questions"] != spec["questions"]:
+            raise SystemExit("the generated key doesn't read back the same; not written")
+    except BaseException:
+        if new:
+            new.unlink()
+        raise
+    KEY.write_text(text)
     return KEY
-
 
 if __name__ == "__main__":
     ap = argparse.ArgumentParser()
