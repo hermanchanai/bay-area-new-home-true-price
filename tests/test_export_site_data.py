@@ -74,3 +74,14 @@ def test_community_pages_carry_each_homes_daily_price_history(conn, tmp_path):
     d = json.loads((tmp_path / "web" / "c" / "1.json").read_text())
     oak = next(h for h in d["homes"] if h["address"] == "1 Oak St")
     assert oak["history"] == [["2026-10-27", 900000, 880000], ["2026-10-28", 880000, 860000]]
+
+
+def test_a_day_with_only_carried_homes_is_not_a_check(conn):
+    """Codex review 2 #7: history_meta counted a snapshot whose rows were all carried as a daily check."""
+    from tools.export_site_data import history_meta
+    from tools.snapshot_prices import snapshot
+    snapshot(conn, "2026-10-28", carried=[])
+    with conn:
+        conn.execute("UPDATE homes SET source_page = 'b/p' || id")
+    snapshot(conn, "2026-10-29", carried=[f"b/p{i}" for i in range(1, 6)])
+    assert history_meta(conn)["checks"] == 1

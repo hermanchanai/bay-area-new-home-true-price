@@ -6,6 +6,8 @@
 # - eligible: every home meeting all the question's conditions; nothing else may be in the top 3
 #   (true price = the guaranteed end, asking minus offers every buyer gets; "ready by" = the builder's date)
 # - must_mention: text the answer must contain (a list = any one of them), case-insensitive
+# - must_mention_amount: per group, the answer states one of these dollar amounts at its written precision
+#   ($54.8k counts as $54,806); must_name: a name that must appear whole ('Residence 1' is not in 'Residence 1X')
 # - no_homes: the right answer is "none"; citing any home fails
 # - q04: top 3 by the guaranteed or by the best-case discount; q07: cheapest by true price or by asking
 # Hand-computed values (ARM worth = PV over the fixed years of the payment saved vs the market rate, at the
@@ -402,12 +404,10 @@ questions:
   expect:
     must_mention:
     - '4.99'
-    - - 54,806
-      - 61,522
-      - 64,219
-      - 55k
-      - 62k
-      - 64k
+    must_mention_amount:
+    - - 54806
+      - 61522
+      - 64219
 - id: q10
   question: What did earlier buyers pay at Cairnway in Tracy, compared with today's asking prices?
   expect:
@@ -428,33 +428,26 @@ questions:
 - id: q13
   question: If I put 10% down on 1576 Torrey Dr in Manteca, what's its true price?
   expect:
-    must_mention:
-    - - 655,558
-      - 656k
+    must_mention_amount:
+    - - 655558
 - id: q14
   question: With 5% down, how much is the 4.99% ARM offer on 361 E Beatrice Avenue worth?
   expect:
-    must_mention:
-    - - 71,973
-      - 72k
-      - '72.0'
+    must_mention_amount:
+    - - 71973
 - id: q15
   question: Compare 361 E Beatrice Avenue in Mountain House with 1162 Bradbury Drive in Discovery Bay.
   expect:
     top3_all_of:
     - 361 E Beatrice Avenue
     - 1162 Bradbury Drive
-    must_mention:
-    - - 793,146
-      - 793k
-      - '793.1'
-    - - 796,437
-      - 796k
-      - '796.4'
+    must_mention_amount:
+    - - 793146
+    - - 796437
 - id: q16
   question: Which floor plans at Driftway in Lathrop have a bedroom downstairs?
   expect:
-    must_mention:
+    must_name:
     - Residence 1
     - Residence 1X
     - Residence 2

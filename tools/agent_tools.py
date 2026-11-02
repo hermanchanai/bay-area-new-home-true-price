@@ -53,15 +53,22 @@ def ready_month(ready: str | None, status: str | None, today: str) -> str | None
     elif m := re.match(r"(\d{1,2})/\d{1,2}/(\d{4})", s):
         ym = f"{m[2]}-{int(m[1]):02d}"
     elif months := [MONTHS[w[:3].lower()] for w in re.findall(r"[A-Za-z]{3,}", s) if w[:3].lower() in MONTHS]:
-        if years := re.findall(r"\b(20\d{2})\b", s):       # 'Dec 2026 / Jan 2027': the last month's year
-            ym = f"{years[-1]}-{months[-1]:02d}"
-        else:
-            y, prev = int(today[:4]), int(today[5:7])
-            for i, mo in enumerate(months):
-                if mo < prev:
-                    y += 1
-                prev = mo
-            ym = f"{y}-{months[-1]:02d}"
+        # a year counts for the month written just before it; later months without one roll forward from it
+        # ('Dec 2026 / Jan' = 2027-01); with no year at all, roll forward from today
+        y, prev, start = int(today[:4]), int(today[5:7]), 0
+        tokens = re.findall(r"[A-Za-z]{3,}|\b20\d{2}\b", s)
+        seq = [t for t in tokens if t.isdigit() or t[:3].lower() in MONTHS]
+        idx = -1
+        for j, t in enumerate(seq):
+            if t.isdigit() and j > 0 and not seq[j - 1].isdigit():
+                idx = sum(not x.isdigit() for x in seq[:j]) - 1
+                y, prev = int(t), months[idx]
+        start = idx + 1 if idx >= 0 else 0
+        for mo in months[start:]:
+            if mo < prev:
+                y += 1
+            prev = mo
+        ym = f"{y}-{months[-1]:02d}"
     if status == "now":
         return max(ym or now, now)
     return ym

@@ -43,3 +43,21 @@ def test_a_home_carried_from_an_earlier_fetch_is_marked_so_it_is_not_a_check(con
     assert rows["1 Oak St"] == 1 and sum(rows.values()) == 1
     write_csv(conn, tmp_path / "h.csv")
     assert "carried" in next(csv.reader((tmp_path / "h.csv").open()))
+
+
+def test_a_rerun_of_the_snapshot_cli_keeps_the_carried_marks(conn, tmp_path, monkeypatch):  # noqa: F811
+    """Codex review 2 #6: `snapshot_prices --date` without the carried list marked every home fresh. With no list
+    given, carried pages come from that day's routes (carried or reused-unfetched, not unchanged)."""
+    import json
+
+    import tools.snapshot_prices as sp
+    monkeypatch.setattr(sp, "EXTRACT", tmp_path)
+    (tmp_path / "2026-10-29").mkdir()
+    (tmp_path / "2026-10-29" / "routes.json").write_text(json.dumps([
+        {"page": "b/p1", "carried_from": "2026-10-28", "unfetched": True},
+        {"page": "b/p2", "carried_from": "2026-10-27", "unchanged": True}, {"page": "b/p3"}]))
+    with conn:
+        conn.execute("UPDATE homes SET source_page = 'b/p' || id")
+    snapshot(conn, "2026-10-29")
+    marks = dict(conn.execute("SELECT address, carried FROM price_history WHERE snapshot_date = '2026-10-29'").fetchall())
+    assert marks["1 Oak St"] == 1 and sum(marks.values()) == 1

@@ -43,7 +43,7 @@ from tools import db
 from tools.fetch_builder_pages import floor_ok, page_filename
 from tools.extract_listing import OUT as EXTRACT
 from tools.preprocess_page import PRE, RAW
-from tools.snapshot_prices import snapshot, write_csv
+from tools.snapshot_prices import carried_pages, snapshot, write_csv
 
 ROOT = Path(__file__).resolve().parent.parent
 LOGS = ROOT / ".tmp" / "logs"
@@ -123,9 +123,9 @@ def reuse_unchanged(day: str, raw: Path = RAW, pre: Path = PRE, extract: Path = 
         if page in routes or not today_md.exists() or not found:
             continue
         src_day, r = found
-        then_md = pre / src_day / f"{page}.md"
+        then_md = pre / (r.get("carried_from") or src_day) / f"{page}.md"    # the page the extraction was made from
         if then_md.exists() and fingerprint(then_md.read_text()) == fingerprint(today_md.read_text()):
-            routes[page] = _reuse(day, src_day, r, extract, unchanged=True)
+            routes[page] = _reuse(day, src_day, r, extract, unchanged=True, unfetched=False, last_fetched=day)
             reused.append(page)
     routes_path.parent.mkdir(parents=True, exist_ok=True)
     routes_path.write_text(json.dumps(sorted(routes.values(), key=lambda r: r["page"]), indent=1))
@@ -140,7 +140,7 @@ def carry_forward(day: str, raw: Path = RAW, extract: Path = EXTRACT) -> list[st
     carried = []
     for page in _fetched(day, raw):
         if page not in have and (found := _latest_route(page, day, extract)):
-            routes.append(_reuse(day, *found, extract))
+            routes.append(_reuse(day, *found, extract, unfetched=False, last_fetched=day))
             carried.append(page)
     routes_path.parent.mkdir(parents=True, exist_ok=True)
     routes_path.write_text(json.dumps(sorted(routes, key=lambda r: r["page"]), indent=1))
@@ -160,9 +160,10 @@ def _page(builder: str, url: str) -> str:
 
 
 def carry_unfetched(day: str, expected: dict[str, int], raw: Path = RAW, extract: Path = EXTRACT) -> list[str]:
-    """Pages with no fetch today keep their latest extraction: all of a builder's pages when it is below its
-    floor (or has no manifest), and any page whose fetch got no answer or a 5xx; never a page that 404'd today,
-    and never past MAX_CARRY_DAYS since the page was last fetched. Returns the pages carried."""
+    """Pages with no fetch today keep their latest extraction: all of a builder's pages when its listing failed
+    (no manifest, a start/city page with no answer or a 5xx, or no community page fetched), and any page whose
+    own fetch got no answer or a 5xx; never a page that 404'd today, never a page a working listing no longer
+    shows, and never past MAX_CARRY_DAYS since the page was last fetched. Returns the pages carried."""
     routes_path = extract / day / "routes.json"
     routes = json.loads(routes_path.read_text()) if routes_path.exists() else []
     have = {r["page"] for r in routes}
@@ -173,16 +174,21 @@ def carry_unfetched(day: str, expected: dict[str, int], raw: Path = RAW, extract
         recs = json.loads(man.read_text()) if man.exists() else []
         gone |= {_page(builder, r["url"]) for r in recs if r["status"] in (404, 410)}
         got = sum(r["kind"] == "community" and r["status"] == 200 for r in recs)
-        if not floor_ok(got, exp):
-            log.warning("%s below its floor today (%d of %d communities): keeping its last extraction", builder, got, exp)
+        listing_failed = not got or any(r["kind"] in ("start", "city") and (r["status"] == 0 or r["status"] >= 500)
+                                        for r in recs)
+        if listing_failed:
+            log.warning("%s listing failed today (%d of %d communities): keeping its last extraction", builder, got, exp)
             todo += _latest_builder_routes(builder, day, extract)
             continue
+        if not floor_ok(got, exp):
+            log.warning("%s lists %d of %d expected communities; the rest are taken as gone", builder, got, exp)
         for r in recs:
             if r["status"] == 0 or r["status"] >= 500:
                 todo += [found] if (found := _latest_route(_page(builder, r["url"]), day, extract)) else []
     carried = []
     for src_day, r in todo:
-        seen = r.get("last_fetched") if r.get("unfetched") else src_day
+        # routes from before last_fetched existed: an unfetched one was last fetched no later than its extraction
+        seen = r.get("last_fetched") or (r.get("carried_from") if r.get("unfetched") else None) or src_day
         if r["page"] in have or r["page"] in gone:
             continue
         if (Date.fromisoformat(day) - Date.fromisoformat(seen)).days > MAX_CARRY_DAYS:
@@ -224,7 +230,7 @@ def run(day: str, deploy: bool, fetch: bool = True) -> dict:
     log.info("carried %d pages not fetched today: %s", len(unfetched), unfetched)
     py("tools.load_records", "--date", day)
     conn = db.connect()
-    stale = carried + unfetched
+    stale = carried_pages(day)
     ok, now, last = enough_homes(conn, stale)
     if not ok:
         raise SystemExit(f"stopped: {now} homes fetched today vs {last} in the last snapshot (< {MIN_SHARE:.0%}); "

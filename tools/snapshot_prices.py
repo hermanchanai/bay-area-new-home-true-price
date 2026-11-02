@@ -14,6 +14,7 @@ from pathlib import Path
 
 from tools import db
 from tools.eval_extraction import norm_address
+from tools.extract_listing import OUT as EXTRACT
 
 COLUMNS = ("snapshot_date", "home_key", "builder", "community", "city", "county_fips", "address", "lot", "beds",
            "baths", "sqft", "move_in_status", "asking", "was_price", "true_low", "true_high", "market_rate",
@@ -25,8 +26,16 @@ def home_key(builder_id: int, community_url: str, address: str | None, lot: str 
     return f"{builder_id}|{community_url}|{where}"
 
 
-def snapshot(conn, date: str, carried: list[str] = ()) -> int:
-    carried = set(carried)
+def carried_pages(date: str) -> list[str]:
+    """Pages whose homes that day come from an earlier extraction that today's page didn't confirm: carried
+    (not fetched, or not extracted), as opposed to reused because the page's figures were unchanged."""
+    routes = EXTRACT / date / "routes.json"
+    return [r["page"] for r in json.loads(routes.read_text()) if r.get("carried_from") and not r.get("unchanged")] \
+        if routes.exists() else []
+
+
+def snapshot(conn, date: str, carried: list[str] | None = None) -> int:
+    carried = set(carried_pages(date) if carried is None else carried)
     rate = conn.execute("SELECT rate FROM market_rates ORDER BY as_of DESC LIMIT 1").fetchone()
     rows = []
     for h in conn.execute(

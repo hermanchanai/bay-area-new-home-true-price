@@ -158,3 +158,9 @@ def test_ready_month_takes_the_year_written_next_to_the_last_month():
     'ready by December' filter."""
     from tools.agent_tools import ready_month
     assert ready_month("Dec 2026 / Jan 2027", "month", "2026-10-30") == "2027-01"
+
+
+def test_ready_month_rolls_a_range_whose_end_has_no_year():
+    """Codex review 2 B#1: 'Dec 2026 / Jan' read as 2026-01."""
+    assert ready_month("Dec 2026 / Jan", "month", "2026-10-30") == "2027-01"
+    assert ready_month("Dec/Jan 2027", "month", "2026-10-30") == "2027-01"

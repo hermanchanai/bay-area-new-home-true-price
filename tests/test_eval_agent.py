@@ -75,3 +75,15 @@ def test_the_eval_queries_the_frozen_db_its_answer_key_names_and_logs_spend_to_t
     monkeypatch.setattr(ev, "RUNS", tmp_path / "runs")
     ev.main(only={"q01"})
     assert seen == {"homes": "1 Oak St", "ledger": ledger}
+
+
+def test_amounts_match_at_their_written_precision_and_names_match_whole():
+    """Codex review 2 B#2/B#3: '$54.8k' must count as $54,806; 'Residence 1' must not match inside 'Residence 1X'."""
+    q = {"id": "q", "question": "", "expect": {"must_mention_amount": [[54_806, 64_219]]}}
+    trace = [{"tool": "t", "result": {"v": [54_806, 64_219]}}]
+    assert score(q, "Worth about $54.8k to $64.2k.", trace, {})["pass"]
+    assert score(q, "Worth $64,219.", trace, {})["pass"]
+    assert not score(q, "The rate is 4.99%.", trace, {})["pass"]
+    q = {"id": "q", "question": "", "expect": {"must_name": ["Residence 1", "Residence 1X"]}}
+    assert score(q, "Residence 1 and Residence 1X.", [], {})["pass"]
+    assert not score(q, "Only Residence 1X.", [], {})["pass"]

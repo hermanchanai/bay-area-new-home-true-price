@@ -40,6 +40,8 @@ HEADER = """\
 # - eligible: every home meeting all the question's conditions; nothing else may be in the top 3
 #   (true price = the guaranteed end, asking minus offers every buyer gets; "ready by" = the builder's date)
 # - must_mention: text the answer must contain (a list = any one of them), case-insensitive
+# - must_mention_amount: per group, the answer states one of these dollar amounts at its written precision
+#   ($54.8k counts as $54,806); must_name: a name that must appear whole ('Residence 1' is not in 'Residence 1X')
 # - no_homes: the right answer is "none"; citing any home fails
 # - q04: top 3 by the guaranteed or by the best-case discount; q07: cheapest by true price or by asking
 # Hand-computed values (ARM worth = PV over the fixed years of the payment saved vs the market rate, at the
@@ -55,13 +57,24 @@ def ready_month(ready: str | None, status: str | None, today: str) -> str | None
     elif m := re.match(r"(\d{1,2})/\d{1,2}/(\d{4})", s):
         ym = f"{m[2]}-{int(m[1]):02d}"
     else:
-        names = [MONTHS[w[:3].lower()] for w in re.findall(r"[A-Za-z]+", s) if w[:3].lower() in MONTHS]
-        if names:
-            y = re.findall(r"20\d\d", s)                    # several years: the last one goes with the last month
-            year, last = (int(y[-1]), names[-1]) if y else (int(today[:4]), names[-1])
-            if not y and (last < int(today[5:7]) or (len(names) > 1 and names[-1] < names[0])):
-                year += 1
-            ym = f"{year}-{last:02d}"
+        pairs = []                                       # [month, the year written after it or None], in order
+        for t in re.findall(r"[A-Za-z]+|20\d\d", s):
+            if t.isdigit():
+                if pairs and pairs[-1][1] is None:
+                    pairs[-1][1] = int(t)
+            elif t[:3].lower() in MONTHS:
+                pairs.append([MONTHS[t[:3].lower()], None])
+        if pairs:
+            dated = [i for i, (_, y) in enumerate(pairs) if y]
+            # count forward from the last written year, or from today; a month earlier than the one before it
+            # is in the next year
+            i0 = dated[-1] if dated else -1
+            year, prev = (pairs[i0][1], pairs[i0][0]) if dated else (int(today[:4]), int(today[5:7]))
+            for m, _ in pairs[i0 + 1:]:
+                if m < prev:
+                    year += 1
+                prev = m
+            ym = f"{year}-{pairs[-1][0]:02d}"
     if status == "now":
         return max(ym or today[:7], today[:7])
     return ym
@@ -178,7 +191,7 @@ def derive(conn, today: str) -> tuple[dict, list[str]]:
     worth = [r[0] for r in conn.execute(
         "SELECT DISTINCT v.value_high FROM incentive_values v JOIN incentives i ON i.id = v.incentive_id "
         "JOIN homes h ON h.id = v.home_id WHERE h.community_id = ? AND i.kind = 'arm_promo' ORDER BY 1", (lilac,))]
-    e["q09"] = {"must_mention": ["4.99", [f"{w:,}" for w in worth] + [f"{w / 1000:.0f}k" for w in worth]]}
+    e["q09"] = {"must_mention": ["4.99"], "must_mention_amount": [worth]}
     notes.append(f"q09 Lilac at Oakwood Trails offers: {'; '.join(sorted(x for x in labels if x))}. "
                  f"The ARM is worth ${', $'.join(f'{w:,}' for w in worth)} on its homes at 20% down (an answer "
                  "must name what it is worth, not only the rate; the up-to $250K FLEX Cash offer ended 10-30).")
@@ -203,19 +216,18 @@ def derive(conn, today: str) -> tuple[dict, list[str]]:
         worth = arm_worth(price, down, rate, promo, years)
         notes.append(f"{qid} {addr} at {down:.0%} down: {promo}% {years}-yr ARM worth ${worth:,} "
                      f"-> true price ${price - worth:,} (asking ${price:,}).")
-        e[qid] = ({"must_mention": [[f"{price - worth:,}", f"{(price - worth) / 1000:.0f}k"]]} if qid == "q13" else
-                  {"must_mention": [[f"{worth:,}", f"{worth / 1000:.0f}k", f"{worth / 1000:.1f}"]]})
+        e[qid] = {"must_mention_amount": [[price - worth] if qid == "q13" else [worth]]}
 
     pair = [one(conn, "SELECT price FROM homes WHERE address = ?", a)[0]
             for a in ("361 E Beatrice Avenue", "1162 Bradbury Drive")]
     e["q15"] = {"top3_all_of": ["361 E Beatrice Avenue", "1162 Bradbury Drive"],
-                "must_mention": [[f"{p:,}", f"{p / 1000:.0f}k", f"{p / 1000:.1f}"] for p in pair]}
+                "must_mention_amount": [[p] for p in pair]}
 
     drift = conn.execute("SELECT p.name, p.layout_json FROM plans p JOIN communities c ON c.id = p.community_id "
                          "WHERE c.name = 'Driftway' AND c.city = 'Lathrop' ORDER BY p.name").fetchall()
     down = [n for n, lay in drift if lay and json.loads(lay).get("downstairs_bedroom") is True]
     notes.append(f"q16 Driftway plans with a downstairs bedroom: {', '.join(down)}.")
-    e["q16"] = {"must_mention": down}      # substring scoring: 'Residence 1X does not' would still pass; accepted
+    e["q16"] = {"must_name": down}     # text scoring can't read a negation ('1X does not'); accepted limit
 
     lay = json.loads(one(conn, "SELECT p.layout_json FROM homes h JOIN plans p ON p.id = h.plan_id "
                                "WHERE h.address = '3139 Workman Avenue'")[0])

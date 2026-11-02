@@ -112,6 +112,13 @@ def score(q: dict, answer: str, trace: list[dict], homes: dict, known: dict | No
         alts = m if isinstance(m, list) else [m]
         if not any(str(a).casefold() in low for a in alts):
             reasons.append(f"doesn't mention {alts}")
+    figures = money_in(answer)
+    for group in e.get("must_mention_amount") or []:   # any one amount, matched at the precision it is written in
+        if not any(abs(v - want) <= prec / 2 for v, prec in figures for want in group):
+            reasons.append(f"doesn't state any of {group}")
+    for name in e.get("must_name") or []:              # whole name: 'Residence 1' doesn't match inside 'Residence 1X'
+        if not re.search(rf"(?<!\w){re.escape(name)}(?!\w)", answer, re.IGNORECASE):
+            reasons.append(f"doesn't name {name!r}")
     for m in e.get("must_not_mention") or []:
         if str(m).casefold() in low:
             reasons.append(f"mentions {m!r}")

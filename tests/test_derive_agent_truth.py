@@ -71,6 +71,23 @@ def test_the_key_asks_for_every_downstairs_plan_and_for_what_the_lilac_offers_ar
     correct 'FLEX Cash is no longer offered'."""
     import yaml
     key = {q["id"]: q["expect"] for q in yaml.safe_load((dat.KEY).read_text())["questions"]}
-    assert "Residence 1X" in key["q16"]["must_mention"]
+    assert "Residence 1X" in key["q16"]["must_name"]
     assert "must_not_mention" not in key["q09"]
-    assert any(isinstance(m, list) and any("$" in a or "," in a for a in m) for m in key["q09"]["must_mention"])
+    assert key["q09"]["must_mention_amount"] and key["q09"]["must_mention"] == ["4.99"]
+
+
+def test_a_range_with_only_its_first_year_rolls_into_the_next_year():
+    """Codex review 2 B#1: 'Dec 2026 / Jan' read as 2026-01."""
+    assert ready_month("Dec 2026 / Jan", "month", "2026-10-30") == "2027-01"
+    assert ready_month("Dec/Jan 2027", "month", "2026-10-30") == "2027-01"
+    assert ready_month("Nov 2026 - Dec", "month", "2026-10-30") == "2026-12"
+
+
+def test_q09_and_q13_to_q15_accept_any_written_form_of_the_amount():
+    """Codex review 2 B#3: '$54.8k to $64.2k' failed q09's exact-string list; amounts are matched as numbers at
+    the precision they are written in (the same reading the trace check uses)."""
+    import yaml
+    key = {q["id"]: q["expect"] for q in yaml.safe_load((dat.KEY).read_text())["questions"]}
+    for qid in ("q09", "q13", "q14", "q15"):
+        assert "must_mention_amount" in key[qid], qid
+    assert key["q16"].get("must_name") and "must_mention" not in key["q16"]

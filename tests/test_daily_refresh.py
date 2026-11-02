@@ -115,8 +115,8 @@ def test_one_builder_failing_its_floor_does_not_stop_the_day(monkeypatch):
         return subprocess.CompletedProcess(args, code)
 
     monkeypatch.setattr(dr.subprocess, "run", fake_run)
-    for name, value in {"reuse_unchanged": [], "carry_forward": [], "carry_unfetched": [], "snapshot": 5,
-                        "write_csv": 5, "enough_homes": (True, 5, 5), "expected_communities": {}}.items():
+    for name, value in {"reuse_unchanged": [], "carry_forward": [], "carry_unfetched": [], "drop_carried": [],
+                        "snapshot": 5, "write_csv": 5, "enough_homes": (True, 5, 5), "expected_communities": {}}.items():
         monkeypatch.setattr(dr, name, lambda *a, _v=value, **k: _v, raising=False)
     monkeypatch.setattr(dr.db, "connect", lambda: None)
     out = dr.run("2026-10-29", deploy=False)
@@ -204,3 +204,73 @@ def test_the_guard_counts_only_homes_fetched_today(conn):  # noqa: F811
         conn.execute("UPDATE homes SET source_page = 'b/p' || id")
     assert enough_homes(conn, ["b/p1", "b/p2"]) == (False, 3, 5)     # 3 of 5 fetched today < 70%
     assert enough_homes(conn, []) == (True, 5, 5)
+
+
+def test_the_run_tests_touch_no_real_extraction_files(monkeypatch):
+    """Codex review 2 #4: a run() test left drop_carried unstubbed and rewrote .tmp/extract/2026-10-29 in the repo."""
+    for code in (0, 2):
+        stub_run(monkeypatch, code)
+        touched = []
+        monkeypatch.setattr(dr.Path, "write_text", lambda self, *a, **k: touched.append(self))
+        dr.run("2026-10-29", deploy=False)
+        assert touched == []
+
+
+def test_unchanged_is_judged_against_the_page_that_produced_the_extraction(tmp_path):
+    """Codex review 2 #1: 10-28's extraction failed and 10-27's ($900k) was carried; 10-29's page matched 10-28's
+    page ($800k), so the $900k extraction was reused as unchanged and published as fresh."""
+    raw, pre, ex = tmp_path / "raw", tmp_path / "pre", tmp_path / "extract"
+    route = {"page": "b/a", "model": "m", "escalated": False, "needs_review": False}
+    extraction(ex, "2026-10-27", [route])
+    extraction(ex, "2026-10-28", [{**route, "carried_from": "2026-10-27", "last_fetched": "2026-10-28"}])
+    manifest(raw, "2026-10-29", "b", ["a"])
+    for day, text in (("2026-10-27", "$900,000"), ("2026-10-28", "$800,000"), ("2026-10-29", "$800,000")):
+        (pre / day / "b").mkdir(parents=True)
+        (pre / day / "b" / "a.md").write_text(text)
+    assert reuse_unchanged("2026-10-29", raw, pre, ex) == []
+
+
+def test_a_page_fetched_today_is_not_marked_unfetched_by_reuse_or_carry_forward(tmp_path):
+    """Codex review 2 #5: carry_forward copied an unfetched route's last_fetched, so a page fetched today aged out."""
+    raw, pre, ex = tmp_path / "raw", tmp_path / "pre", tmp_path / "extract"
+    route = lambda page, **k: {"page": page, "model": "m", "escalated": False, "needs_review": False, **k}
+    extraction(ex, "2026-10-28", [route("b/a", carried_from="2026-10-27", unfetched=True, last_fetched="2026-10-27"),
+                                  route("b/c", carried_from="2026-10-27", unfetched=True, last_fetched="2026-10-27")])
+    (ex / "2026-10-27" / "m" / "b").mkdir(parents=True)
+    for p in ("a", "c"):
+        (ex / "2026-10-27" / "m" / "b" / f"{p}.json").write_text("{}")
+    manifest(raw, "2026-10-29", "b", ["a", "c"])
+    for day in ("2026-10-27", "2026-10-29"):
+        (pre / day / "b").mkdir(parents=True, exist_ok=True)
+        (pre / day / "b" / "a.md").write_text("$100,000")
+        (pre / day / "b" / "c.md").write_text("$100,000" if day == "2026-10-27" else "$200,000")
+    assert reuse_unchanged("2026-10-29", raw, pre, ex) == ["b/a"]
+    assert carry_forward("2026-10-29", raw, ex) == ["b/c"]
+    for r in routes_of(ex, "2026-10-29").values():
+        assert not r.get("unfetched") and r["last_fetched"] == "2026-10-29", r
+
+
+def test_a_route_carried_before_last_fetched_existed_does_not_crash(tmp_path):
+    """Codex review 2 #2: 10-29's routes were carried by the first version, without last_fetched."""
+    raw, ex = tmp_path / "raw", tmp_path / "extract"
+    route = {"page": "shea/a", "model": "m", "escalated": False, "needs_review": False}
+    extraction(ex, "2026-10-28", [route])
+    extraction(ex, "2026-10-29", [{**route, "carried_from": "2026-10-28", "unfetched": True}])
+    (raw / "2026-10-30" / "shea").mkdir(parents=True)
+    (raw / "2026-10-30" / "shea" / "manifest.json").write_text("[]")
+    assert dr.carry_unfetched("2026-10-30", {"shea": 1}, raw, ex) == ["shea/a"]
+    assert routes_of(ex, "2026-10-30")["shea/a"]["last_fetched"] == "2026-10-28"
+
+
+def test_a_builder_whose_listing_page_worked_keeps_only_pages_that_failed(tmp_path):
+    """Codex review 2 #3: discovery worked and listed 1 of 2 communities (below the floor); the other was removed
+    by the builder, but the below-floor branch brought it back. Only a failed listing page carries everything."""
+    raw, ex = tmp_path / "raw", tmp_path / "extract"
+    route = lambda page: {"page": page, "model": "m", "escalated": False, "needs_review": False}
+    extraction(ex, "2026-10-28", [route("b/a"), route("b/b")])
+    (raw / "2026-10-29" / "b").mkdir(parents=True)
+    (raw / "2026-10-29" / "b" / "manifest.json").write_text(json.dumps(
+        [{"file": "s.html", "status": 200, "kind": "start", "url": "https://b/s"},
+         {"file": "b.html", "status": 200, "kind": "community", "url": "https://b/b"}]))
+    extraction(ex, "2026-10-29", [route("b/b")])
+    assert dr.carry_unfetched("2026-10-29", {"b": 2}, raw, ex) == []

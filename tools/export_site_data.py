@@ -85,8 +85,8 @@ def _why(method: str, flags: str | None) -> str | None:
 
 
 def history_meta(conn) -> dict:
-    """How many daily checks are on record, and what changed at the last one."""
-    days = [r[0] for r in conn.execute("SELECT DISTINCT snapshot_date FROM price_history ORDER BY 1")]
+    """How many daily checks are on record (a day of only carried homes is not one), and what changed at the last."""
+    days = [r[0] for r in conn.execute("SELECT DISTINCT snapshot_date FROM price_history WHERE carried = 0 ORDER BY 1")]
     out = {"first": days[0] if days else None, "last": days[-1] if days else None, "checks": len(days)}
     if len(days) > 1:
         prev, last = days[-2], days[-1]
