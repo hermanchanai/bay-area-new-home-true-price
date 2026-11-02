@@ -91,3 +91,9 @@ def test_q09_and_q13_to_q15_accept_any_written_form_of_the_amount():
     for qid in ("q09", "q13", "q14", "q15"):
         assert "must_mention_amount" in key[qid], qid
     assert key["q16"].get("must_name") and "must_mention" not in key["q16"]
+
+
+def test_a_year_written_before_the_month_is_kept():
+    """Codex review 3 B#1: '2027 November' read as 2026-11."""
+    assert ready_month("2027 November", "month", "2026-10-30") == "2027-11"
+    assert ready_month("2027 Nov / Dec", "month", "2026-10-30") == "2027-12"

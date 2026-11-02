@@ -87,3 +87,14 @@ def test_amounts_match_at_their_written_precision_and_names_match_whole():
     q = {"id": "q", "question": "", "expect": {"must_name": ["Residence 1", "Residence 1X"]}}
     assert score(q, "Residence 1 and Residence 1X.", [], {})["pass"]
     assert not score(q, "Only Residence 1X.", [], {})["pass"]
+
+
+def test_a_rounded_amount_may_be_off_by_at_most_2_pct():
+    """Codex review 3 B#2: '$1M' matched $655,558 (precision $1M allowed a $500k error), in the required-amount
+    check and in the trace check alike."""
+    q = {"id": "q", "question": "", "expect": {"must_mention_amount": [[655_558]]}}
+    trace = [{"tool": "t", "result": {"true_price": 655_558, "asking": 1_079_990}}]
+    assert not score(q, "The true price is $1M.", trace, {})["pass"]
+    assert score(q, "The true price is $656k.", trace, {})["pass"]
+    assert untraced("The true price is about $1M.", trace, "") == [1_000_000]
+    assert untraced("Asking $1.08M, under your $1.1M budget", trace, "under $1.1M") == []

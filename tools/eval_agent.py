@@ -75,10 +75,16 @@ def _numbers(obj) -> list[float]:
     return []
 
 
+def close(v: float, prec: int, k: float) -> bool:
+    """A figure written at precision `prec` stands for k when rounding explains the gap, and the gap is at most
+    2% of k (or $1,000): '$54.8k' is $54,806, '$1.08M' is $1,079,990, '$1M' is not $655,558."""
+    return abs(v - k) <= min(prec / 2, max(1_000, 0.02 * abs(k)))
+
+
 def untraced(answer: str, trace: list[dict], question: str) -> list[int]:
     """Dollar figures in the answer that no tool result (or the question) supports at the printed precision."""
     known = _numbers([t["result"] for t in trace]) + [v for v, _ in money_in(question)]
-    return [v for v, prec in money_in(answer) if not any(abs(v - k) <= prec / 2 for k in known)]
+    return [v for v, prec in money_in(answer) if not any(close(v, prec, k) for k in known)]
 
 
 def _norm(address: str) -> str:
@@ -114,7 +120,7 @@ def score(q: dict, answer: str, trace: list[dict], homes: dict, known: dict | No
             reasons.append(f"doesn't mention {alts}")
     figures = money_in(answer)
     for group in e.get("must_mention_amount") or []:   # any one amount, matched at the precision it is written in
-        if not any(abs(v - want) <= prec / 2 for v, prec in figures for want in group):
+        if not any(close(v, prec, want) for v, prec in figures for want in group):
             reasons.append(f"doesn't state any of {group}")
     for name in e.get("must_name") or []:              # whole name: 'Residence 1' doesn't match inside 'Residence 1X'
         if not re.search(rf"(?<!\w){re.escape(name)}(?!\w)", answer, re.IGNORECASE):

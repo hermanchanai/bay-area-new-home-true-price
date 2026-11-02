@@ -53,18 +53,23 @@ def ready_month(ready: str | None, status: str | None, today: str) -> str | None
     elif m := re.match(r"(\d{1,2})/\d{1,2}/(\d{4})", s):
         ym = f"{m[2]}-{int(m[1]):02d}"
     elif months := [MONTHS[w[:3].lower()] for w in re.findall(r"[A-Za-z]{3,}", s) if w[:3].lower() in MONTHS]:
-        # a year counts for the month written just before it; later months without one roll forward from it
-        # ('Dec 2026 / Jan' = 2027-01); with no year at all, roll forward from today
-        y, prev, start = int(today[:4]), int(today[5:7]), 0
-        tokens = re.findall(r"[A-Za-z]{3,}|\b20\d{2}\b", s)
-        seq = [t for t in tokens if t.isdigit() or t[:3].lower() in MONTHS]
-        idx = -1
-        for j, t in enumerate(seq):
-            if t.isdigit() and j > 0 and not seq[j - 1].isdigit():
-                idx = sum(not x.isdigit() for x in seq[:j]) - 1
-                y, prev = int(t), months[idx]
-        start = idx + 1 if idx >= 0 else 0
-        for mo in months[start:]:
+        # a year belongs to the month written just before it ('Nov 2026'), or else to the next one ('2027 November');
+        # months after the last dated one roll forward from it ('Dec 2026 / Jan' = 2027-01); no year: from today
+        dated, pending = {}, None
+        k = -1
+        for t in re.findall(r"[A-Za-z]{3,}|\b20\d{2}\b", s):
+            if t.isdigit():
+                if k >= 0 and k not in dated:
+                    dated[k] = int(t)
+                else:
+                    pending = int(t)
+            elif t[:3].lower() in MONTHS:
+                k += 1
+                if pending:
+                    dated[k], pending = pending, None
+        last = max(dated) if dated else -1
+        y, prev = (dated[last], months[last]) if dated else (int(today[:4]), int(today[5:7]))
+        for mo in months[last + 1:]:
             if mo < prev:
                 y += 1
             prev = mo

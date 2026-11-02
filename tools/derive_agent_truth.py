@@ -57,13 +57,16 @@ def ready_month(ready: str | None, status: str | None, today: str) -> str | None
     elif m := re.match(r"(\d{1,2})/\d{1,2}/(\d{4})", s):
         ym = f"{m[2]}-{int(m[1]):02d}"
     else:
-        pairs = []                                       # [month, the year written after it or None], in order
+        pairs, pending = [], None                        # [month, its year or None], in order
         for t in re.findall(r"[A-Za-z]+|20\d\d", s):
-            if t.isdigit():
+            if t.isdigit():                              # 'Nov 2026' (after) or '2027 November' (before)
                 if pairs and pairs[-1][1] is None:
                     pairs[-1][1] = int(t)
+                else:
+                    pending = int(t)
             elif t[:3].lower() in MONTHS:
-                pairs.append([MONTHS[t[:3].lower()], None])
+                pairs.append([MONTHS[t[:3].lower()], pending])
+                pending = None
         if pairs:
             dated = [i for i, (_, y) in enumerate(pairs) if y]
             # count forward from the last written year, or from today; a month earlier than the one before it

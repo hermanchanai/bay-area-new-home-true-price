@@ -16,7 +16,7 @@ Run by launchd every morning at 05:30 (~/Library/LaunchAgents/com.hermanchan.tru
      a builder below its floor (10-29: Shea's start page timed out) and a page whose fetch failed (no answer
      or 5xx; a 404 or a page the builder stopped listing is gone and is not carried), for at most
      MAX_CARRY_DAYS after the page was last fetched. Carried homes are marked in price_history and don't count
-     toward the guard. A rerun first drops the day's carried routes, so pages fetched since are used.
+     toward the guard. A rerun with a new fetch starts the day's routes over; one without (--skip-fetch) drops only the carried ones.
   7. load + price               8. map pins for new communities          9. snapshot into price_history
   10. export site data + price_history.csv                                 11. deploy
 A builder below its floor makes the fetcher exit 2; the day goes on (its pages are carried, step 6). Any
@@ -70,11 +70,18 @@ def expected_communities() -> dict[str, int]:
 
 MONEY = re.compile(r"\$\s?\d{1,3}(?:,\d{3})+|\$\s?\d+(?:\.\d+)?\s?[kKmM]\b|\b\d+(?:\.\d+)?\s?%")
 BARE = re.compile(r"(?<![\w.\-])[1-9]\d{5,7}(?![\w.\-])")      # 100,000-99,999,999 unformatted: prices in page data
+STREET = re.compile(r"\b\d{1,6}\s+(?:[A-Za-z][\w.']*\s+){0,3}(?:st|street|ave?|avenue|dr|drive|ln|lane|ct|court|way|rd|"
+                    r"road|blvd|cir|circle|pl|place|ter|terrace|loop|pkwy|parkway|common|glen|row)\b", re.IGNORECASE)
+LOT = re.compile(r"\b(?:lot|home\s?site)\s*#?\s*(\d+)\b", re.IGNORECASE)
 
 
 def fingerprint(text: str) -> list[str]:
-    """Every dollar amount, percentage and price-sized number on the page, sorted. Same list = same listing."""
-    return sorted([m.replace(" ", "") for m in MONEY.findall(text)] + BARE.findall(text))
+    """Every dollar amount, percentage, price-sized number, street address and lot on the page, sorted. Same list =
+    same listing: the same homes at the same prices (10-30 review: a home swapped for another at the same price
+    must not look unchanged)."""
+    return sorted([m.replace(" ", "") for m in MONEY.findall(text)] + BARE.findall(text)
+                  + [" ".join(m.lower().split()) for m in STREET.findall(text)]
+                  + [f"lot {n}" for n in LOT.findall(text)])
 
 
 def _fetched(day: str, raw: Path) -> list[str]:
@@ -100,16 +107,17 @@ def _reuse(day: str, src_day: str, r: dict, extract: Path, **extra) -> dict:
     return {**r, "carried_from": r.get("carried_from") or src_day, **extra}
 
 
-def drop_carried(day: str, extract: Path = EXTRACT) -> list[str]:
-    """Remove the day's carried and reused routes before a (re)run; the run recomputes them from what it has
-    now, so a page fetched since the last run is extracted instead of keeping its old extraction."""
+def drop_carried(day: str, extract: Path = EXTRACT, refetched: bool = True) -> list[str]:
+    """Before a (re)run: with a new fetch, the day starts over (every route goes; an extraction of a page whose
+    text didn't change since is a cache hit, $0); without one, only the carried and reused routes go, since the
+    pages the day's extractions were made from are still the ones on disk. Returns the pages dropped."""
     routes_path = extract / day / "routes.json"
     if not routes_path.exists():
         return []
     routes = json.loads(routes_path.read_text())
-    keep = [r for r in routes if not r.get("carried_from")]
+    keep = [] if refetched else [r for r in routes if not r.get("carried_from")]
     routes_path.write_text(json.dumps(keep, indent=1))
-    return [r["page"] for r in routes if r.get("carried_from")]
+    return [r["page"] for r in routes if r not in keep]
 
 
 def reuse_unchanged(day: str, raw: Path = RAW, pre: Path = PRE, extract: Path = EXTRACT) -> list[str]:
@@ -140,7 +148,7 @@ def carry_forward(day: str, raw: Path = RAW, extract: Path = EXTRACT) -> list[st
     carried = []
     for page in _fetched(day, raw):
         if page not in have and (found := _latest_route(page, day, extract)):
-            routes.append(_reuse(day, *found, extract, unfetched=False, last_fetched=day))
+            routes.append(_reuse(day, *found, extract, unchanged=False, unfetched=False, last_fetched=day))
             carried.append(page)
     routes_path.parent.mkdir(parents=True, exist_ok=True)
     routes_path.write_text(json.dumps(sorted(routes, key=lambda r: r["page"]), indent=1))
@@ -194,7 +202,7 @@ def carry_unfetched(day: str, expected: dict[str, int], raw: Path = RAW, extract
         if (Date.fromisoformat(day) - Date.fromisoformat(seen)).days > MAX_CARRY_DAYS:
             log.warning("%s not fetched since %s: its homes are dropped", r["page"], seen)
             continue
-        routes.append(_reuse(day, src_day, r, extract, unfetched=True, last_fetched=seen))
+        routes.append(_reuse(day, src_day, r, extract, unchanged=False, unfetched=True, last_fetched=seen))
         have.add(r["page"])
         carried.append(r["page"])
     routes_path.parent.mkdir(parents=True, exist_ok=True)
@@ -219,8 +227,8 @@ def run(day: str, deploy: bool, fetch: bool = True) -> dict:
         elif code:
             raise SystemExit(f"stopped: the fetcher failed (exit {code}); nothing published")
     py("tools.preprocess_page", "--date", day)
-    dropped = drop_carried(day)
-    log.info("dropped %d routes carried by an earlier run today", len(dropped))
+    dropped = drop_carried(day, refetched=fetch)
+    log.info("dropped %d routes from an earlier run today", len(dropped))
     reused = reuse_unchanged(day)
     log.info("reused %d unchanged pages", len(reused))
     py("tools.extract_listing", "--date", day, "--skip-done")

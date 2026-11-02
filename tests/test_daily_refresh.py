@@ -192,7 +192,7 @@ def test_a_rerun_drops_todays_carried_routes_so_fresh_pages_are_used(tmp_path):
     extraction(ex, "2026-10-29", [route("b/fresh"), route("b/carried", carried_from="2026-10-28", unfetched=True),
                                   route("b/same", carried_from="2026-10-27", unchanged=True),
                                   route("b/cap", carried_from="2026-10-28")])
-    assert sorted(dr.drop_carried("2026-10-29", ex)) == ["b/cap", "b/carried", "b/same"]
+    assert sorted(dr.drop_carried("2026-10-29", ex, refetched=False)) == ["b/cap", "b/carried", "b/same"]
     assert list(routes_of(ex, "2026-10-29")) == ["b/fresh"]
 
 
@@ -274,3 +274,51 @@ def test_a_builder_whose_listing_page_worked_keeps_only_pages_that_failed(tmp_pa
          {"file": "b.html", "status": 200, "kind": "community", "url": "https://b/b"}]))
     extraction(ex, "2026-10-29", [route("b/b")])
     assert dr.carry_unfetched("2026-10-29", {"b": 2}, raw, ex) == []
+
+
+def test_carrying_an_unchanged_route_clears_unchanged_so_it_counts_as_carried(tmp_path):
+    """Codex review 3 #1: carry_forward / carry_unfetched copied unchanged=True, so carried_pages skipped the page and
+    its old price was snapshotted as a fresh check."""
+    from tools.snapshot_prices import carried_pages
+    raw, ex = tmp_path / "raw", tmp_path / "extract"
+    route = lambda page, **k: {"page": page, "model": "m", "escalated": False, "needs_review": False, **k}
+    (ex / "2026-10-27" / "m" / "b").mkdir(parents=True)
+    for p in ("a", "c"):
+        (ex / "2026-10-27" / "m" / "b" / f"{p}.json").write_text("{}")
+    extraction(ex, "2026-10-28", [route("b/a", carried_from="2026-10-27", unchanged=True, last_fetched="2026-10-28"),
+                                  route("b/c", carried_from="2026-10-27", unchanged=True, last_fetched="2026-10-28")])
+    d = raw / "2026-10-29" / "b"
+    d.mkdir(parents=True)
+    (d / "manifest.json").write_text(json.dumps(
+        [{"file": "s.html", "status": 200, "kind": "start", "url": "https://b/s"},
+         {"file": "a.html", "status": 200, "kind": "community", "url": "https://b/a"},     # fetched, not extracted
+         {"file": None, "status": 0, "kind": "community", "url": "https://b/c"}]))          # fetch failed
+    assert carry_forward("2026-10-29", raw, ex) == ["b/a"]
+    assert dr.carry_unfetched("2026-10-29", {"b": 1}, raw, ex) == ["b/c"]
+    import tools.snapshot_prices as sp
+    old = sp.EXTRACT
+    sp.EXTRACT = ex
+    try:
+        assert sorted(carried_pages("2026-10-29")) == ["b/a", "b/c"]
+    finally:
+        sp.EXTRACT = old
+
+
+def test_a_rerun_with_a_new_fetch_starts_the_day_over_and_one_without_keeps_its_extractions(tmp_path):
+    """Codex review 3 #2: a morning extraction ($900k) survived an afternoon refetch ($850k, or a 404) because
+    drop_carried kept routes without carried_from and --skip-done skipped them."""
+    ex = tmp_path / "extract"
+    route = lambda page, **k: {"page": page, "model": "m", "escalated": False, "needs_review": False, **k}
+    extraction(ex, "2026-10-29", [route("b/fresh"), route("b/carried", carried_from="2026-10-28", unfetched=True)])
+    assert sorted(dr.drop_carried("2026-10-29", ex, refetched=False)) == ["b/carried"]
+    assert list(routes_of(ex, "2026-10-29")) == ["b/fresh"]
+    assert dr.drop_carried("2026-10-29", ex, refetched=True) == ["b/fresh"]
+    assert routes_of(ex, "2026-10-29") == {}
+
+
+def test_the_fingerprint_sees_a_different_home_at_the_same_price():
+    """Codex review 3 #3: '1 Oak St $900,000' and '3 Elm St $900,000' fingerprinted the same, so the page was
+    reused and a sold home stayed listed."""
+    assert fingerprint("1 Oak St $900,000 Available") != fingerprint("3 Elm St $900,000 Available")
+    assert fingerprint("Homesite 12 $900,000") != fingerprint("Homesite 14 $900,000")
+    assert fingerprint("1 Oak St $900,000 open 10-6") == fingerprint("1 Oak St $900,000 Closed today")

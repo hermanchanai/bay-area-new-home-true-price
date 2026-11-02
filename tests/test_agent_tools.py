@@ -164,3 +164,8 @@ def test_ready_month_rolls_a_range_whose_end_has_no_year():
     """Codex review 2 B#1: 'Dec 2026 / Jan' read as 2026-01."""
     assert ready_month("Dec 2026 / Jan", "month", "2026-10-30") == "2027-01"
     assert ready_month("Dec/Jan 2027", "month", "2026-10-30") == "2027-01"
+
+
+def test_ready_month_keeps_a_year_written_before_the_month():
+    """Codex review 3 B#1: '2027 November' read as 2026-11 after the round-2 change."""
+    assert ready_month("2027 November", "month", "2026-10-30") == "2027-11"
