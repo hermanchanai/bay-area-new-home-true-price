@@ -484,11 +484,11 @@ questions:
       - 14 ft x 14 ft 5
       - 14′ x 14′ 5
 - id: q18
-  question: Any new homes in Napa under $900k?
+  question: Any new homes in Marin under $900k?
   expect:
     no_homes: true
     must_mention:
-    - Napa
+    - Marin
 - id: q19
   question: What's the cheapest home in a 55+ community?
   expect:

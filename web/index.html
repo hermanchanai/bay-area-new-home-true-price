@@ -4,10 +4,10 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Bay Area New-Home True Price</title>
-<meta name="description" content="Every move-in-ready new home from production builders in Alameda, Contra Costa, Santa Clara and San Joaquin counties, with builder incentives turned into dollars and county records for earlier homes.">
+<meta name="description" content="Move-in-ready new homes from production builders in eight counties, the Bay Area plus San Joaquin, with builder incentives turned into dollars and county records of homes already sold.">
 <meta property="og:type" content="website">
 <meta property="og:title" content="Bay Area New-Home True Price">
-<meta property="og:description" content="Every move-in-ready new home in four Bay Area counties, with builder incentives turned into dollars and the county records of homes already sold.">
+<meta property="og:description" content="Move-in-ready new homes in eight counties, the Bay Area plus San Joaquin, with builder incentives turned into dollars and the county records of homes already sold.">
 <meta property="og:url" content="https://bay-area-true-price.netlify.app/">
 <meta property="og:image" content="https://bay-area-true-price.netlify.app/og.png">
 <meta property="og:image:width" content="1200">
@@ -38,7 +38,7 @@
 <header class="border-b border-slate-200 bg-white">
   <div class="max-w-7xl mx-auto px-4 py-4 flex flex-col gap-1">
     <h1 class="text-xl sm:text-2xl font-semibold tracking-tight">Bay Area New-Home True Price</h1>
-    <p class="text-sm text-slate-600 max-w-3xl">New homes you can buy now from production builders in four Bay Area counties, with
+    <p class="text-sm text-slate-600 max-w-3xl">New homes you can buy now from production builders in eight counties, the Bay Area plus San Joaquin, with
       each builder's incentives turned into dollars. <b>True price</b> = asking price minus what the incentives are worth.</p>
     <p id="stats" class="text-xs text-slate-500 num"></p>
   </div>
@@ -64,8 +64,9 @@
   <section class="flex flex-wrap items-end gap-3 text-sm">
     <label class="flex flex-col gap-1"><span class="text-xs text-slate-500">County</span>
       <select id="f-county" class="border border-slate-300 rounded-lg px-2 py-1.5 bg-white">
-        <option value="">All four</option><option>Alameda</option><option>Contra Costa</option>
-        <option>Santa Clara</option><option>San Joaquin</option></select></label>
+        <option value="">All counties</option><option>Alameda</option><option>Contra Costa</option><option>Napa</option>
+        <option>San Joaquin</option><option>San Mateo</option><option>Santa Clara</option><option>Solano</option>
+        <option>Sonoma</option></select></label>
     <label class="flex flex-col gap-1"><span class="text-xs text-slate-500">True price up to</span>
       <select id="f-max" class="border border-slate-300 rounded-lg px-2 py-1.5 bg-white">
         <option value="">Any</option><option value="600000">$600K</option><option value="800000">$800K</option>
@@ -96,6 +97,9 @@
     </div>
   </section>
 
+  <!-- Selling, nothing ready to move into -->
+  <section id="no-homes" class="hidden bg-white border border-slate-200 rounded-xl p-4 text-sm"></section>
+
   <!-- Method -->
   <section class="bg-white border border-slate-200 rounded-xl p-4 text-sm text-slate-600 flex flex-col gap-2">
     <h2 class="font-semibold text-slate-800">How the true price is worked out</h2>
@@ -108,7 +112,8 @@
       counts every offer in full. Offers don't stack unless the fine print says they combine: you pick one.</p>
     <p>Earlier homes in a community show their county records as published: the assessed value (land + improvements)
       once it has been reset to the home's last sale, and in Alameda the recorded sale price. Nothing is estimated; an
-      assessed value is not a sale price. Santa Clara's open assessor data has no sale prices or values.</p>
+      assessed value is not a sale price. Records exist for Alameda, Contra Costa and San Joaquin only: Santa Clara's open
+      assessor data has no values, and we haven't pulled San Mateo, Solano, Sonoma or Napa.</p>
     <p class="text-xs text-slate-500">Listings, plans and offers come from each builder's public website (each page links to its source and
       the date it was read). Muse Spark extracted the listings and read the floor-plan images. Not financial advice:
       confirm every offer with the builder and your lender.</p>

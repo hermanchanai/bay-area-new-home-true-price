@@ -156,9 +156,19 @@ builders:
   - key: brookfield
     name: Brookfield Residential
     site: https://www.brookfieldresidential.com
-    start: [https://www.brookfieldresidential.com/new-homes/california/south-bay]
-    community_pattern: '/new-homes/california/south-bay/(?P<city>[a-z0-9-]+)/(?P<slug>[a-z0-9-]+)(?=["/?#\s\\]|$)'
+    start: [https://www.brookfieldresidential.com/new-homes/california/south-bay,
+            https://www.brookfieldresidential.com/new-homes/california/east-bay]
+    # /data/ paths on the East Bay page are the site's own data folders, not communities
+    community_pattern: '/new-homes/california/(?:south-bay|east-bay)/(?P<city>(?!data/)[a-z0-9-]+)/(?P<slug>[a-z0-9-]+)(?=["/?#\s\\]|$)'
     expected_communities: 1
+
+  # --- added 2026-11-03 with Solano
+  - key: khov
+    name: K. Hovnanian Homes
+    site: https://www.khov.com
+    start: [https://www.khov.com/new-construction-homes/california/solano-county/]
+    community_pattern: 'https://www\.khov\.com/new-construction-homes/california/(?P<city>[a-z-]+)/(?P<slug>[a-z0-9-]+)/?"'
+    expected_communities: 2
 
   - key: ponderosa
     name: Ponderosa Homes

@@ -165,6 +165,19 @@ async function initMap() {
   S.map = leafletMap(pts);
 }
 
+// Communities with floor plans but nothing ready to move into: listed so they can be found, never counted as homes.
+function noHomes() {
+  const county = $("#f-county").value;
+  const rows = S.site.communities.filter((c) => !c.homes && (!county || c.county === county))
+    .sort((a, b) => `${a.county} ${a.city} ${a.name}`.localeCompare(`${b.county} ${b.city} ${b.name}`));
+  $("#no-homes").classList.toggle("hidden", !rows.length);
+  $("#no-homes").innerHTML = `<h2 class="font-semibold text-slate-800">Also selling, no move-in-ready home listed right now (${rows.length})</h2>
+    <p class="text-xs text-slate-500 mb-2">These communities show floor plans on the builder's site but no specific home we can price yet.</p>
+    <ul class="grid sm:grid-cols-2 lg:grid-cols-3 gap-x-4 gap-y-1 max-h-64 overflow-y-auto">${rows.map((c) =>
+      `<li class="min-w-0"><a class="text-sky-700" href="#c/${c.id}">${esc(c.name)}</a>
+        <span class="text-xs text-slate-500">${esc(c.city)}, ${esc(c.county)} · ${esc(c.builder)}</span></li>`).join("")}</ul>`;
+}
+
 function render() {
   const homes = filtered();
   const byComm = {};
@@ -183,6 +196,7 @@ function render() {
       <div class="text-xs num">Incentives worth up to ${c.max_discount_pct_best ?? 0}% of asking (${c.max_discount_pct ?? 0}% guaranteed)</div>
       <a href="#c/${c.id}" class="inline-block mt-2 text-sky-700 font-medium">Open community →</a></div>`);
   });
+  noHomes();
   $("#unmapped").textContent = unmapped.length
     ? `${unmapped.length} matching ${unmapped.length > 1 ? "communities have" : "community has"} no map pin yet (streets too new for public maps): ${unmapped.map((c) => c.name).join(", ")}. They're in the list.`
     : "";

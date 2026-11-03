@@ -244,7 +244,7 @@ def derive(conn, today: str) -> tuple[dict, list[str]]:
     notes.append(f"q17 3139 Workman Avenue owner's suite {suite['dims']}.")
     e["q17"] = {"must_mention": [["14' x 14' 5", "14'x14'5", "14' x 14'5", "14 ft x 14 ft 5", "14′ x 14′ 5"]]}
 
-    e["q18"] = {"no_homes": True, "must_mention": ["Napa"]}
+    e["q18"] = {"no_homes": True, "must_mention": ["Marin"]}
 
     q = [h for h in hs if h["age_restricted"]]
     e["q19"] = {**cheapest_expect(q), "eligible": names(q)}
