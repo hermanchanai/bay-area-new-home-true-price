@@ -342,14 +342,15 @@ function drawerHTML(d) {
         <span class="text-xs text-slate-400"> read ${esc(c.fetched || "")}</span></div>
       <button id="close" class="text-slate-500 hover:text-slate-800 text-2xl leading-none px-2" aria-label="Close">×</button></div>
     <div class="px-5 py-4 flex flex-col gap-6">
-      <section><div class="flex flex-wrap items-center justify-between gap-2 mb-2">
+      ${homes ? `<section><div class="flex flex-wrap items-center justify-between gap-2 mb-2">
           <h3 class="font-semibold">Homes for sale</h3>
           <label class="text-xs text-slate-600 flex items-center gap-2">Down payment
             <select id="down" class="border border-slate-300 rounded px-1.5 py-1" ${S.api ? "" : "disabled title='Needs the live server'"}>${downs}</select></label></div>
         <p id="down-note" class="text-xs text-slate-500 mb-2">True price at 20% down: guaranteed – best case.${S.api ? "" : " (Changing the down payment needs the live server.)"}</p>
         <div class="overflow-x-auto"><table class="w-full text-sm"><thead><tr class="text-xs text-slate-500 text-left">
           <th class="py-1 font-normal">Home</th><th class="py-1 font-normal text-right">Asking</th><th class="py-1 font-normal text-right">True price</th></tr></thead>
-          <tbody>${homes || `<tr><td class="py-2 text-slate-500" colspan="3">No homes listed now.</td></tr>`}</tbody></table></div></section>
+          <tbody>${homes}</tbody></table></div></section>`
+      : `<section><h3 class="font-semibold mb-1">Homes for sale</h3><p class="text-sm text-slate-500">No move-in-ready home listed right now.</p></section>`}
       <section><h3 class="font-semibold mb-1">Incentives, in dollars</h3>
         <p class="text-xs text-slate-500 mb-1">Ranges run from the guaranteed value to the best case. Offers don't stack unless their terms say so.</p>
         <ul>${incs}</ul></section>

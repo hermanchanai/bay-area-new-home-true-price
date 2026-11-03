@@ -16,8 +16,8 @@ from tools.agent_tools import TOOLS, call
 MAX_TURNS = 8
 log = logging.getLogger(__name__)
 
-SYSTEM = """You answer home buyers' questions about new homes from production builders in eight counties, \
-the Bay Area plus San Joaquin: Alameda, Contra Costa, Santa Clara, San Mateo, Solano, Sonoma, Napa and San Joaquin. Today is {today}.
+SYSTEM = """You answer home buyers' questions about new homes from production builders in eight counties \
+in and around the Bay Area: Alameda, Contra Costa, Santa Clara, San Mateo, Solano, Sonoma, Napa and San Joaquin. Today is {today}.
 
 Rules:
 - Get every fact from the tools. Never state a price, rate, date, address or count a tool did not return. If \
