@@ -20,6 +20,9 @@
 - One `pool_id` = one choice: worth its best guaranteed value up to its best possible value (the buyer
   can always take the sure offer). Fixed 2026-10-27; it had used the low end of the biggest-ceiling option.
 - A promo at or above market is worth $0 (flagged).
+- A rate with no loan named is not assumed to be a 30-year fixed. Its APR sitting 0.5+ above the rate gave this away:
+  Meritage's banner "4.99% (5.909% APR)" is a 7/6 ARM on its terms page. Known ones are in `config/rate_terms.yaml`
+  (checked by hand against the builder's terms page); the rest are marked "term not stated" and valued for 5 years.
 
 **Edge cases**
 - `first_year_rate` with no stated note rate: assumed to be a 1-0 buydown, flagged `assumed_1-0`. If the fine print

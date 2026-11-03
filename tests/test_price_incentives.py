@@ -119,3 +119,12 @@ def test_choose_one_pool_guarantees_the_best_floor_and_caps_at_the_best_ceiling(
     tp = true_price(708_990, [cash, arm], 7.32)
     arm_alone = true_price(708_990, [Incentive("arm_promo", rate=4.99, structure="7/6 ARM")], 7.32)
     assert tp.value_high == 250_000 and tp.value_low == arm_alone.value_low > 0
+
+
+def test_a_rate_whose_term_is_not_stated_counts_for_five_years_only():
+    a = Assumptions()
+    forever = value_incentive(Incentive(kind="perm_rate", rate=5.25), 1_000_000, 7.24, a)
+    v = value_incentive(Incentive(kind="perm_rate", rate=5.25, structure="term not stated"), 1_000_000, 7.24, a)
+    arm = value_incentive(Incentive(kind="arm_promo", rate=5.25, structure="5/6 ARM"), 1_000_000, 7.24, a)
+    assert (v.low, v.high) == (arm.low, arm.high) and v.low == v.high
+    assert v.method == "term_unstated_5yr_pv" and v.low < forever.low

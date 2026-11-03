@@ -285,7 +285,7 @@ function drawerHTML(d) {
 
   const incs = d.incentives.length ? d.incentives.map((i) => `<li class="py-2 border-t border-slate-100">
       <div class="flex justify-between gap-3"><div><div class="font-medium">${esc(i.label || KIND[i.kind])}</div>
-        <div class="text-xs text-slate-500">${KIND[i.kind] || esc(i.kind)}${i.amount_is_up_to ? " · up to: may pay less, or nothing" : ""}${i.lender ? " · with " + esc(i.lender) : ""}${i.expires ? " · ends " + esc(i.expires) : ""}${i.eligibility ? " · " + esc(i.eligibility) : ""}${i.included_in_price ? " · already in the asking price" : ""}</div></div>
+        <div class="text-xs text-slate-500">${i.structure === "term not stated" ? "Rate offer: the builder's page doesn't say how long it lasts, so it's valued for 5 years" : KIND[i.kind] || esc(i.kind)}${i.amount_is_up_to ? " · up to: may pay less, or nothing" : ""}${i.lender ? " · with " + esc(i.lender) : ""}${i.expires ? " · ends " + esc(i.expires) : ""}${i.eligibility ? " · " + esc(i.eligibility) : ""}${i.included_in_price ? " · already in the asking price" : ""}</div></div>
         <div class="text-right num text-sm shrink-0">${i.included_in_price ? "in the price" : i.value_high != null ? range(i.value_low, i.value_high) : "not priced"}${i.homes_priced > 1 ? `<div class="text-[11px] text-slate-400">across ${i.homes_priced} homes</div>` : ""}</div></div>
       <a href="${esc(i.source_url)}" target="_blank" rel="noopener" class="text-xs text-sky-700">Builder's terms ↗</a></li>`).join("")
     : `<li class="text-sm text-slate-500">No incentives listed on the builder's site.</li>`;

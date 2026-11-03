@@ -2,7 +2,7 @@
 import json
 
 import tools.load_records as lr
-from tools.load_records import assign_homes, fill_from_offers, home_incentives
+from tools.load_records import apply_rate_terms, assign_homes, fill_from_offers, home_incentives
 
 
 def page(name, kind, url, homes=(), incentives=(), community="C"):
@@ -174,3 +174,38 @@ def test_a_carried_page_takes_its_record_from_its_last_real_fetch_not_its_first_
         "carried_from": "2026-10-27", "unfetched": True, "last_fetched": "2026-10-28"}]))
     [p] = lr.read_pages("2026-10-29")
     assert p["manifest"]["fetched_at"][:10] == "2026-10-28"
+
+
+TERMS = [{"match": {"rate": 4.99, "apr": 5.909}, "source": "https://b.example/promo",
+          "offers": [{"kind": "arm_promo", "rate": 4.99, "apr": 5.909, "structure": "7/6 ARM"},
+                     {"kind": "perm_rate", "rate": 5.99, "apr": 6.137, "structure": "30-yr fixed"}]}]
+
+
+def rate_offer(rate, apr, label="Rates from", **kw):
+    return {**inc("perm_rate", rate=rate, apr=apr, structure=None, label=label, filled_from_offers=False), **kw}
+
+
+def test_a_banner_rate_takes_the_loan_its_builder_states_on_the_terms_page():
+    got = apply_rate_terms([rate_offer(4.99, 5.909, label="National Sales Event")], TERMS)
+    assert [(i["kind"], i["rate"], i["structure"]) for i in got] == [("arm_promo", 4.99, "7/6 ARM"), ("perm_rate", 5.99, "30-yr fixed")]
+    assert all(i["filled_from_offers"] for i in got) and got[0]["label"] == "4.99% (5.909% APR) 7/6 ARM"
+
+
+def test_a_page_already_listing_those_loans_gets_no_duplicates():
+    arm = {**inc("arm_promo", rate=4.99, apr=5.909, structure="7/6 ARM", label="ARM"), "filled_from_offers": False}
+    fixed = {**inc("perm_rate", rate=5.99, apr=6.137, structure="30-yr fixed", label="Fixed"), "filled_from_offers": False}
+    got = apply_rate_terms([rate_offer(4.99, 5.909), arm, fixed], TERMS)
+    assert sorted(i["label"] for i in got) == ["ARM", "Fixed"]
+
+
+def test_a_rate_far_under_its_apr_with_no_loan_named_is_marked_term_not_stated():
+    got = apply_rate_terms([rate_offer(5.25, 5.993)], [])
+    assert got[0]["kind"] == "perm_rate" and got[0]["structure"] == "term not stated"
+
+
+def test_a_stated_fixed_rate_and_a_small_apr_gap_stay_as_they_are():
+    named = rate_offer(5.49, 6.2, label="5.49% 30-Year Fixed")
+    with_term = rate_offer(5.25, 5.993, structure="30yr fixed")
+    close = rate_offer(5.49, 5.76)
+    no_apr = rate_offer(5.49, None)
+    assert apply_rate_terms([named, with_term, close, no_apr], []) == [named, with_term, close, no_apr]

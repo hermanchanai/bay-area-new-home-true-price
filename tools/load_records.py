@@ -30,7 +30,7 @@ import yaml
 from tools import db
 from tools.eval_extraction import norm_address
 from tools.preprocess_page import RAW
-from tools.price_incentives import RATE_KINDS, Assumptions, Incentive, true_price, value_incentive
+from tools.price_incentives import RATE_KINDS, TERM_NOT_STATED, Assumptions, Incentive, true_price, value_incentive
 
 ROOT = Path(__file__).resolve().parent.parent
 EXTRACT = ROOT / ".tmp" / "extract"
@@ -140,11 +140,36 @@ def fill_from_offers(incs: list[dict], offers: list[dict]) -> list[dict]:
 
 
 # offers only some buyers can get; "qualified buyers", "FHA", "select homes" stay open to everyone
+UNSTATED_APR_GAP = 0.5   # APR this far over the rate: no fixed loan can be assumed (Toll's stated 30-year fixed is 0.27)
 BUYER_GROUP = re.compile(r"(?i)teacher|nurse|\bems\b|police|firefight|first responder|military|veteran|hero|"
                          r"educator|healthcare|employee")
 GUARANTEE = re.compile(r"(?i)guarantee|reimburs")
 COMBINABLE = re.compile(r"(?i)\b(?:may|can) be combined\b|\bcombinable with\b")
 NOT_COMBINABLE = re.compile(r"(?i)\b(?:cannot|can ?not|may not|not) be combined\b|\bnot combinable\b")
+
+
+def apply_rate_terms(incs: list[dict], terms: list[dict]) -> list[dict]:
+    """A rate with no loan named is often not a 30-year fixed: Meritage's "rates starting at 4.99% (5.909% APR)" is a
+    7/6 ARM, on its terms page only. Use the builder's stated loans where config/rate_terms.yaml has them; otherwise an
+    APR well above the rate means the term can't be assumed, so it's marked and valued for a short period."""
+    have = {(i["kind"], i.get("rate")) for i in incs if i.get("structure")}
+    out = []
+    for i in incs:
+        if i["kind"] != "perm_rate" or i.get("structure") or i.get("rate") is None:
+            out.append(i)
+            continue
+        hit = next((t for t in terms if t["match"]["rate"] == i["rate"] and t["match"]["apr"] == i.get("apr")), None)
+        if hit:
+            new = [o for o in hit["offers"] if (o["kind"], o["rate"]) not in have]
+            have |= {(o["kind"], o["rate"]) for o in new}
+            out += [{**i, **o, "label": f"{o['rate']}% ({o['apr']}% APR) {o['structure']}", "filled_from_offers": True,
+                     "fine_print": f"Loan terms: {hit['source']}"} for o in new]
+        elif (i.get("apr") or 0) - i["rate"] >= UNSTATED_APR_GAP and "fixed" not in (
+                " ".join(filter(None, [i.get("label"), i.get("evidence"), i.get("fine_print")])).lower()):
+            out.append({**i, "structure": TERM_NOT_STATED})
+        else:
+            out.append(i)
+    return out
 
 
 def pricing_set(incs: list[dict], home_key: str) -> tuple[list[dict], list[tuple[dict, str]]]:
@@ -201,6 +226,7 @@ def load(date: str, conn) -> dict:
     rate_row = conn.execute("SELECT as_of, rate FROM market_rates WHERE series='MORTGAGE30US' "
                             "ORDER BY as_of DESC LIMIT 1").fetchone()
     rate_date, market = rate_row["as_of"], rate_row["rate"]
+    rate_terms = yaml.safe_load((ROOT / "config" / "rate_terms.yaml").read_text())
     offers = {}
     for p in pages:
         if p["kind"] == "extra":
@@ -255,7 +281,8 @@ def load(date: str, conn) -> dict:
                  p["page"])).fetchone()[0]
             stats["homes"] += 1
             stats["review_pages_used"] += p["needs_review"]
-            incs = fill_from_offers(home_incentives(h, p, cp), offers.get(p["builder"], []))
+            incs = apply_rate_terms(fill_from_offers(home_incentives(h, p, cp), offers.get(p["builder"], [])),
+                                    rate_terms.get(p["builder"], []))
             stats["with_incentive"] += bool(incs)
             priced = []
             for i in incs:
@@ -353,3 +380,4 @@ if __name__ == "__main__":
     stats = load(date, conn)
     print(json.dumps(stats, indent=1))
     print(report(date, stats, conn))
+

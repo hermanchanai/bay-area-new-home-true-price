@@ -13,6 +13,7 @@ class Assumptions:
     closing_cost_pct: float = 0.03
     jumbo_spread_pct: float = 0.25
     conforming_limit: int | None = None
+    unstated_term_years: int = 5     # a rate with no stated term counts this long: the shortest ARM period builders here use
 
 
 @dataclass(frozen=True)
@@ -47,6 +48,7 @@ class TruePrice:
     market_rate: float
 
 
+TERM_NOT_STATED = "term not stated"
 RATE_KINDS = {"perm_rate", "temp_buydown", "arm_promo", "first_year_rate"}
 CASH_KINDS = {"flat_cash", "price_cut", "closing_credit"}
 
@@ -124,6 +126,10 @@ def value_incentive(inc: Incentive, price: float, market_rate_pct: float, a: Ass
             return Value(0, 0, inc.kind, flags + ("missing_input",))
         v = round(_pv([saving] * years[0] * 12, market))
         return Value(v, v, f"arm_fixed_{years[0]}yr_pv", flags)
+
+    if inc.structure == TERM_NOT_STATED:
+        v = round(_pv([saving] * a.unstated_term_years * 12, market))
+        return Value(v, v, f"term_unstated_{a.unstated_term_years}yr_pv", flags)
 
     # perm_rate: buyer view = price cut with the same payment at market; builder view = PV of savings.
     payment_equiv_cut = price * (1 - monthly_payment(inc.rate, loan, n) / monthly_payment(market, loan, n))

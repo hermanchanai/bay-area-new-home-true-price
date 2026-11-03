@@ -1,0 +1,15 @@
+# Offers whose page shows only a rate and APR, with the loan as the builder's own terms page states it.
+# Matched on builder + rate + APR, so a new promotion falls through to the "term not stated" rule in
+# tools/load_records.apply_rate_terms. Checked by hand against the source page on the date shown.
+meritage:
+  - match: {rate: 4.99, apr: 5.909}
+    source: https://www.meritagehomes.com/promotion/10088758    # read 2026-11-03, offer ends 2026-11-15
+    offers:
+      - {kind: arm_promo, rate: 4.99, apr: 5.909, structure: 7/6 ARM}
+      - {kind: perm_rate, rate: 5.99, apr: 6.137, structure: 30-yr fixed}
+woodside:
+  # 4.999% is the FHA loan. True prices assume 20% down, so the conventional rate is the one that applies.
+  - match: {rate: 4.999, apr: 5.737}
+    source: https://www.woodsidehomes.com/special-offers        # read 2026-11-03, offer ends 2026-11-15
+    offers:
+      - {kind: perm_rate, rate: 5.375, apr: 5.508, structure: 30-year conventional fixed}
