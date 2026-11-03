@@ -1,5 +1,5 @@
 # Agent eval: 20 buyer questions with hand-checked answers (tools/eval_agent.py scores them).
-# Derived by tools/derive_agent_truth.py from the frozen DB named in `db` (data as published on 2026-10-30),
+# Derived by tools/derive_agent_truth.py from the frozen DB named in `db` (data as published on 2026-11-03),
 # with SQL written apart from tools/agent_tools.py. The eval's tools query that same copy, so the daily refresh
 # can't make the key stale; re-freeze and re-derive to move the eval to newer data.
 # - top3_any_of / top3_all_of: homes the answer must rank in its first 3 [H<id>] citations
@@ -19,155 +19,155 @@
 #   q14 361 E Beatrice Avenue at 5% down: 4.99% 7-yr ARM worth $71,973 -> true price $721,173 (asking $793,146).
 #   q16 Driftway plans with a downstairs bedroom: Residence 1, Residence 1X, Residence 2, Residence 3.
 #   q17 3139 Workman Avenue owner's suite 14' x 14' 5".
-db: data/eval_2026-10-30.db
+db: data/eval_2026-11-03.db
 questions:
 - id: q01
   question: I need at least 4 bedrooms, a true price under $1.1M, and to move in by January. Contra Costa or San Joaquin County.
     What are my best options?
   expect:
     top3_any_of:
-    - 3139 Workman Avenue
-    - 266 Victorious St.
-    - 4008 Keith Lane
+    - 2977 DAWSON CREEK ST
+    - 2867 DAWSON CREEK ST
+    - 316 Solis Ct.
     eligible:
-    - 3139 Workman Avenue
+    - 2977 DAWSON CREEK ST
+    - 2867 DAWSON CREEK ST
+    - 316 Solis Ct.
     - 266 Victorious St.
+    - 722 Schut Court
     - 4008 Keith Lane
+    - 3139 Workman Avenue
     - 4846 Badger Creek Court
+    - 2401 DIABLO VIEW DR
+    - 1964 GUINNESS LN
+    - 2228 HEWINS ST
+    - 504 Spruce Way
+    - 1936 GUINNESS LN
     - 748 Villa Ticino Dr.
     - 339 Astilbe Street
     - 728 Villa Ticino Dr.
     - 2003 Wildcat Street
-    - 4841 Badger Creek Court
-    - 2977 DAWSON CREEK ST
-    - 2867 DAWSON CREEK ST
-    - 722 Schut Court
-    - 1016 Bluebell Circle
-    - 717 Villa Ticino Dr.
-    - 884 Shasta Avenue
+    - 2231 HEWINS ST
+    - 2447 GOLDEN BEAR ST
+    - 520 Spruce Way
     - 887 W. Shasta Avenue
     - 907 Shasta Court
-    - 2401 DIABLO VIEW DR
-    - 1576 TORREY DR
-    - 1964 GUINNESS LN
-    - 2228 HEWINS ST
-    - 1936 GUINNESS LN
-    - 10682 Aretha Ln.
-    - 2167 Cyclone Drive
-    - 2447 GOLDEN BEAR ST
-    - 504 Spruce Way
-    - 882 Shasta Avenue
-    - 2231 HEWINS ST
-    - 2143 Cyclone Drive
-    - 520 Spruce Way
-    - 10657 Aretha Ln.
-    - Lot 263
-    - 2147 Trojan Street
-    - 324 Solis Ct.
+    - 717 Villa Ticino Dr.
     - 524 Spruce Way
     - 2425 GOLDEN BEAR ST
     - 2491 GOLDEN BEAR ST
     - 508 Spruce Way
     - 2362 LAZIO ST
-    - Lot 264
     - 2419 DIABLO VIEW DR
     - 2881 DAWSON CREEK ST
-    - 7435 Forbes Avenue
+    - 882 Shasta Avenue
+    - 519 Spruce Way
     - 521 Headwater way
     - 2270 HEWINS ST
-    - 1028 Bluebell Circle
-    - 519 Spruce Way
     - 1928 GUINNESS LN
     - 2458 GOLDEN BEAR ST
-    - 1210 N Robiolo Lane
     - 1950 GUINNESS LN
     - 2402 GOLDEN BEAR ST
-    - 3199 Scott Edwards Lane
     - 2907 DAWSON CREEK ST
-    - 574 Lee Loop
     - 1914 GUINNESS LN
     - 2871 DAWSON CREEK ST
     - 393 Badlands Circle
     - 2379 ZELLERBACH ST
     - 605 Channel Circle
-    - 15871 Cleary Court
-    - 1270 N Robiolo Lane
     - 2240 HEWINS ST
-    - 361 E Beatrice Avenue
-    - 1162 Bradbury Drive
+    - 1576 TORREY DR
     - 515 Spruce Way
-    - 2294 HEWINS ST
-    - 1012 Bluebell Circle
-    - 1935 S. Vivani St.
-    - 7399 Forbes Avenue
+    - 10682 Aretha Ln.
+    - 2167 Cyclone Drive
     - 324 Clodius Way
     - 2363 EMMA DR
     - 323 Viceroy Way
     - 5432 Harrier Way
     - 609 Channel Circle
-    - 10732 Stevie Dr.
-    - 2881 Chauncy Street
-    - 461 W Calabria Drive
+    - 2143 Cyclone Drive
+    - 10657 Aretha Ln.
+    - 324 Solis Ct.
+    - 299 Viceroy Way
+    - 2147 Trojan Street
+    - 7435 Forbes Avenue
     - 392 Badlands Circle
     - 316 Clodius Way
     - 332 Clodius Way
     - 528 Spruce Way
-    - 1130 N. Salvin Court
-    - 299 Viceroy Way
-    - 2706 Emery Street
-    - 3151 Scott Edwards Lane
     - 2376 LAZIO ST
     - 5212 Kestrel Street
     - 621 Channel Circle
-    - 5208 Kestrel Street
-    - 7423 Forbes Avenue
     - 533 Headwater way
     - 2216 HEWINS ST
+    - Lot 263
     - 389 Badlands Circle
-    - 15866 Cleary Court
     - 517 Headwater way
+    - 1028 Bluebell Circle
     - 401 Badlands Circle
+    - 1210 N Robiolo Lane
+    - Lot 264
     - 308 Clodius Way
     - 331 Viceroy Way
+    - 3199 Scott Edwards Lane
     - 298 Viceroy Way
-    - 471 W Calabria Drive
+    - 1162 Bradbury Drive
     - 2282 HEWINS ST
-    - 16441 Barnett Court
     - 2258 HEWINS ST
     - 5211 Kestrel Street
-    - 1044 Bluebell Circle
-    - 1530 TEAK AVE
-    - 481 W Calabria Drive
+    - 15871 Cleary Court
+    - 1270 N Robiolo Lane
+    - 2706 Emery Street
+    - 7278 Oscar Drive
     - 404 Badlands Circle
-    - 7266 Oscar Drive
-    - 7930 Punjya Brothers Drive
-    - 3163 Scott Edwards Lane
-    - 7971 Floyd Glenn Wise Drive
+    - 361 E Beatrice Avenue
     - 396 Badlands Circle
     - 397 Badlands Circle
     - 5216 Kestrel Street
     - 5223 Kestrel Street
-    - 1486 PRAIRIE OAK AVE
-    - 401 W Calabria Drive
+    - 574 Lee Loop
+    - 1012 Bluebell Circle
+    - 1935 S. Vivani St.
+    - 7399 Forbes Avenue
     - 385 Badlands Circle
-    - 15874 Cleary Court
     - 5440 Harrier Way
-    - 3442 RED OAK ST
+    - 10732 Stevie Dr.
+    - 2881 Chauncy Street
+    - 5219 Kestrel Street
+    - 3151 Scott Edwards Lane
+    - 1130 N. Salvin Court
+    - 7423 Forbes Avenue
+    - 15866 Cleary Court
+    - 1118 N. Salvin Court
+    - 1044 Bluebell Circle
+    - 1530 TEAK AVE
+    - 7266 Oscar Drive
+    - 7930 Punjya Brothers Drive
+    - 3163 Scott Edwards Lane
+    - 7971 Floyd Glenn Wise Drive
+    - 2617 Emery Street
+    - 1486 PRAIRIE OAK AVE
+    - 15874 Cleary Court
+    - 2665 Dashwood Street
+    - 2698 Emery Street
     - 1233 N. Girardi Drive
     - 1458 PRAIRIE OAK AVE
     - 2675 Kester Way
-    - 5219 Kestrel Street
-    - 3315 Layla Way
-    - 2617 Emery Street
-    - 5628 Fallen Leaf Lane
-    - 2665 Dashwood Street
-    - 329 E CLYDESDALE COURT
+    - 461 W Calabria Drive
     - 1423 N. Girardi Drive
+    - 3315 Layla Way
+    - 5628 Fallen Leaf Lane
+    - 471 W Calabria Drive
+    - 329 E CLYDESDALE COURT
+    - 16441 Barnett Court
     - 227 W Pasqua Glen
     - 17131 St. James Lane
+    - 481 W Calabria Drive
     - 17173 Coral Tree Lane
     - 5625 Fallen Leaf Lane
     - 1975 S. Vivani St.
+    - 401 W Calabria Drive
+    - 1461 N Padano Lane
+    - 1421 N Padano Lane
     - 3767 Scholl Lane
     - 17165 Coral Tree Lane
     - 5629 Fallen Leaf Lane
@@ -176,7 +176,6 @@ questions:
     - 93 W. Semolina Lane
     - 1221 N. Girardi Drive
     - 317 E CLYDESDALE COURT
-    - 16519 Barnett Street
     - 5684 Wildrye Lane
     - 7957 Floyd Glenn Wise Drive
     - 228 W Nasergholi Avenue
@@ -185,10 +184,7 @@ questions:
     - 1322 N. Martorella Avenue
     - 1529 Riverfront Drive
     - 5680 Wildrye Lane
-    - 1461 N Padano Lane
     - 3753 Scholl Lane
-    - 1589 Strathaven Place
-    - 1590 Ponza Circle
     - 5676 Wildrye Lane
     - 1904 S LAZULI STREET
 - id: q02
@@ -198,12 +194,12 @@ questions:
     - 4894 Las Positas Road
     eligible:
     - 4894 Las Positas Road
+    - '138 Sedona Common Unit #3'
     - 4540 Dolcetto Common
     - 4898 Las Positas Road
-    - '138 Sedona Common Unit #3'
-    - 4810 Dolcetto Common
     - '109 Sedona Common Unit #2'
     - '105 Sedona Common Unit #1'
+    - 4810 Dolcetto Common
     - 4832 Las Positas Road
     - 4695 Marengo Common
     - 4744 Las Positas Road
@@ -212,17 +208,18 @@ questions:
     - 1715 Central Parkway
     - 1717 Central Parkway
     - 1733 Central Parkway
-    - 1719 Central Parkway
-    - 4648 Vilana Street
-    - 4686 Vilana Street
     - 37433 Fremont Blvd.
+    - 1719 Central Parkway
     - 37425 Fremont Blvd.
     - 2037 Santa Rita Road
+    - 4648 Vilana Street
+    - 4686 Vilana Street
     - 2043 Santa Rita Road
     - 2031 Santa Rita Road
     - 3960 Viggo Way
-    - 1949 Michael Avenue
     - 1607 Walsh Avenue
+    - 1977 Margaret Way
+    - 1981 Murray Avenue
     - 1775 Sill Ave
     - 4296 Langley Road
     - 1637 Wren Court
@@ -241,33 +238,65 @@ questions:
     eligible:
     - 10641 Coolio Way
     - 10597 Aretha Ln.
-    - 10612 Stevie Dr.
+    - 1711 EAGLE RIVER AV
     - 10646 Aretha Ln.
-    - Lot 93
+    - 1720 EAGLE RIVER AV
+    - 2913 DAWSON CREEK ST
+    - 2875 DAWSON CREEK ST
+    - 2977 DAWSON CREEK ST
+    - 2867 DAWSON CREEK ST
     - 3514 Lakeshore Ave
+    - Lot 93
+    - 316 Solis Ct.
     - 266 Victorious St.
     - 4008 Keith Lane
-    - Lot 94
+    - 2401 DIABLO VIEW DR
+    - 1964 GUINNESS LN
+    - 2228 HEWINS ST
+    - 1936 GUINNESS LN
     - 748 Villa Ticino Dr.
     - 728 Villa Ticino Dr.
+    - Lot 94
     - 3513 Caples Way
+    - 2231 HEWINS ST
+    - 2447 GOLDEN BEAR ST
     - 10694 Aretha Ln.
     - 717 Villa Ticino Dr.
-    - Lot 346
-    - Lot 421
+    - 2425 GOLDEN BEAR ST
+    - 2491 GOLDEN BEAR ST
+    - 2362 LAZIO ST
+    - 2419 DIABLO VIEW DR
+    - 2881 DAWSON CREEK ST
+    - 2270 HEWINS ST
+    - 1928 GUINNESS LN
+    - 2458 GOLDEN BEAR ST
+    - 1950 GUINNESS LN
+    - 2402 GOLDEN BEAR ST
+    - 2907 DAWSON CREEK ST
+    - 1914 GUINNESS LN
     - 1851 Serene Ct
+    - Lot 346
+    - 2871 DAWSON CREEK ST
+    - 2379 ZELLERBACH ST
+    - 2240 HEWINS ST
     - 1576 TORREY DR
+    - Lot 421
     - 10682 Aretha Ln.
-    - '28'
+    - 2363 EMMA DR
     - 10657 Aretha Ln.
-    - Lot 263
     - 1868 Serene Ct
     - 324 Solis Ct.
-    - Lot 348
-    - Lot 264
+    - 2376 LAZIO ST
+    - '28'
+    - 2216 HEWINS ST
+    - Lot 263
     - 1860 Serene Ct
+    - Lot 348
     - 1210 N Robiolo Lane
+    - Lot 264
     - 3199 Scott Edwards Lane
+    - 2282 HEWINS ST
+    - 2258 HEWINS ST
     - 1852 Serene Ct
     - 15871 Cleary Court
     - 1270 N Robiolo Lane
@@ -276,24 +305,16 @@ questions:
     - 1935 S. Vivani St.
     - 10732 Stevie Dr.
     - 1518 PRAIRIE OAK AVE
-    - 461 W Calabria Drive
     - 3151 Scott Edwards Lane
     - 3348 ANDEAN WAY
-    - '34'
     - 15866 Cleary Court
-    - 471 W Calabria Drive
-    - 16441 Barnett Court
     - 3137 Phoenix Ave
+    - '34'
     - 1530 TEAK AVE
-    - 481 W Calabria Drive
     - 3163 Scott Edwards Lane
-    - 444 W Volta Street
     - 1486 PRAIRIE OAK AVE
-    - 401 W Calabria Drive
     - 15874 Cleary Court
-    - 3442 RED OAK ST
     - 1458 PRAIRIE OAK AVE
-    - 433 W Volta Street
     - 325 E Beatrice Avenue MOD
     - 329 E CLYDESDALE COURT
     - 3161 Echo Way
@@ -301,6 +322,8 @@ questions:
     - 17131 St. James Lane
     - 17173 Coral Tree Lane
     - 1975 S. Vivani St.
+    - 1461 N Padano Lane
+    - 1421 N Padano Lane
     - 3767 Scholl Lane
     - 17165 Coral Tree Lane
     - 320 W Nasergholi Avenue
@@ -324,12 +347,12 @@ questions:
     eligible:
     - 361 E Beatrice Avenue
     - 481 W Calabria Drive
+    - 1461 N Padano Lane
     - 93 W. Semolina Lane
     - 1221 N. Girardi Drive
     - 317 E CLYDESDALE COURT
     - 314 E CLYDESDALE COURT
     - 313 E Gobind Blvd
-    - 1461 N Padano Lane
     - 1904 S LAZULI STREET
     - 69 W. Farinata Court
     - 53 W. Farinata Court
@@ -338,51 +361,48 @@ questions:
   expect:
     top3_any_of:
     - 1082 Bruin Road
-    - 3139 Workman Avenue
     - 830 Jazz Way
+    - 3139 Workman Avenue
     eligible:
     - 1082 Bruin Road
-    - 3139 Workman Avenue
     - 830 Jazz Way
+    - 3139 Workman Avenue
     - 4846 Badger Creek Court
     - 866 Jazz Way
     - 2003 Wildcat Street
-    - 4841 Badger Creek Court
-    - 1561 Saint Ellias Ave
     - 1979 Wildcat Street
+    - 882 Shasta Avenue
     - 1991 Wildcat Street
-    - 884 Shasta Avenue
     - 893 Commodore Lane
 - id: q07
   question: What's for sale in Tracy under $800,000?
   expect:
     top3_any_of:
-    - Lot 93
     - 3514 Lakeshore Ave
+    - Lot 93
     - Lot 94
     - 1851 Serene Ct
     eligible:
-    - Lot 93
     - 3514 Lakeshore Ave
+    - Lot 93
     - Lot 94
     - 3513 Caples Way
+    - 1851 Serene Ct
     - Lot 346
     - Lot 421
-    - 1851 Serene Ct
+    - 1868 Serene Ct
+    - 7435 Forbes Avenue
     - '28'
     - Lot 263
-    - 1868 Serene Ct
+    - 1860 Serene Ct
     - Lot 348
     - Lot 264
-    - 7435 Forbes Avenue
-    - 1860 Serene Ct
     - 1852 Serene Ct
+    - 2706 Emery Street
     - 7278 Oscar Drive
     - 7399 Forbes Avenue
     - 2881 Chauncy Street
-    - 2706 Emery Street
     - 7423 Forbes Avenue
-    - '34'
 - id: q08
   question: Any condos in Santa Clara County under $1M after incentives that are ready by December?
   expect:
@@ -445,7 +465,7 @@ questions:
     - 1162 Bradbury Drive
     must_mention_amount:
     - - 793146
-    - - 796437
+    - - 776437
 - id: q16
   question: Which floor plans at Driftway in Lathrop have a bedroom downstairs?
   expect:

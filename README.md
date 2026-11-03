@@ -23,9 +23,9 @@ Built for the Meta Global AI Developer Hackathon (Indie track, "Build for Your W
   have enough for a median.
 - Extraction accuracy on 43 hand-checked pages: home recall 99.3%; price, beds and sq ft 100%.
   Hold-out builder (never tuned on): 151/151 homes.
-- Agent, on frozen 10-30 data: Muse Spark 20/20 hand-checked questions, Muse Spark Open (the live model) 18/20;
-  its two misses were a correct "none" that also named the nearest home, and a correct price difference it
-  worked out itself, which the trace check (every dollar figure must appear in a tool result) rejects.
+- Agent, on frozen 11-03 data: Muse Spark 20/20 hand-checked questions, Muse Spark Open (the live model) 18/20.
+  The trace check (every dollar figure must appear in a tool result) caught its two misses: both had the main answer
+  right, but one rounded a side figure ($1,698,000 as $1.69M) and one called a $16,709 gap "$15K".
 - Total Meta model spend for the whole build, daily price checks included: about $8.
 
 ## Meta models used
@@ -58,7 +58,7 @@ $1.04). Against Muse Spark contributor on the same pages ([report](eval/reports/
 
 The buyer agent on Muse Spark Open passes 18 of the same 20 hand-checked questions, with every dollar
 figure traced to a tool result ([report](eval/reports/2026-11-03__agent__agent_open.md);
-`python -m tools.eval_agent --purpose agent_open`). The site shows the tool calls behind every answer. The eval runs on a frozen copy of the 10-30 data, so the
+`python -m tools.eval_agent --purpose agent_open`). The site shows the tool calls behind every answer. The eval runs on a frozen copy of the 11-03 data, so the
 daily refresh can't move its answers; `python -m tools.derive_agent_truth --freeze` rebuilds the key from
 newer data with SQL written apart from the agent's tools. **Since 2026-10-28 the live site's agent runs on Muse Spark
 Open** via Fireworks, which doesn't store prompts for open models; `/api/health` names the model.
@@ -256,3 +256,4 @@ building period.
     Woodside's 4.999% is an FHA loan (5.375% conventional). Known loans now come from a hand-checked terms file, and a
     rate well under its APR with no loan named counts for 5 years; the average is now 4.3%, up to 5.0%. Values that look
     part-built are withheld. Communities with under 5 records list them with no median. The site shows the agent's tool calls.
+    Eval re-frozen on the corrected 11-03 data, so the example answers carry the corrected prices: Muse Spark 20/20, Muse Spark Open 18/20.
