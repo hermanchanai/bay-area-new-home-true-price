@@ -137,13 +137,29 @@ async function initMap() {
     BINS.map(([, c, l]) => `<span class="flex items-center gap-1"><span class="inline-block w-3 h-3 rounded-full" style="background:${c}"></span>${l}</span>`).join("");
   const pts = S.site.communities.filter((c) => c.lat != null).map((c) => [c.lat, c.lng]);
   if (window.GMAPS_KEY) {
+    const useOsm = (why) => {
+      console.warn("Google Maps did not load; using OpenStreetMap", why);
+      window.gm_authFailure = null;
+      $("#map").innerHTML = "";
+      $("#map-credit").textContent = "";
+      S.map = leafletMap(pts);
+    };
+    // A refused key (wrong address, billing off) raises no error: Google calls this, sometimes before the map exists,
+    // and paints "Oops" over it.
+    let refused = false;
+    window.gm_authFailure = () => {
+      refused = true;
+      if (S.map) { useOsm("key refused"); render(); }
+    };
     try {
-      S.map = await googleMap(window.GMAPS_KEY, pts);
+      const google = await googleMap(window.GMAPS_KEY, pts);
+      if (refused) { useOsm("key refused"); return; }
+      S.map = google;
       $("#map-credit").textContent = "Map data © Google.";
       return;
     } catch (e) {
-      console.warn("Google Maps did not load; using OpenStreetMap", e);
-      $("#map").innerHTML = "";
+      useOsm(e);
+      return;
     }
   }
   S.map = leafletMap(pts);
