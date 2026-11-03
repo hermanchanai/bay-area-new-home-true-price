@@ -7,12 +7,12 @@
 # which covers every phase of the communities selling now. Counts on 2026-10-27:
 # Alameda 80,524 · Contra Costa 61,689 · San Joaquin 12,951 · Alameda transfers 60,467.
 #
-# assessor.past_sales: how a parcel's value becomes a sale estimate (tools/link_parcels.py).
-#   roll_fy: the roll's fiscal year. Alameda's 14,520 priced transfers show value = price × 1.02^n with
+# assessor.past_sales: when a parcel's published value counts as reset to its last sale (tools/link_parcels.py).
+#   roll_fy: the roll's fiscal year, shown with each value. Alameda's 14,520 priced transfers show value = price × 1.02^n with
 #     n = July-1 rolls since the sale, for a 2025-26 roll (checked 2026-10-27); Contra Costa's round-
 #     thousand values fall on the same steps. San Joaquin's layer says VALUE_ROLL_YEAR 2026 (2026-27).
 #   reassessed_through: deeds after this date mostly still carry the seller's value (round-price share
-#     drops from ~40% to ~12% in 2026), so they are not estimated.
+#     drops from ~40% to ~12% in 2026), so their value is not shown (a recorded price still is).
 #   sale_date: deed, or year_built where the layer has no deed date (San Joaquin).
 #   newness: parcels universe filter + APN book-page pattern, to drop book-pages of older homes.
 

@@ -203,11 +203,12 @@ def derive(conn, today: str) -> tuple[dict, list[str]]:
                  "must name what it is worth, not only the rate; the up-to $250K FLEX Cash offer ended 10-30).")
 
     for qid, name, city in (("q10", "Cairnway", "Tracy"), ("q11", "Orchard Grove", "Brentwood")):
-        n, med = one(conn, "SELECT ps.n, ps.median_est_price FROM past_sales ps JOIN communities c "
+        n, med = one(conn, "SELECT ps.n, ps.median_value FROM past_sales ps JOIN communities c "
                            "ON c.id = ps.community_id WHERE c.name = ? AND c.city = ?", name, city)
-        notes.append(f"{qid} {name} median ${med:,} (n {n}).")
-        e[qid] = ({"must_mention": [str(med)[:3], "asking"]} if qid == "q10"
-                  else {"must_mention": [[f"{med / 1e6:.2f}", f"{med // 1000:,}"]]})
+        notes.append(f"{qid} {name} median assessed value ${med:,} (n {n}); an answer must call it an assessed "
+                     "value, not a sale price or an estimate.")
+        e[qid] = ({"must_mention": [str(med)[:3], "asking", "assessed"]} if qid == "q10"
+                  else {"must_mention": [[f"{med / 1e6:.2f}", f"{med // 1000:,}"], "assessed"]})
     e["q12"] = {"must_mention": ["Santa Clara"]}
 
     for qid, addr, down in (("q13", "1576 TORREY DR", 0.10), ("q14", "361 E Beatrice Avenue", 0.05)):

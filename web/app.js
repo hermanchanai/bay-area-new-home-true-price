@@ -257,12 +257,26 @@ function drawerHTML(d) {
   }).join("");
 
   const ps = d.past_sales;
+  const hasRecorded = (ps.records || []).some((r) => r.recorded_price != null);
+  const recs = (ps.records || []).map((r) => `<tr class="border-t border-slate-100">
+      <td class="py-1.5 pr-2">${esc(r.address)}</td>
+      <td class="py-1.5 pr-2 text-right num">${r.assessed_value != null ? usd(r.assessed_value) : "not reset yet"}</td>
+      <td class="py-1.5 pr-2 num">${esc(/^\d{4}$/.test(r.sale_date || "") ? "built " + r.sale_date : r.sale_date)}</td>
+      <td class="py-1.5 pr-2 text-right num">${r.living_sqft ? r.living_sqft.toLocaleString("en-US") : "—"}</td>
+      ${hasRecorded ? `<td class="py-1.5 text-right num">${r.recorded_price != null ? usd(r.recorded_price) : "—"}</td>` : ""}</tr>`).join("");
   const past = ps.past_sales
     ? `<div class="grid grid-cols-2 sm:grid-cols-3 gap-3 num">
-        <div><div class="text-xs text-slate-500">Median paid (est.)</div><div class="text-lg font-semibold">${usd(ps.median_est_price)}</div></div>
+        <div><div class="text-xs text-slate-500">Median assessed value</div><div class="text-lg font-semibold">${usd(ps.median_value)}</div></div>
         <div><div class="text-xs text-slate-500">Middle half</div><div>${short(ps.p25)} – ${short(ps.p75)}</div></div>
         <div><div class="text-xs text-slate-500">Median asking today</div><div>${usd(ps.median_asking_now)}</div></div></div>
-       <p class="text-xs text-slate-500 mt-2">${ps.n} sales, ${esc(ps.period)}; from ${esc(ps.method)}. ${esc(ps.caveat)}</p>`
+       <p class="text-xs text-slate-500 mt-2">${ps.n} homes, ${/^\d{4} to \d{4}$/.test(ps.period) ? "built" : "sold"} ${esc(ps.period)}; ${esc(ps.method)}. ${esc(ps.caveat)}</p>
+       <details class="mt-2"><summary class="text-sm text-sky-700 cursor-pointer">Each home's county record (${(ps.records || []).length})</summary>
+        <div class="overflow-x-auto mt-1"><table class="w-full text-xs"><thead><tr class="text-slate-500 text-left">
+          <th class="py-1 font-normal">Address</th><th class="py-1 font-normal text-right">Assessed value</th>
+          <th class="py-1 font-normal">Sold</th><th class="py-1 font-normal text-right">Sq ft</th>
+          ${hasRecorded ? `<th class="py-1 font-normal text-right">Recorded sale price</th>` : ""}</tr></thead>
+          <tbody>${recs}</tbody></table></div>
+        <p class="text-[11px] text-slate-400 mt-1">Assessed value: land + improvements on the county's ${esc((ps.records || [])[0]?.roll_year ?? "")} roll, as published; not a sale price.${hasRecorded ? " Recorded sale prices come from Alameda's transfer list." : ""}</p></details>`
     : `<p class="text-sm text-slate-500">${esc(ps.reason)}</p>`;
 
   const incs = d.incentives.length ? d.incentives.map((i) => `<li class="py-2 border-t border-slate-100">
@@ -305,7 +319,7 @@ function drawerHTML(d) {
       <section><h3 class="font-semibold mb-1">Incentives, in dollars</h3>
         <p class="text-xs text-slate-500 mb-1">Ranges run from the guaranteed value to the best case. Offers don't stack unless their terms say so.</p>
         <ul>${incs}</ul></section>
-      <section><h3 class="font-semibold mb-2">What earlier buyers paid</h3>${past}</section>
+      <section><h3 class="font-semibold mb-2">Earlier homes: county records</h3>${past}</section>
       <section><h3 class="font-semibold mb-1">Floor plans</h3><ul>${plans || `<li class="text-sm text-slate-500">No plans listed.</li>`}</ul></section>
     </div>`;
 }

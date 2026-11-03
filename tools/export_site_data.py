@@ -42,7 +42,7 @@ WEB = ROOT / "web" / "data"
 SITE_DB = ROOT / "data" / "site.db"
 # FK order. Everything else (parcels, community_parcels, transfers, llm_calls, eval_results) stays behind.
 SHIP = ("builders", "communities", "plans", "homes", "incentives", "market_rates", "incentive_values",
-        "true_prices", "past_sales")
+        "true_prices", "past_sales", "past_records")
 log = logging.getLogger(__name__)
 
 

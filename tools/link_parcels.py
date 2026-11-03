@@ -1,6 +1,6 @@
 """Link communities to assessor parcels and publish "what earlier buyers paid" per community.
 
-    python -m tools.link_parcels                 # link, estimate, write past_sales + report
+    python -m tools.link_parcels                 # link, write past_records + past_sales + report
     python -m tools.link_parcels --spot-check    # also re-query the live assessor layers for hand checks
 
 Linking (plan §6.8): the community's streets come from its home addresses. Its centre is the densest
@@ -10,10 +10,11 @@ homes, a book-page where fewer than 60% of single-family parcels sold since 2022
 neighbourhood and is dropped. A parcel claimed by two communities goes to the exact match, else the
 nearer centre.
 
-Sale estimate per parcel: Alameda's recorded transfer-tax price where present; otherwise the assessed
-value backed out by 2% per July-1 roll since the sale (config/counties.yaml assessor.past_sales). No
-estimate for builder-owned lots (improvements 0), deeds before the year built, or deeds not yet
-reassessed. A community shows past sales only with 5 or more estimates.
+Records, never estimates (Herman, 2026-11-03): each linked home shows the assessor's full value as the roll
+prints it, once that value has been reset to the home's last sale (config/counties.yaml assessor.past_sales),
+plus Alameda's recorded transfer-tax price where there is one. No value for builder-owned lots
+(improvements 0), deeds before the year built, one deed covering several lots, or sales after the roll's
+lien date. A community shows the median assessed value only with 5 or more homes that have one.
 """
 import argparse
 import json
@@ -35,7 +36,7 @@ CHECKS = ROOT / ".tmp" / "reports"     # per-parcel hand checks: addresses and p
 CACHE = ROOT / ".tmp" / "link"
 RADIUS_M = 900
 MIN_NEW_SHARE = 0.6
-MIN_SALES = 5
+MIN_RECORDS = 5
 CITY_KM = 8
 PIN_KM = 2
 SQFT_BAND = 0.25
@@ -195,41 +196,74 @@ def _fiscal_year(d: str) -> int:
     return int(d[:4]) if int(d[5:7]) >= 7 else int(d[:4]) - 1
 
 
-def sale_estimate(p: dict, transfer_price: int | None, cfg: dict) -> tuple[int, str, str] | None:
-    """(price, method, sale date) or None when the value can't stand for a sale price."""
+def assessed_record(p: dict, transfer_price: int | None, cfg: dict) -> dict | None:
+    """The home's assessor record: its full assessed value as published (None until the value has been reset to
+    the last sale) and Alameda's recorded price. None when neither can stand for this home's sale."""
     if not p.get("imps") or not p.get("total"):
         return None                                              # builder-owned lot, or no value
+    if (p.get("deed_parcels") or 1) > 1:
+        return None                                              # one document, several lots: a bulk transfer
     if cfg["sale_date"] == "year_built":
         yb = p.get("year_built")
         if not yb or yb >= cfg["roll_fy"]:
-            return None                                          # not sold before the lien date
-        return round(p["total"] / 1.02 ** (cfg["roll_fy"] - yb)), "value_backed_out", str(yb)
+            return None                                          # not finished before the lien date
+        return {"assessed_value": p["total"], "roll_year": cfg["roll_fy"], "sale_date": str(yb),
+                "recorded_price": None}
     deed = p.get("deed_date")
     if not deed or (p.get("year_built") and int(deed[:4]) < p["year_built"]):
         return None
-    if (p.get("deed_parcels") or 1) > 1:
-        return None                                              # one document, several lots: a bulk transfer
-    if transfer_price:
-        return transfer_price, "transfer_tax", deed
-    if deed > cfg["reassessed_through"]:
-        return None                                              # value not reset to this sale yet
-    n = max(cfg["roll_fy"] - _fiscal_year(deed), 0)
-    return round(p["total"] / 1.02 ** n), "value_backed_out", deed
-
-
-def summarize_sales(sales: list[tuple[int, str, str]]) -> dict | None:
-    if len(sales) < MIN_SALES:
+    full = p["total"] if deed <= cfg["reassessed_through"] else None
+    if full is None and not transfer_price:
         return None
-    prices = sorted(s[0] for s in sales)
-    p25, med, p75 = statistics.quantiles(prices, n=4, method="inclusive")
-    dates = sorted(s[2] for s in sales)
-    methods = {s[1] for s in sales}
-    return {"n": len(sales), "median_est_price": round(med), "p25": round(p25), "p75": round(p75),
-            "period": f"{dates[0][:7]} to {dates[-1][:7]}",
-            "method": methods.pop() if len(methods) == 1 else "mixed"}
+    return {"assessed_value": full, "roll_year": cfg["roll_fy"], "sale_date": deed, "recorded_price": transfer_price}
 
 
-# ---------- I/O ----------
+def summarize_records(records: list[dict]) -> dict | None:
+    valued = [r for r in records if r["assessed_value"]]
+    if len(valued) < MIN_RECORDS:
+        return None
+    p25, med, p75 = statistics.quantiles(sorted(r["assessed_value"] for r in valued), n=4, method="inclusive")
+    dates = sorted(r["sale_date"] for r in valued)
+    return {"n": len(valued), "median_value": round(med), "p25": round(p25), "p75": round(p75),
+            "period": f"{dates[0][:7]} to {dates[-1][:7]}", "method": "assessed_value"}
+
+
+def rebuild_records(conn, counties: dict | None = None) -> dict[int, dict]:
+    """past_records and past_sales from the stored community-parcel links: {community_id: {records, summary,
+    linked}}."""
+    counties = counties or load_counties()
+    cfg_of = {k: c["assessor"]["past_sales"] for k, c in counties.items() if c["assessor"].get("past_sales")}
+    docs = {(r[0], r[1]): r[2] for r in conn.execute(
+        "SELECT county, deed_doc, COUNT(*) FROM parcels WHERE deed_doc IS NOT NULL AND deed_doc NOT LIKE '0000%' "
+        "GROUP BY 1, 2")}
+    transfers = {(t[0], t[1]): t[2] for t in
+                 conn.execute("SELECT apn, doc_date, price FROM transfers WHERE county='alameda' AND price IS NOT NULL")}
+    out = defaultdict(lambda: {"records": [], "linked": 0})
+    for r in conn.execute("SELECT cp.community_id, p.* FROM community_parcels cp JOIN parcels p "
+                          "ON p.county = cp.county AND p.apn = cp.apn ORDER BY cp.community_id, p.apn"):
+        p = {**dict(r), "deed_parcels": docs.get((r["county"], r["deed_doc"]), 1)}
+        c = out[r["community_id"]]
+        c["linked"] += 1
+        if r["county"] not in cfg_of:
+            continue
+        rec = assessed_record(p, transfers.get((p["apn"], p["deed_date"])) if p["county"] == "alameda" else None,
+                              cfg_of[r["county"]])
+        if rec:
+            c["records"].append({**rec, "county": p["county"], "apn": p["apn"], "address": p["address"],
+                                 "living_sqft": p.get("living_sqft"), "beds": p.get("beds")})
+    with conn:
+        conn.execute("DELETE FROM past_records")
+        conn.execute("DELETE FROM past_sales")
+        for cid, c in out.items():
+            conn.executemany("INSERT INTO past_records VALUES (?,?,?,?,?,?,?,?,?,?)",
+                             [(cid, x["county"], x["apn"], x["address"], x["assessed_value"], x["roll_year"],
+                               x["sale_date"], x["living_sqft"], x["beds"], x["recorded_price"]) for x in c["records"]])
+            c["summary"] = s = summarize_records(c["records"])
+            if s:
+                conn.execute("INSERT INTO past_sales VALUES (?,?,?,?,?,?,?,?)",
+                             (cid, s["n"], s["median_value"], s["p25"], s["p75"], s["period"], s["method"], c["linked"]))
+    return dict(out)
+
 
 def communities(conn, fips_to_key: dict) -> list[dict]:
     rows = conn.execute("SELECT c.id, c.name, c.city, c.url, c.county_fips, b.name builder, h.address, h.sqft FROM communities c "
@@ -315,35 +349,19 @@ def run(conn) -> list[dict]:
         links[c["id"]] = link(parcels, c["streets"], c["exact"], c["centre"], share, c.get("sqft"))
     links = resolve_overlaps(links)
 
-    transfers = {(t["apn"], t["doc_date"]): t["price"] for t in
-                 conn.execute("SELECT apn, doc_date, price FROM transfers WHERE price IS NOT NULL")}
-    parcel = {(p["county"], p["apn"]): p for ps in by_county.values() for p in ps}
     with conn:
         conn.execute("DELETE FROM community_parcels")
-        conn.execute("DELETE FROM past_sales")
         for c in comms:
             if not c.get("centre"):
-                c["summary"], c["linked"] = None, 0
                 continue
             conn.execute("UPDATE communities SET lat=?, lng=?, geo_method='parcel_cluster' WHERE id=?",
                          (*c["centre"], c["id"]))
-            cfg = counties[c["county"]]["assessor"]["past_sales"]
-            sales = []
-            for l in links[c["id"]]:
-                conn.execute("INSERT INTO community_parcels VALUES (?,?,?,?,?)",
-                             (c["id"], l["county"], l["apn"], l["match_method"], l["confidence"]))
-                p = parcel[(l["county"], l["apn"])]
-                est = sale_estimate(p, transfers.get((p["apn"], p["deed_date"])) if l["county"] == "alameda"
-                                    else None, cfg)
-                if est:
-                    sales.append(est)
-            c["linked"], c["sales"] = len(links[c["id"]]), sales
-            c["summary"] = summarize_sales(sales)
-            if c["summary"]:
-                s = c["summary"]
-                conn.execute("INSERT INTO past_sales VALUES (?,?,?,?,?,?,?,?)",
-                             (c["id"], s["n"], s["median_est_price"], s["p25"], s["p75"], s["period"],
-                              s["method"], c["linked"]))
+            conn.executemany("INSERT INTO community_parcels VALUES (?,?,?,?,?)",
+                             [(c["id"], l["county"], l["apn"], l["match_method"], l["confidence"]) for l in links[c["id"]]])
+    built = rebuild_records(conn, counties)
+    for c in comms:
+        b = built.get(c["id"], {}) if c.get("centre") else {}
+        c["linked"], c["records"], c["summary"] = b.get("linked", 0), b.get("records", []), b.get("summary")
     return comms
 
 
@@ -423,20 +441,22 @@ def report(conn, comms: list[dict], checks: list[dict] | None) -> Path:
                 f"{sum(t['live_ok'] for t in tt)}/{len(tt)} Alameda transfer-tax prices equal the live transfer list "
                 f"({sum(t['linked'] for t in tt)} of them on a linked parcel)."), "",
              f"Linked: {sum(1 for c in comms if c.get('centre'))} of {len(comms)} communities with home addresses "
-             f"found their streets in the parcel layer. Below {MIN_SALES} usable estimates, a community shows none.",
-             "", "| County | Builder | Community | Linked | Sales | Median (IQR) | Period | Method | Avg asking now | Pin Δ km |",
-             "|---|---|---|---:|---:|---|---|---|---:|---:|"]
+             f"found their streets in the parcel layer. With fewer than {MIN_RECORDS} full assessed values, a community "
+             "shows none.",
+             "", "| County | Builder | Community | Linked | Valued | Median assessed (IQR) | Sold | Avg asking now | Pin Δ km |",
+             "|---|---|---|---:|---:|---|---|---:|---:|"]
     for c in shown:
         s = c["summary"]
         lines.append(f"| {c['county']} | {c['builder']} | {c['name']} | {c['linked']} | {s['n']} | "
-                     f"${s['median_est_price']:,} (${s['p25']:,}–${s['p75']:,}) | {s['period']} | {s['method']} | "
+                     f"${s['median_value']:,} (${s['p25']:,}–${s['p75']:,}) | {s['period']} | "
                      + (f"${asking[c['id']]:,}" if c["id"] in asking else "—")
                      + f" | {c['pin_km'] if c.get('pin_km') is not None else '—'} |")
     hidden = sorted((c for c in comms if not c.get("summary")), key=lambda c: (c["county"], c["name"]))
     lines += ["", "## Not shown", ""] + [
         f"- {c['county']} · {c['builder']} · {c['name']}: " +
         (c["reason"] if not c.get("centre") else
-         f"{c['linked']} linked, {len(c.get('sales', []))} usable estimates") for c in hidden]
+         f"{c['linked']} linked, {sum(1 for r in c.get('records', []) if r['assessed_value'])} full assessed values")
+        for c in hidden]
     path = REPORTS / f"{date.today()}__past_sales.md"
     if checks:
         private = CHECKS / f"{date.today()}__past_sales_checks.md"
@@ -446,7 +466,7 @@ def report(conn, comms: list[dict], checks: list[dict] | None) -> Path:
         for h in comm_checks:
             s = h["summary"]
             detail += [f"**{h['community']}** ({h['builder']}, {h['county']}): n {s['n']}, "
-                       f"median ${s['median_est_price']:,}, {s['period']}, {s['method']}", ""]
+                       f"median assessed ${s['median_value']:,}, {s['period']}", ""]
             detail += [f"- {ch['apn']} {ch['address']}: stored ${ch['stored_total']:,}, live "
                        + (f"${ch['live_total']:,}" if ch["live_total"] is not None else "missing")
                        + (" ✓" if ch["value_ok"] else " ✗")

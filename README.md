@@ -1,13 +1,13 @@
 # Bay Area New-Home True Price
 
-What does a new Bay Area home actually cost once the builder's incentives are counted, and what did
-earlier buyers in that community actually pay?
+What does a new Bay Area home actually cost once the builder's incentives are counted, and what do the
+county's records say about the homes already sold in that community?
 
 For every production-builder community in Contra Costa, Alameda, Santa Clara and San Joaquin
 counties, this project collects move-in-ready homes with street addresses, floor plans and incentive
 fine print from the builders' own sites. It turns each incentive (flat cash, closing credits,
 permanent rate buydowns, 2/1 buydowns, ARM promos) into a dollar value, and shows the result
-as a true-price range next to assessor-recorded sale values from earlier phases.
+as a true-price range next to the county assessor's records for homes sold in earlier phases.
 
 Built for the Meta Global AI Developer Hackathon (Indie track, "Build for Your World").
 
@@ -19,7 +19,7 @@ Built for the Meta Global AI Developer Hackathon (Indie track, "Build for Your W
 - 456 move-in-ready homes in 118 communities from 15 builders; every home has a street address or lot.
 - 445 homes priced: incentives cut the asking price by 3.8% guaranteed, up to 4.3% at most, at a 7.24%
   market rate. Savings a builder already shows in the price are never counted twice.
-- 27 communities show what earlier buyers paid, from county assessor records.
+- 27 communities show 460 earlier homes' county records (assessed value as published, no estimates).
 - Extraction accuracy on 43 hand-checked pages: home recall 99.3%; price, beds and sq ft 100%.
   Hold-out builder (never tuned on): 151/151 homes.
 - Agent: 20/20 hand-checked questions on both Muse Spark Open (the live model) and Muse Spark, scored on
@@ -69,7 +69,7 @@ builder sites ──fetch (robots.txt, 2 s/host)──► preprocess (embedded J
         ──► Muse Spark extract (JSON schema) ──► validate (ranges, quotes must match the page)
         ──fail──► Muse Spark standard ──fail──► review queue
         ──► SQLite: homes, plans, incentives ──► incentive pricing (FRED rate) ──► true price range
-county assessor layers (ArcGIS) ──► link parcels by street ──► past-sale estimates per community
+county assessor layers (ArcGIS) ──► link parcels by street ──► each home's assessor record + community median
 SQLite ──► export ──► static site (Netlify)       SQLite ──► agent API (Flask on Railway, /api proxy)
 ```
 
@@ -89,15 +89,18 @@ https://bay-area-true-price.netlify.app/data/price_history.csv
 - Public data only: builders' own public pages, county assessor open data, FRED.
 - Only derived facts and a source link are stored. Raw pages, photos and floor-plan images never
   leave the build machine, and incentive fine print is linked, not copied.
-- Earlier sales are shown as community medians, never a price per address.
+- Earlier homes show their county records as published: the assessed value (land + improvements) once it has
+  been reset to the last sale, and Alameda's recorded sale price where there is one. Nothing is estimated.
 - robots.txt honoured. Builders behind a bot challenge or JavaScript-only data were skipped and logged.
 
 ## Limits
 
 - Listings and incentives are re-read every morning at 05:30 Pacific; a builder can change either
   in between. A page that could not be fetched keeps its last reading for up to 3 days, marked as carried.
-- Santa Clara has no free assessor values, so no past sales there. Most Alameda communities selling now
-  have no closed sales on the roll yet.
+- Santa Clara has no free assessor values, so no records there. Most Alameda communities selling now
+  have no closed sales on the roll yet, and Alameda's transfer list ends 3/2025.
+- An assessed value is not a sale price. San Joaquin publishes no sale dates, so its homes count once built
+  before the roll's lien date; a builder still owning a finished home would show its construction value.
 - "Up to" incentives may pay $0, so rankings use the guaranteed end of the range.
 - Not financial advice. The builder's own page is the source of truth; every figure links to it.
 
@@ -118,7 +121,7 @@ https://bay-area-true-price.netlify.app/data/price_history.csv
 | Coverage (`tools/coverage_report.py`) | Day 3 gate PASS: 463 unique homes, 100% with address or lot ([report](eval/reports/2026-10-27__coverage.md)) |
 | True prices (`tools/load_records.py`): 462 homes loaded, 456 priced | Day 4 gate PASS ([report](eval/reports/2026-10-27__true_prices.md)) |
 | Floor plans (`tools/read_floorplan.py`, Muse Spark vision): 107 Lennar plans | 98.7% of printed room labels read exactly ([report](eval/reports/2026-10-27__floorplans.md)) |
-| Parcel linking + past sales (`tools/link_parcels.py`, no model) | Day 5 gate PASS: 27 communities show what earlier buyers paid ([report](eval/reports/2026-10-27__past_sales.md)) |
+| Parcel linking + county records (`tools/link_parcels.py`, no model) | Day 5 gate PASS: 27 communities show earlier homes' assessor records ([report](eval/reports/2026-10-27__past_sales.md)) |
 | Buyer agent (`tools/agent.py` + `tools/agent_tools.py`, Muse Spark native tool calls, 7 read-only tools) | Day 6 gate PASS: 20/20 hand-checked questions, every dollar figure traced to a tool result ([report](eval/reports/2026-10-27__agent.md)) |
 | Map + web app (`web/`, `tools/server.py`): map of 101 communities, home list, community pages, agent box | **Live: https://bay-area-true-price.netlify.app** (site on Netlify; agent API on Railway behind Netlify's `/api` proxy). Checked on desktop and a 375 px phone; live answers verified against the DB |
 
@@ -144,7 +147,7 @@ uv venv --python 3.12 .venv && uv pip install --python .venv/bin/python -r requi
 .venv/bin/python -m pytest -q
 .venv/bin/python -m tools.db                  # create data/trueprice.db
 .venv/bin/python -m tools.fetch_market_rate   # latest 30-yr rate
-.venv/bin/python -m tools.link_parcels --spot-check   # past sales per community + live assessor checks
+.venv/bin/python -m tools.link_parcels --spot-check   # assessor records per community + live assessor checks
 .venv/bin/python -m tools.agent "4 bed under $1.1M true price, ready by January, Contra Costa or San Joaquin"
 .venv/bin/python -m tools.eval_agent          # 20-question agent eval -> eval/reports/<date>__agent.md
 .venv/bin/python -m tools.geocode_communities # map pins for communities the assessor roll can't place yet
@@ -229,3 +232,7 @@ building period.
     changes, 9 sold or withdrawn, 5 new; Pulte ended its up-to-$250K FLEX Cash offer. The agent eval moved
     to a frozen copy of the data with a committed key builder: Muse Spark Open 20/20, Muse Spark 19/20
     (one figure it made up was caught by the trace check).
+- **2026-11-03:** Repo made public after a history scrub (parcel hand checks and test parcels removed). Past
+    sales switched from estimates (assessed value with Prop 13 trending backed out) to the records as the
+    county publishes them: each earlier home's assessed value, sold date and size, plus Alameda's recorded
+    price where there is one; communities show the median assessed value.

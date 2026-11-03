@@ -55,7 +55,9 @@ def conn():
     c.execute("INSERT INTO incentives (id, scope, scope_id, kind, rate, structure, fine_print, source_url, label) "
               "VALUES (1, 'community', 1, 'perm_rate', 4.99, '30yr fixed', 'fp', 'https://b.example/oak', '4.99% fixed')")
     c.execute("INSERT INTO incentive_values VALUES (1, 1, 6.25, '2026-10-22', 20000, 60000, 'm', '{}', '[]')")
-    c.execute("INSERT INTO past_sales VALUES (1, 12, 870000, 820000, 905000, '2024-01 to 2025-09', 'value_backed_out', 12)")
+    c.execute("INSERT INTO past_sales VALUES (1, 12, 870000, 820000, 905000, '2024-01 to 2025-09', 'assessed_value', 12)")
+    c.executemany("INSERT INTO past_records VALUES (1, 'san_joaquin', ?, ?, ?, 2026, ?, ?, ?, NULL)",
+                  [("1", "2 Elm St", 905_000, "2024", 1_900, 4), ("2", "4 Elm St", 820_000, "2023", 1_700, 3)])
     return c
 
 
@@ -104,7 +106,11 @@ def test_reprice_reruns_the_math_with_the_buyers_down_payment(conn):
 
 
 def test_call_dispatches_and_reports_bad_arguments_instead_of_raising(conn):
-    assert call(conn, "past_sales", {"community_id": 1})["median_est_price"] == 870_000
+    got = call(conn, "past_sales", {"community_id": 1})
+    assert got["median_value"] == 870_000 and "assessed value" in got["method"]
+    assert not [k for k in got if "est" in k]                                 # records, never estimates (11-03)
+    assert got["records"][0] == {"address": "4 Elm St", "assessed_value": 820_000, "roll_year": 2026,
+                                 "sale_date": "2023", "living_sqft": 1_700, "beds": 3, "recorded_price": None}
     assert call(conn, "past_sales", {"community_id": 2})["past_sales"] is None
     assert "error" in call(conn, "search_homes", {"county": "Napa"})
     assert "error" in call(conn, "no_such_tool", {})
@@ -126,7 +132,7 @@ def test_agent_loop_runs_tools_and_returns_the_final_answer(conn):
     r = run("what did buyers pay at Oak Grove?", conn=conn, chat=fake_chat)
     assert r["answer"] == "Median $870k [C1]" and r["turns"] == 2 and r["cost_usd"] == pytest.approx(0.003)
     assert [t["tool"] for t in r["trace"]] == ["past_sales", "nope"]
-    assert r["trace"][0]["result"]["median_est_price"] == 870_000 and "error" in r["trace"][1]["result"]
+    assert r["trace"][0]["result"]["median_value"] == 870_000 and "error" in r["trace"][1]["result"]
     tool_msgs = [m for m in sent[1] if m["role"] == "tool"]
     assert [m["tool_call_id"] for m in tool_msgs] == ["a", "b"]                 # one reply per call, in order
 

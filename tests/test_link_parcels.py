@@ -1,8 +1,8 @@
-"""link_parcels: street keys, community centres, parcel links, sale estimates, community aggregates."""
+"""link_parcels: street keys, community centres, parcel links, assessor records per home, community medians."""
 import pytest
 
-from tools.link_parcels import (book_page, find_centre, link, resolve_overlaps, sale_estimate, street_key,
-                                street_matches, summarize_sales)
+from tools.link_parcels import (assessed_record, book_page, find_centre, link, resolve_overlaps, street_key,
+                                street_matches, summarize_records)
 
 ALAMEDA = {"key": "alameda", "roll_fy": 2025, "reassessed_through": "2025-12-31", "sale_date": "deed"}
 CONTRA = {"key": "contra_costa", "roll_fy": 2025, "reassessed_through": "2025-12-31", "sale_date": "deed"}
@@ -70,38 +70,69 @@ def test_overlapping_links_go_to_the_exact_match_then_the_nearest_centre():
     assert ({g["apn"] for g in got[1]}, {g["apn"] for g in got[2]}) == (set(), {"x", "y"})
 
 
-def test_alameda_uses_the_recorded_price():
+def test_the_record_is_the_assessed_value_as_published_never_backed_out():
+    """Herman 11-03: no estimates. A home shows the assessor's full value as the roll prints it, once the value has
+    been reset to the home's last sale (deed on or before the lien date the roll counts through)."""
+    p = P("a", "1 A ST, OAKLEY", 0, 0, deed_date="2024-08-10", total=1_020_000, living_sqft=1_900, beds=None)
+    assert assessed_record(p, None, CONTRA) == {"assessed_value": 1_020_000, "roll_year": 2025,
+                                                "sale_date": "2024-08-10", "recorded_price": None}
+
+
+def test_alameda_adds_the_recorded_sale_price():
     p = P("2-23-11", "x", 0, 0, county="alameda", deed_date="2023-08-18", total=1_174_000)
-    assert sale_estimate(p, 1_129_000, ALAMEDA) == (1_129_000, "transfer_tax", "2023-08-18")
+    assert assessed_record(p, 1_129_000, ALAMEDA) == {"assessed_value": 1_174_000, "roll_year": 2025,
+                                                      "sale_date": "2023-08-18", "recorded_price": 1_129_000}
+    late = {**p, "deed_date": "2026-02-01"}                  # sold after the roll's lien date: value not reset yet
+    assert assessed_record(late, 1_129_000, ALAMEDA) == {"assessed_value": None, "roll_year": 2025,
+                                                         "sale_date": "2026-02-01", "recorded_price": 1_129_000}
 
 
-def test_value_backed_out_by_fiscal_years_since_the_sale():
-    # Prop 13: +2% each July-1 roll after the sale; values are the 2025-26 roll (checked on Alameda's prices)
-    assert sale_estimate(P("a", "x", 0, 0, deed_date="2024-08-10", total=1_020_000), None, CONTRA) == (
-        1_000_000, "value_backed_out", "2024-08-10")
-    assert sale_estimate(P("a", "x", 0, 0, deed_date="2023-03-01", total=1_061_208), None, CONTRA)[0] == 1_000_000
-    assert sale_estimate(P("a", "x", 0, 0, deed_date="2025-09-23", total=818_000), None, CONTRA)[0] == 818_000
+def test_no_record_when_the_value_is_not_a_full_value_for_a_home_sale():
+    assert assessed_record(P("a", "x", 0, 0, deed_date="2026-02-01"), None, CONTRA) is None      # not reset yet
+    assert assessed_record(P("a", "x", 0, 0, imps=0), None, CONTRA) is None                     # builder-owned lot
+    assert assessed_record(P("a", "x", 0, 0, deed_date="2023-05-01", year_built=2025), None, CONTRA) is None
+    # Abigail Place: one 2024-05-29 document moved 7 lots to the builder (improvements partly built)
+    bulk = P("145151063", "x", 0, 0, deed_date="2024-05-29", deed_doc="24050324", deed_parcels=7, total=930_714)
+    assert assessed_record(bulk, None, CONTRA) is None
+    assert assessed_record({**bulk, "deed_parcels": 1}, None, CONTRA) is not None
 
 
-def test_no_estimate_when_the_value_cannot_be_a_sale_price():
-    assert sale_estimate(P("a", "x", 0, 0, deed_date="2026-02-01"), None, CONTRA) is None      # not reassessed yet
-    assert sale_estimate(P("a", "x", 0, 0, imps=0), None, CONTRA) is None                     # builder-owned lot
-    assert sale_estimate(P("a", "x", 0, 0, deed_date="2023-05-01", year_built=2025), None, CONTRA) is None
-
-
-def test_san_joaquin_assumes_the_sale_in_the_year_built():
+def test_san_joaquin_counts_homes_built_before_its_roll():
     p = P("a", "x", 0, 0, county="san_joaquin", deed_date=None, year_built=2024, total=1_040_400)
-    assert sale_estimate(p, None, SJ) == (1_000_000, "value_backed_out", "2024")
-    assert sale_estimate({**p, "year_built": 2026}, None, SJ) is None                           # after the lien date
+    assert assessed_record(p, None, SJ) == {"assessed_value": 1_040_400, "roll_year": 2026, "sale_date": "2024",
+                                            "recorded_price": None}
+    assert assessed_record({**p, "year_built": 2026}, None, SJ) is None                         # after the lien date
 
 
-def test_summarize_needs_five_sales():
-    sales = [(v, "value_backed_out", d) for v, d in [(100_000, "2023-08-18"), (200_000, "2024-01-02"),
-                                                       (300_000, "2025-10-01"), (400_000, "2024-05-05")]]
-    assert summarize_sales(sales) is None
-    s = summarize_sales(sales + [(500_000, "transfer_tax", "2024-02-02")])
-    assert s == {"n": 5, "median_est_price": 300_000, "p25": 200_000, "p75": 400_000,
-                 "period": "2023-08 to 2025-10", "method": "mixed"}
+def test_community_median_is_of_assessed_values_and_needs_five():
+    recs = [{"assessed_value": v, "sale_date": d, "recorded_price": None}
+            for v, d in [(100_000, "2023-08-18"), (200_000, "2024-01-02"), (300_000, "2025-10-01"), (400_000, "2024-05-05")]]
+    only_price = {"assessed_value": None, "sale_date": "2026-02-01", "recorded_price": 9_000_000}
+    assert summarize_records(recs + [only_price]) is None                 # a recorded price alone is not a value
+    s = summarize_records(recs + [only_price, {"assessed_value": 500_000, "sale_date": "2024-02-02", "recorded_price": 480_000}])
+    assert s == {"n": 5, "median_value": 300_000, "p25": 200_000, "p75": 400_000, "period": "2023-08 to 2025-10",
+                 "method": "assessed_value"}
+
+
+def test_rebuild_from_stored_links_writes_per_home_records_and_the_median():
+    from tools import db
+    from tools.link_parcels import rebuild_records
+    conn = db.connect(":memory:")
+    conn.execute("INSERT INTO builders (id, name, site) VALUES (1, 'B', 'https://b.example')")
+    conn.execute("INSERT INTO communities (id, builder_id, name, county_fips, url, fetched_at) "
+                 "VALUES (1, 1, 'Example Grove', '06013', 'https://b.example/g', '2026-11-03')")
+    for i in range(6):
+        conn.execute("INSERT INTO parcels (county, apn, address, land, imps, total, deed_date, deed_doc, living_sqft) "
+                     "VALUES ('contra_costa', ?, ?, 300000, 700000, ?, '2024-08-01', ?, 1900)",
+                     (f"10010000{i}", f"{i} EXAMPLE CT, OAKLEY", 1_000_000 + i * 10_000, f"doc{i}"))
+        conn.execute("INSERT INTO community_parcels VALUES (1, 'contra_costa', ?, 'street', 0.8)", (f"10010000{i}",))
+    rebuild_records(conn)
+    assert tuple(conn.execute("SELECT n, median_value, method, linked FROM past_sales").fetchone()) == (
+        6, 1_025_000, "assessed_value", 6)
+    rows = conn.execute("SELECT address, assessed_value, roll_year, sale_date, living_sqft, recorded_price "
+                        "FROM past_records ORDER BY address").fetchall()
+    assert [tuple(r) for r in rows][0] == ("0 EXAMPLE CT, OAKLEY", 1_000_000, 2025, "2024-08-01", 1900, None)
+    assert len(rows) == 6
 
 
 def test_streets_count_only_near_the_community_city():
@@ -112,13 +143,6 @@ def test_streets_count_only_near_the_community_city():
     assert find_centre(TRACT + oak, {"A", "B"}, city_centre=near_oakley)[0] == pytest.approx(37.9903, abs=0.0005)
     assert find_centre(oak, {"A", "B"}, city_centre=near_oakley) is None
     assert find_centre(oak, {"A", "B"})[0] == pytest.approx(37.80045, abs=0.0005)   # no city known: densest wins
-
-
-def test_a_deed_covering_several_parcels_is_not_a_home_sale():
-    # Abigail Place: one 2024-05-29 document moved 7 lots to the builder (improvements partly built)
-    p = P("145151063", "x", 0, 0, deed_date="2024-05-29", deed_doc="24050324", deed_parcels=7, total=930_714)
-    assert sale_estimate(p, None, CONTRA) is None
-    assert sale_estimate({**p, "deed_parcels": 1}, None, CONTRA) is not None
 
 
 def test_page_points_reads_embedded_coordinates():
@@ -167,7 +191,7 @@ def test_the_committed_report_carries_no_parcel_address_or_price(tmp_path, monke
     monkeypatch.setattr(lp, "REPORTS", tmp_path / "reports")
     monkeypatch.setattr(lp, "CHECKS", tmp_path / "checks", raising=False)
     (tmp_path / "reports").mkdir()
-    summary = {"n": 6, "median_est_price": 900_000, "p25": 850_000, "p75": 950_000, "period": "2025", "method": "m"}
+    summary = {"n": 6, "median_value": 900_000, "p25": 850_000, "p75": 950_000, "period": "2025", "method": "m"}
     checks = {"communities": [{"community": "Example Grove", "builder": "B", "county": "alameda", "summary": summary,
                                "checks": [{"apn": "900-00-001", "address": "100 EXAMPLE CT", "stored_total": 1_111_111,
                                            "live_total": 1_111_111, "value_ok": True}]}],

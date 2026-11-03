@@ -36,7 +36,9 @@ ask otherwise: address, community, beds, asking, true price range (one figure wh
 date ("ready now" when move_in_status is now). Only list homes that meet every condition they gave. If none do, \
 say so, say which condition rules them out, and offer to relax it; do not list homes that miss a condition.
 - Months: "ready by January" means ready_by = the coming January (YYYY-MM).
-- Past sales are community-level estimates from county assessor records, not appraisals; Santa Clara has none.
+- Past sales are county assessor records as published, not estimates or appraisals: each home's assessed value
+  (land + improvements) and, in Alameda, a recorded sale price. Call an assessed value an assessed value, never
+  a sale price. Santa Clara has none.
 - Be brief: under 200 words, plain markdown, no tables."""
 
 

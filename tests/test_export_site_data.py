@@ -33,12 +33,13 @@ def test_export_writes_site_json_detail_files_and_a_slim_db(conn, tmp_path):
     assert site["meta"]["market_rate"] == 6.25 and site["meta"]["homes"] == 5
     assert {p["plan_id"]: p["community_id"] for p in site["plans"]} == {1: 1, 2: 1}
     detail = json.loads((tmp_path / "web" / "c" / "1.json").read_text())
-    assert detail["past_sales"]["median_est_price"] == 870_000
+    assert detail["past_sales"]["median_value"] == 870_000 and len(detail["past_sales"]["records"]) == 2
     assert all("fine_print" not in i for i in detail["incentives"])             # builder text stays out
     slim = sqlite3.connect(tmp_path / "site.db")
     assert slim.execute("SELECT COUNT(*) FROM homes").fetchone()[0] == 5
     assert slim.execute("SELECT COUNT(*) FROM parcels").fetchone()[0] == 0      # per-address data never ships
     assert slim.execute("SELECT COUNT(*) FROM llm_calls").fetchone()[0] == 0
+    assert slim.execute("SELECT COUNT(*) FROM past_records").fetchone()[0] == 2   # the agent shows them too
     assert out["communities"] == 2
 
 
