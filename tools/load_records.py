@@ -155,15 +155,16 @@ def apply_rate_terms(incs: list[dict], terms: list[dict]) -> list[dict]:
     have = {(i["kind"], i.get("rate")) for i in incs if i.get("structure")}
     out = []
     for i in incs:
-        if i["kind"] != "perm_rate" or i.get("structure") or i.get("rate") is None:
-            out.append(i)
+        if i["kind"] != "perm_rate" or i.get("structure") or i.get("rate") is None \
+                or BUYER_GROUP.search(i["label"]) or GUARANTEE.search(i["label"]):
+            out.append(i)       # a label naming a restriction stays, so pricing_set still sees it
             continue
         hit = next((t for t in terms if t["match"]["rate"] == i["rate"] and t["match"]["apr"] == i.get("apr")), None)
         if hit:
             new = [o for o in hit["offers"] if (o["kind"], o["rate"]) not in have]
             have |= {(o["kind"], o["rate"]) for o in new}
             out += [{**i, **o, "label": f"{o['rate']}% ({o['apr']}% APR) {o['structure']}", "filled_from_offers": True,
-                     "fine_print": f"Loan terms: {hit['source']}"} for o in new]
+                     "fine_print": " ".join(filter(None, [i.get("fine_print"), f"Loan terms: {hit['source']}"]))} for o in new]
         elif (i.get("apr") or 0) - i["rate"] >= UNSTATED_APR_GAP and "fixed" not in (
                 " ".join(filter(None, [i.get("label"), i.get("evidence"), i.get("fine_print")])).lower()):
             out.append({**i, "structure": TERM_NOT_STATED})

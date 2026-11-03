@@ -2,7 +2,7 @@
 import json
 
 import tools.load_records as lr
-from tools.load_records import apply_rate_terms, assign_homes, fill_from_offers, home_incentives
+from tools.load_records import apply_rate_terms, assign_homes, fill_from_offers, home_incentives, pricing_set
 
 
 def page(name, kind, url, homes=(), incentives=(), community="C"):
@@ -209,3 +209,19 @@ def test_a_stated_fixed_rate_and_a_small_apr_gap_stay_as_they_are():
     close = rate_offer(5.49, 5.76)
     no_apr = rate_offer(5.49, None)
     assert apply_rate_terms([named, with_term, close, no_apr], []) == [named, with_term, close, no_apr]
+
+
+def test_filling_in_the_loan_keeps_a_buyer_restriction_out_of_the_price():
+    limited = rate_offer(4.99, 5.909, label="4.99% for teachers and nurses")
+    got = apply_rate_terms([limited], TERMS)
+    counted, excluded = pricing_set(got, "home1")
+    assert counted == [] and {why for _, why in excluded} == {"eligibility_limited"}
+
+
+def test_filling_in_the_loan_keeps_the_fine_print_that_lets_offers_combine():
+    combines = rate_offer(4.99, 5.909, fine_print="Can be combined with other offers.")
+    got = apply_rate_terms([combines], TERMS)
+    assert all("Can be combined with other offers." in i["fine_print"] for i in got)
+    assert all("https://b.example/promo" in i["fine_print"] for i in got)
+    counted, _ = pricing_set(got, "home1")
+    assert all(i["pool_id"] is None for i in counted)

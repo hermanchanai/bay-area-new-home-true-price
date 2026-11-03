@@ -396,22 +396,29 @@ STEP_LABEL = {"search_homes": "Searched homes", "find_communities": "Looked up c
 def _step_arg(key: str, value) -> str:
     if isinstance(value, bool):
         return key.replace("_", " ") if value else f"not {key.replace('_', ' ')}"
-    shown = ", ".join(value) if isinstance(value, list) else f"{value:g}" if isinstance(value, float) else value
-    if key.endswith("_price") and isinstance(value, int):
+    if isinstance(value, list):
+        shown = ", ".join(map(str, value))
+    elif isinstance(value, float):
+        shown = f"{value:g}"
+    elif key.endswith("_price") and isinstance(value, int):
         shown = f"${value:,}"
+    else:
+        shown = value
     return f"{key.replace('_', ' ')} {shown}"
 
 
 def describe_steps(trace: list[dict]) -> list[str]:
-    """Each tool call in plain words, for the site to show under an answer."""
+    """Each tool call in plain words, for the site to show under an answer. The agent keeps calls it got wrong in its
+    trace and recovers, so arguments here may be any shape."""
     out = []
     for t in trace:
-        name, args, res = t["tool"], t.get("args") or {}, t.get("result") or {}
+        name, res = t["tool"], t.get("result") or {}
+        args = t["args"] if isinstance(t.get("args"), dict) else {}
         text = STEP_LABEL.get(name, name)
-        if name == "compare":
-            text += f" {len(args.get('home_ids') or [])} homes"
-        elif name == "price_incentives":
-            text += f" at {args.get('down_payment_pct', 0):g}% down"
+        if name == "compare" and isinstance(args.get("home_ids"), list):
+            text += f" {len(args['home_ids'])} homes"
+        elif name == "price_incentives" and isinstance(args.get("down_payment_pct"), (int, float)):
+            text += f" at {args['down_payment_pct']:g}% down"
         elif name in ("search_homes", "find_communities"):
             shown = "; ".join(_step_arg(k, v) for k, v in args.items() if k not in ("sort", "limit"))
             text += f": {shown}" if shown else ""

@@ -148,6 +148,20 @@ def test_steps_say_what_each_tool_call_did_in_plain_words():
                    "Opened a floor plan → nothing found"]
 
 
+@pytest.mark.parametrize("name,args", [
+    ("price_incentives", {"home_id": 9, "down_payment_pct": "ten"}),
+    ("price_incentives", {"home_id": 9, "down_payment_pct": [10]}),
+    ("compare", {"home_ids": "1, 2"}),
+    ("search_homes", {"county": [1, 2], "min_beds": "four", "max_true_price": "lots"}),
+    ("search_homes", ["not", "an", "object"]),
+    ("get_community", None),
+])
+def test_steps_survive_the_bad_arguments_the_agent_can_recover_from(name, args):
+    from tools.agent_tools import describe_steps
+    got = describe_steps([{"tool": name, "args": args, "result": {"error": "bad arguments"}}])
+    assert len(got) == 1 and got[0].endswith("→ nothing found")
+
+
 def test_agent_loop_runs_tools_and_returns_the_final_answer(conn):
     from tools.agent import run
     from tools.llm import Result
