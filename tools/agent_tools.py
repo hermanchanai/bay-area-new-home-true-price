@@ -231,21 +231,24 @@ def past_sales(conn, community_id: int) -> dict:
         out["past_sales"] = None
         out["reason"] = ("Santa Clara County's open assessor data has no sale prices or values."
                          if c["county_fips"] == "06085" else
-                         "Fewer than 5 homes in this community have a full assessed value on the county roll yet.")
+                         "No home in this community has a full assessed value on the county roll yet.")
         return out
     records = [dict(x) for x in conn.execute(
         "SELECT address, assessed_value, roll_year, sale_date, living_sqft, beds, recorded_price FROM past_records "
         "WHERE community_id = ? ORDER BY sale_date, address", (community_id,))]
-    return {**out, "past_sales": "found", "n": r["n"], "median_value": r["median_value"], "p25": r["p25"],
-            "p75": r["p75"], "period": r["period"],
-            "method": ("the assessed value as published on the county roll (land + improvements), for homes finished "
-                       "before the roll's lien date; the county publishes no sale dates, so 'sold' is the year built"
-                       if c["county_fips"] == "06077" else
-                       "the assessed value as published on the county roll (land + improvements), for homes whose value "
-                       "has been reset to their last sale (deed on or before the lien date)"
-                       + ("; Alameda also records the sale price" if c["county_fips"] == "06001" else "")),
-            "caveat": "County records, not appraisals. An assessed value is not a sale price.",
-            "records": records}
+    found = {"n": r["n"], "period": r["period"], "withheld": r["withheld"],
+             "method": ("the assessed value as published on the county roll (land + improvements), for homes finished "
+                        "before the roll's lien date; the county publishes no sale dates, so 'sold' is the year built"
+                        if c["county_fips"] == "06077" else
+                        "the assessed value as published on the county roll (land + improvements), for homes whose value "
+                        "has been reset to their last sale (deed on or before the lien date)"
+                        + ("; Alameda also records the sale price" if c["county_fips"] == "06001" else "")),
+             "caveat": "County records, not appraisals. An assessed value is not a sale price.",
+             "records": records}
+    if r["median_value"] is None:
+        return {**out, "past_sales": "records_only", **found,
+                "reason": f"Only {r['n']} homes here have a full assessed value, too few for a median."}
+    return {**out, "past_sales": "found", "median_value": r["median_value"], "p25": r["p25"], "p75": r["p75"], **found}
 
 
 def get_community(conn, community_id: int, today: str | None = None) -> dict:

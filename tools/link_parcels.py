@@ -14,7 +14,8 @@ Records, never estimates (Herman, 2026-11-03): each linked home shows the assess
 prints it, once that value has been reset to the home's last sale (config/counties.yaml assessor.past_sales),
 plus Alameda's recorded transfer-tax price where there is one. No value for builder-owned lots
 (improvements 0), deeds before the year built, one deed covering several lots, or sales after the roll's
-lien date. A community shows the median assessed value only with 5 or more homes that have one.
+lien date. A community shows the median assessed value only with 5 or more homes that have one. A value far under
+the community's median per sq ft is withheld as likely part-built (withhold_part_built).
 """
 import argparse
 import json
@@ -37,6 +38,8 @@ CACHE = ROOT / ".tmp" / "link"
 RADIUS_M = 900
 MIN_NEW_SHARE = 0.6
 MIN_RECORDS = 5
+PART_BUILT_SHARE = 0.6   # a value under this share of the community's median looks part-built, not a whole home
+MIN_COMPARE = 3          # fewer valued homes than this give nothing to compare with
 CITY_KM = 8
 PIN_KM = 2
 SQFT_BAND = 0.25
@@ -218,14 +221,49 @@ def assessed_record(p: dict, transfer_price: int | None, cfg: dict) -> dict | No
     return {"assessed_value": full, "roll_year": cfg["roll_fy"], "sale_date": deed, "recorded_price": transfer_price}
 
 
-def summarize_records(records: list[dict]) -> dict | None:
+def withhold_part_built(records: list[dict]) -> tuple[list[dict], int]:
+    """(records to show, how many values withheld). A value far under the community's median per sq ft (or median
+    value, with no sq ft) can't be confirmed as a whole home: San Joaquin has no deed dates, so a home the builder
+    still held on the lien date shows its construction value. A withheld home keeps a recorded price if it has one."""
     valued = [r for r in records if r["assessed_value"]]
-    if len(valued) < MIN_RECORDS:
+    if len(valued) < MIN_COMPARE:
+        return records, 0
+    per_sqft = [r["assessed_value"] / r["living_sqft"] for r in valued if r.get("living_sqft")]
+    mid_sqft = statistics.median(per_sqft) if len(per_sqft) >= MIN_COMPARE else None
+    mid_value = statistics.median(r["assessed_value"] for r in valued)
+
+    def low(r):
+        if r.get("living_sqft") and mid_sqft:
+            return r["assessed_value"] / r["living_sqft"] < PART_BUILT_SHARE * mid_sqft
+        return r["assessed_value"] < PART_BUILT_SHARE * mid_value
+
+    kept, withheld = [], 0
+    for r in records:
+        if not r["assessed_value"] or not low(r):
+            kept.append(r)
+            continue
+        withheld += 1
+        if r.get("recorded_price"):
+            kept.append({**r, "assessed_value": None})
+    return kept, withheld
+
+
+def summarize_records(records: list[dict]) -> dict | None:
+    """Counts and dates for any community with records; the median and middle half need MIN_RECORDS values."""
+    if not records:
         return None
-    p25, med, p75 = statistics.quantiles(sorted(r["assessed_value"] for r in valued), n=4, method="inclusive")
-    dates = sorted(r["sale_date"] for r in valued)
-    return {"n": len(valued), "median_value": round(med), "p25": round(p25), "p75": round(p75),
+    valued = [r for r in records if r["assessed_value"]]
+    p25 = med = p75 = None
+    if len(valued) >= MIN_RECORDS:
+        p25, med, p75 = (round(q) for q in statistics.quantiles(sorted(r["assessed_value"] for r in valued), n=4,
+                                                                method="inclusive"))
+    dates = sorted(r["sale_date"] for r in valued or records)
+    return {"n": len(valued), "median_value": med, "p25": p25, "p75": p75,
             "period": f"{dates[0][:7]} to {dates[-1][:7]}", "method": "assessed_value"}
+
+
+def _median_text(s: dict) -> str:
+    return f"${s['median_value']:,} (${s['p25']:,}–${s['p75']:,})" if s["median_value"] else "under 5 values, no median"
 
 
 def rebuild_records(conn, counties: dict | None = None) -> dict[int, dict]:
@@ -255,13 +293,15 @@ def rebuild_records(conn, counties: dict | None = None) -> dict[int, dict]:
         conn.execute("DELETE FROM past_records")
         conn.execute("DELETE FROM past_sales")
         for cid, c in out.items():
+            c["records"], c["withheld"] = withhold_part_built(c["records"])
             conn.executemany("INSERT INTO past_records VALUES (?,?,?,?,?,?,?,?,?,?)",
                              [(cid, x["county"], x["apn"], x["address"], x["assessed_value"], x["roll_year"],
                                x["sale_date"], x["living_sqft"], x["beds"], x["recorded_price"]) for x in c["records"]])
             c["summary"] = s = summarize_records(c["records"])
             if s:
-                conn.execute("INSERT INTO past_sales VALUES (?,?,?,?,?,?,?,?)",
-                             (cid, s["n"], s["median_value"], s["p25"], s["p75"], s["period"], s["method"], c["linked"]))
+                conn.execute("INSERT INTO past_sales VALUES (?,?,?,?,?,?,?,?,?)",
+                             (cid, s["n"], s["median_value"], s["p25"], s["p75"], s["period"], s["method"], c["linked"],
+                              c["withheld"]))
     return dict(out)
 
 
@@ -448,7 +488,7 @@ def report(conn, comms: list[dict], checks: list[dict] | None) -> Path:
     for c in shown:
         s = c["summary"]
         lines.append(f"| {c['county']} | {c['builder']} | {c['name']} | {c['linked']} | {s['n']} | "
-                     f"${s['median_value']:,} (${s['p25']:,}–${s['p75']:,}) | {s['period']} | "
+                     f"{_median_text(s)} | {s['period']} | "
                      + (f"${asking[c['id']]:,}" if c["id"] in asking else "—")
                      + f" | {c['pin_km'] if c.get('pin_km') is not None else '—'} |")
     hidden = sorted((c for c in comms if not c.get("summary")), key=lambda c: (c["county"], c["name"]))
@@ -466,7 +506,7 @@ def report(conn, comms: list[dict], checks: list[dict] | None) -> Path:
         for h in comm_checks:
             s = h["summary"]
             detail += [f"**{h['community']}** ({h['builder']}, {h['county']}): n {s['n']}, "
-                       f"median assessed ${s['median_value']:,}, {s['period']}", ""]
+                       f"median assessed {_median_text(s)}, {s['period']}", ""]
             detail += [f"- {ch['apn']} {ch['address']}: stored ${ch['stored_total']:,}, live "
                        + (f"${ch['live_total']:,}" if ch["live_total"] is not None else "missing")
                        + (" ✓" if ch["value_ok"] else " ✗")
@@ -491,3 +531,4 @@ if __name__ == "__main__":
     comms = run(conn)
     checks = spot_check(conn, comms) if args.spot_check else None
     print(report(conn, comms, checks))
+

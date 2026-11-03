@@ -55,7 +55,7 @@ def conn():
     c.execute("INSERT INTO incentives (id, scope, scope_id, kind, rate, structure, fine_print, source_url, label) "
               "VALUES (1, 'community', 1, 'perm_rate', 4.99, '30yr fixed', 'fp', 'https://b.example/oak', '4.99% fixed')")
     c.execute("INSERT INTO incentive_values VALUES (1, 1, 6.25, '2026-10-22', 20000, 60000, 'm', '{}', '[]')")
-    c.execute("INSERT INTO past_sales VALUES (1, 12, 870000, 820000, 905000, '2024-01 to 2025-09', 'assessed_value', 12)")
+    c.execute("INSERT INTO past_sales VALUES (1, 12, 870000, 820000, 905000, '2024-01 to 2025-09', 'assessed_value', 12, 1)")
     c.executemany("INSERT INTO past_records VALUES (1, 'san_joaquin', ?, ?, ?, 2026, ?, ?, ?, NULL)",
                   [("1", "2 Elm St", 905_000, "2024", 1_900, 4), ("2", "4 Elm St", 820_000, "2023", 1_700, 3)])
     return c
@@ -111,10 +111,20 @@ def test_call_dispatches_and_reports_bad_arguments_instead_of_raising(conn):
     assert not [k for k in got if "est" in k]                                 # records, never estimates (11-03)
     assert got["records"][0] == {"address": "4 Elm St", "assessed_value": 820_000, "roll_year": 2026,
                                  "sale_date": "2023", "living_sqft": 1_700, "beds": 3, "recorded_price": None}
+    assert got["withheld"] == 1
     assert call(conn, "past_sales", {"community_id": 2})["past_sales"] is None
     assert "error" in call(conn, "search_homes", {"county": "Napa"})
     assert "error" in call(conn, "no_such_tool", {})
     assert "error" in call(conn, "get_community", {"community_id": 999})
+
+
+def test_past_sales_with_under_five_records_lists_them_with_no_median(conn):
+    conn.execute("INSERT INTO past_sales VALUES (2, 2, NULL, NULL, NULL, '2024 to 2025', 'assessed_value', 2, 0)")
+    conn.execute("INSERT INTO past_records VALUES (2, 'san_joaquin', '9', '9 Oak Ct', 700000, 2026, '2024', 1800, 3, NULL)")
+    got = call(conn, "past_sales", {"community_id": 2})
+    assert got["past_sales"] == "records_only" and got["n"] == 2 and "median_value" not in got
+    assert got["records"][0]["address"] == "9 Oak Ct" and "too few" in got["reason"]
+    assert "assessed value" in got["method"] and "not a sale price" in got["caveat"]
 
 
 def test_agent_loop_runs_tools_and_returns_the_final_answer(conn):

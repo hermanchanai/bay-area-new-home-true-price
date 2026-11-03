@@ -2,7 +2,7 @@
 import pytest
 
 from tools.link_parcels import (assessed_record, book_page, find_centre, link, resolve_overlaps, street_key,
-                                street_matches, summarize_records)
+                                street_matches, summarize_records, withhold_part_built)
 
 ALAMEDA = {"key": "alameda", "roll_fy": 2025, "reassessed_through": "2025-12-31", "sale_date": "deed"}
 CONTRA = {"key": "contra_costa", "roll_fy": 2025, "reassessed_through": "2025-12-31", "sale_date": "deed"}
@@ -108,10 +108,49 @@ def test_community_median_is_of_assessed_values_and_needs_five():
     recs = [{"assessed_value": v, "sale_date": d, "recorded_price": None}
             for v, d in [(100_000, "2023-08-18"), (200_000, "2024-01-02"), (300_000, "2025-10-01"), (400_000, "2024-05-05")]]
     only_price = {"assessed_value": None, "sale_date": "2026-02-01", "recorded_price": 9_000_000}
-    assert summarize_records(recs + [only_price]) is None                 # a recorded price alone is not a value
+    few = summarize_records(recs + [only_price])                          # a recorded price alone is not a value
+    assert few["n"] == 4 and few["median_value"] is None and few["p25"] is None and few["p75"] is None
+    assert few["period"] == "2023-08 to 2025-10"                          # the records still show, with no median
     s = summarize_records(recs + [only_price, {"assessed_value": 500_000, "sale_date": "2024-02-02", "recorded_price": 480_000}])
     assert s == {"n": 5, "median_value": 300_000, "p25": 200_000, "p75": 400_000, "period": "2023-08 to 2025-10",
                  "method": "assessed_value"}
+    assert summarize_records([]) is None
+    assert summarize_records([only_price])["period"] == "2026-02 to 2026-02"   # price only: no values to date
+
+
+def _rec(value, sqft=2_000, recorded=None):
+    return {"assessed_value": value, "living_sqft": sqft, "recorded_price": recorded, "sale_date": "2025"}
+
+
+def test_a_value_far_under_the_community_per_sqft_is_withheld_as_likely_part_built():
+    full = [_rec(1_000_000), _rec(1_020_000), _rec(980_000)]
+    part = _rec(500_000, sqft=2_703)                                      # $185/sq ft against about $500
+    kept, withheld = withhold_part_built(full + [part])
+    assert kept == full and withheld == 1
+
+
+def test_a_big_home_at_a_normal_value_stays_and_sixty_percent_itself_stays():
+    full = [_rec(1_000_000), _rec(1_000_000), _rec(1_000_000)]
+    edge = _rec(600_000)                                                  # exactly 60% of the median per sq ft
+    kept, withheld = withhold_part_built(full + [edge, _rec(1_500_000, sqft=3_000)])
+    assert withheld == 0 and len(kept) == 5
+
+
+def test_no_sqft_compares_the_value_with_the_community_median_value():
+    full = [_rec(1_000_000), _rec(1_000_000), _rec(1_000_000)]
+    kept, withheld = withhold_part_built(full + [_rec(590_000, sqft=None), _rec(610_000, sqft=None)])
+    assert withheld == 1 and [r["assessed_value"] for r in kept][-1] == 610_000
+
+
+def test_a_withheld_value_keeps_the_recorded_sale_price():
+    full = [_rec(1_000_000), _rec(1_000_000), _rec(1_000_000)]
+    kept, withheld = withhold_part_built(full + [_rec(400_000, recorded=950_000)])
+    assert withheld == 1 and kept[-1]["assessed_value"] is None and kept[-1]["recorded_price"] == 950_000
+
+
+def test_under_three_values_there_is_nothing_to_compare_with():
+    recs = [_rec(1_000_000), _rec(300_000)]
+    assert withhold_part_built(recs) == (recs, 0)
 
 
 def test_rebuild_from_stored_links_writes_per_home_records_and_the_median():
@@ -133,6 +172,38 @@ def test_rebuild_from_stored_links_writes_per_home_records_and_the_median():
                         "FROM past_records ORDER BY address").fetchall()
     assert [tuple(r) for r in rows][0] == ("0 EXAMPLE CT, OAKLEY", 1_000_000, 2025, "2024-08-01", 1900, None)
     assert len(rows) == 6
+
+
+def _linked_community(conn, values):
+    conn.execute("INSERT INTO builders (id, name, site) VALUES (1, 'B', 'https://b.example')")
+    conn.execute("INSERT INTO communities (id, builder_id, name, county_fips, url, fetched_at) "
+                 "VALUES (1, 1, 'Example Grove', '06013', 'https://b.example/g', '2026-11-03')")
+    for i, v in enumerate(values):
+        conn.execute("INSERT INTO parcels (county, apn, address, land, imps, total, deed_date, deed_doc, living_sqft) "
+                     "VALUES ('contra_costa', ?, ?, 300000, 700000, ?, '2024-08-01', ?, 1900)",
+                     (f"10010000{i}", f"{i} EXAMPLE CT, OAKLEY", v, f"doc{i}"))
+        conn.execute("INSERT INTO community_parcels VALUES (1, 'contra_costa', ?, 'street', 0.8)", (f"10010000{i}",))
+
+
+def test_rebuild_drops_part_built_values_from_the_records_and_the_median_and_counts_them():
+    from tools import db
+    from tools.link_parcels import rebuild_records
+    conn = db.connect(":memory:")
+    _linked_community(conn, [1_000_000, 1_010_000, 1_020_000, 1_030_000, 1_040_000, 400_000])
+    rebuild_records(conn)
+    assert tuple(conn.execute("SELECT n, median_value, withheld FROM past_sales").fetchone()) == (5, 1_020_000, 1)
+    assert conn.execute("SELECT MIN(assessed_value), COUNT(*) FROM past_records").fetchone()[0:2] == (1_000_000, 5)
+
+
+def test_rebuild_keeps_a_community_with_under_five_records_with_no_median():
+    from tools import db
+    from tools.link_parcels import rebuild_records
+    conn = db.connect(":memory:")
+    _linked_community(conn, [1_000_000, 1_010_000])
+    rebuild_records(conn)
+    row = conn.execute("SELECT n, median_value, p25, p75, period, withheld FROM past_sales").fetchone()
+    assert tuple(row) == (2, None, None, None, "2024-08 to 2024-08", 0)
+    assert conn.execute("SELECT COUNT(*) FROM past_records").fetchone()[0] == 2
 
 
 def test_streets_count_only_near_the_community_city():
@@ -184,7 +255,7 @@ def test_parcels_far_outside_the_community_home_sizes_belong_to_another_collecti
 
 
 def test_the_committed_report_carries_no_parcel_address_or_price(tmp_path, monkeypatch):
-    """Data rights: past sales ship as community aggregates only. The 10-27 report listed APNs, addresses, assessed
+    """The committed report stays aggregate: the site shows records, the report needs no parcel list. The 10-27 report listed APNs, addresses, assessed
     values and transfer prices in eval/reports (committed); they belong in the gitignored hand-check file."""
     import tools.link_parcels as lp
     from tools import db
