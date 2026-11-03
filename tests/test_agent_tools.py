@@ -214,3 +214,13 @@ def test_ready_month_year_against_the_next_month_and_month_only_iso():
     assert ready_month("Nov / 2027 Jan", "month", "2026-10-30") == "2027-01"
     assert ready_month("Nov 2026 Jan", "month", "2026-10-30") == "2027-01"
     assert ready_month("2026-12", "month", "2026-10-30") == "2026-12"
+
+
+def test_check_claims_flags_a_figure_no_longer_in_the_document(conn, capsys):
+    from tools.check_claims import check, facts, readme_claims
+    f = facts(conn)
+    claims = readme_claims(f)
+    assert f["homes"] == conn.execute("SELECT COUNT(*) FROM homes").fetchone()[0]
+    assert check("doc", " ".join(want for _, want in claims), claims) == 0
+    assert check("doc", "stale text", claims) == len(claims)
+    assert "MISSING" in capsys.readouterr().out

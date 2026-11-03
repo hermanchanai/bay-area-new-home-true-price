@@ -14,29 +14,32 @@ Built for the Meta Global AI Developer Hackathon (Indie track, "Build for Your W
 **Live: https://bay-area-true-price.netlify.app**: map, community pages and an agent you can ask
 ("cheapest 4-bed in Contra Costa after incentives, ready now?").
 
-## In numbers (data read 2026-11-02; refreshed every morning)
+## In numbers (data read 2026-11-03; refreshed every morning)
 
-- 456 move-in-ready homes in 118 communities from 15 builders; every home has a street address or lot.
-- 445 homes priced: incentives cut the asking price by 3.8% guaranteed, up to 4.3% at most, at a 7.24%
+- 455 move-in-ready homes in 117 communities from 15 builders; every home has a street address or lot.
+- 444 homes priced: incentives cut the asking price by 4.3% guaranteed, up to 5.0% at most, at a 7.24%
   market rate. Savings a builder already shows in the price are never counted twice.
-- 27 communities show 460 earlier homes' county records (assessed value as published, no estimates).
+- 37 communities show 453 earlier homes' county records (assessed value as published, no estimates); 27 of them
+  have enough for a median.
 - Extraction accuracy on 43 hand-checked pages: home recall 99.3%; price, beds and sq ft 100%.
   Hold-out builder (never tuned on): 151/151 homes.
 - Agent, on frozen 10-30 data: Muse Spark 20/20 hand-checked questions, Muse Spark Open (the live model) 18/20;
   its two misses were a correct "none" that also named the nearest home, and a correct price difference it
   worked out itself, which the trace check (every dollar figure must appear in a tool result) rejects.
-- Total Meta model spend for the whole build, daily price checks included: about $4.
+- Total Meta model spend for the whole build, daily price checks included: about $8.
 
 ## Meta models used
 
-All on **Muse Spark 1.3** through the Meta Model API:
+Spend from the build's own ledger (`llm_calls`, repeat calls served from cache cost $0):
 
-| Job | Mode | Calls | Cost |
+| Job | Model and mode | Calls | Cost |
 |---|---|---:|---:|
-| Extract homes, plans and incentives from ~290 builder pages, one extractor for every site | contributor | 645 | $1.62 |
-| Re-extract pages that fail validation | standard | 28 | $0.73 |
-| Read room labels off floor-plan images (vision) | contributor | 432 | $0.10 |
-| Buyer agent with 7 read-only database tools (native tool calls), eval runs | contributor | 173 | $0.05 |
+| Extract homes, plans and incentives from ~290 builder pages, one extractor for every site, plus daily re-reads of changed pages | Muse Spark 1.3, contributor | 1,027 | $4.44 |
+| Re-extract pages that fail validation | Muse Spark 1.3, standard | 40 | $1.40 |
+| Extraction eval on open weights | Muse Spark Open | 43 | $1.04 |
+| Buyer agent with 7 read-only database tools (native tool calls), eval runs | Muse Spark Open | 331 | $0.69 |
+| Same agent, eval runs | Muse Spark 1.3, contributor | 492 | $0.10 |
+| Read room labels off floor-plan images (vision) | Muse Spark 1.3, contributor | 432 | $0.10 |
 
 Contributor mode lets Meta train on the request and is about 12× cheaper. It only ever sees public
 builder pages and my own test questions.
@@ -53,9 +56,9 @@ $1.04). Against Muse Spark contributor on the same pages ([report](eval/reports/
 | Plan beds | 100% | 95.1% |
 | Pages failed | 0 of 43 | 1 of 43 (output ran on to the 32k-token limit) |
 
-The buyer agent on Muse Spark Open passes the same 20 hand-checked questions, 20/20, with every dollar
-figure traced to a tool result ([report](eval/reports/2026-10-30__agent__agent_open.md);
-`python -m tools.eval_agent --purpose agent_open`). The eval runs on a frozen copy of the 10-30 data, so the
+The buyer agent on Muse Spark Open passes 18 of the same 20 hand-checked questions, with every dollar
+figure traced to a tool result ([report](eval/reports/2026-11-03__agent__agent_open.md);
+`python -m tools.eval_agent --purpose agent_open`). The site shows the tool calls behind every answer. The eval runs on a frozen copy of the 10-30 data, so the
 daily refresh can't move its answers; `python -m tools.derive_agent_truth --freeze` rebuilds the key from
 newer data with SQL written apart from the agent's tools. **Since 2026-10-28 the live site's agent runs on Muse Spark
 Open** via Fireworks, which doesn't store prompts for open models; `/api/health` names the model.
@@ -79,7 +82,7 @@ SQLite ──► export ──► static site (Netlify)       SQLite ──► a
 Every morning `python -m tools.daily_refresh` (a launchd job on the build machine) fetches every builder again,
 re-extracts only pages whose prices, amounts or rates changed (pages change other text daily: office hours,
 tracking tokens), reprices, records each home's asking and true price in `price_history`, and redeploys.
-Meta spend is capped at $1 a day; a page that misses extraction keeps its last one, as does a builder whose site
+Model spend is capped at $1 a day; a page that misses extraction keeps its last one, as does a builder whose site
 fails that morning (dropped connections are retried first), and a day that loads under 70% of the previous day's
 homes is not published. Each home keeps a permanent id, so links and cited answers
 stay on the same home. The site shows each home's price history, and the whole series is a CSV:
@@ -91,7 +94,8 @@ https://bay-area-true-price.netlify.app/data/price_history.csv
 - Only derived facts and a source link are stored. Raw pages, photos and floor-plan images never
   leave the build machine, and incentive fine print is linked, not copied.
 - Earlier homes show their county records as published: the assessed value (land + improvements) once it has
-  been reset to the last sale, and Alameda's recorded sale price where there is one. Nothing is estimated.
+  been reset to the last sale, and Alameda's recorded sale price where there is one. Nothing is estimated. A value
+  under 60% of its community's median per sq ft is withheld as possibly part-built, and the page says so (7 today).
 - robots.txt honoured. Builders behind a bot challenge or JavaScript-only data were skipped and logged.
 
 ## Limits
@@ -103,9 +107,15 @@ https://bay-area-true-price.netlify.app/data/price_history.csv
 - An assessed value is not a sale price. San Joaquin publishes no sale dates, so its homes count once built
   before the roll's lien date; a builder still owning a finished home would show its construction value.
 - "Up to" incentives may pay $0, so rankings use the guaranteed end of the range.
+- A rate offer is only counted for 30 years when the builder says it's fixed. Meritage's terms page confirms its
+  4.99% is a 7/6 ARM, so it's valued that way. Trumark's 5.25% (5.993% APR) names no loan on any page we read, so it's
+  marked "term not stated" and valued for 5 years; that may be too low. True prices in the history before 11-03 used
+  the older reading of these offers.
 - Not financial advice. The builder's own page is the source of truth; every figure links to it.
 
 ## Status
+
+Each piece when it passed its gate, with the counts of that day. Current figures are at the top.
 
 | Piece | State |
 |---|---|
@@ -137,7 +147,7 @@ MORTGAGE30US; jumbo loans add a spread). Each rate offer gets two figures:
   actually lasts. That's 30 years for a permanent buydown, 24 months for a 2/1, and the fixed period
   for an ARM.
 
-"Up to" amounts are ranges starting at $0. Incentives the builder offers as a choice ("your way")
+A rate with no loan named isn't assumed to be a 30-year fixed (see Limits). "Up to" amounts are ranges starting at $0. Incentives the builder offers as a choice ("your way")
 count once, at the biggest option. The true price is a range: asking price minus the high and low
 values.
 
@@ -157,6 +167,10 @@ uv venv --python 3.12 .venv && uv pip install --python .venv/bin/python -r requi
 .venv/bin/python -m tools.build_bundle        # allowlisted deploy folder for the agent API -> .tmp/bundle/
 .venv/bin/python -m tools.daily_refresh --no-deploy   # the daily price check, without publishing
 ```
+
+## Licence
+
+Code: [MIT](LICENSE). Listings, incentives and county records belong to their publishers; follow the source links.
 
 ## What existed before the event
 
@@ -237,3 +251,8 @@ building period.
     sales switched from estimates (assessed value with Prop 13 trending backed out) to the records as the
     county publishes them: each earlier home's assessed value, sold date and size, plus Alameda's recorded
     price where there is one; communities show the median assessed value.
+    The same day, checking why the average discount had jumped to 6.0%: Meritage's new "rates starting at 4.99% (5.909% APR)"
+    banner had been read as a 30-year rate on 69 homes, but its terms page says 7/6 ARM (5.99% for the 30-year fixed).
+    Woodside's 4.999% is an FHA loan (5.375% conventional). Known loans now come from a hand-checked terms file, and a
+    rate well under its APR with no loan named counts for 5 years; the average is now 4.3%, up to 5.0%. Values that look
+    part-built are withheld. Communities with under 5 records list them with no median. The site shows the agent's tool calls.
