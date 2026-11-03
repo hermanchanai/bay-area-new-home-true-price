@@ -14,16 +14,16 @@ Built for the Meta Global AI Developer Hackathon (Indie track, "Build for Your W
 **Live: https://bay-area-true-price.netlify.app**: map, community pages and an agent you can ask
 ("cheapest 4-bed in Contra Costa after incentives, ready now?").
 
-## In numbers (data read 2026-10-27)
+## In numbers (data read 2026-11-02; refreshed every morning)
 
-- 462 move-in-ready homes in 116 communities from 15 builders; every home has a street address or lot.
-- 456 homes priced: incentives cut the asking price by 3.6% guaranteed, up to 4.1% at most, at a 7.32%
+- 456 move-in-ready homes in 118 communities from 15 builders; every home has a street address or lot.
+- 445 homes priced: incentives cut the asking price by 3.8% guaranteed, up to 4.3% at most, at a 7.24%
   market rate. Savings a builder already shows in the price are never counted twice.
 - 27 communities show what earlier buyers paid, from county assessor records.
 - Extraction accuracy on 43 hand-checked pages: home recall 99.3%; price, beds and sq ft 100%.
   Hold-out builder (never tuned on): 151/151 homes.
-- Agent: 20/20 hand-checked questions on Muse Spark Open (the live model; Muse Spark 19/20), every dollar
-  figure traced to a database row.
+- Agent: 20/20 hand-checked questions on both Muse Spark Open (the live model) and Muse Spark, scored on
+  frozen 10-30 data; every dollar figure traced to a database row.
 - Total Meta model spend for the whole build, daily price checks included: about $4.
 
 ## Meta models used
@@ -94,7 +94,8 @@ https://bay-area-true-price.netlify.app/data/price_history.csv
 
 ## Limits
 
-- A snapshot: listings and incentives as read on 2026-10-27. Builders change both weekly.
+- Listings and incentives are re-read every morning at 05:30 Pacific; a builder can change either
+  in between. A page that could not be fetched keeps its last reading for up to 3 days, marked as carried.
 - Santa Clara has no free assessor values, so no past sales there. Most Alameda communities selling now
   have no closed sales on the roll yet.
 - "Up to" incentives may pay $0, so rankings use the guaranteed end of the range.
