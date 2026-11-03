@@ -26,6 +26,10 @@ def test_summary_per_community_uses_the_guaranteed_true_price(conn):
 def test_a_community_with_plans_but_no_homes_is_listed_but_not_counted(conn, tmp_path):
     conn.execute("INSERT INTO communities (id, builder_id, name, county_fips, url, fetched_at) "
                  "VALUES (71, 1, 'The Highlands', '06081', 'https://b.example/h', '2026-11-03')")
+    conn.execute("INSERT INTO builders (id, name, site) VALUES (9, 'Plans Only', 'https://p.example')")
+    conn.execute("INSERT INTO communities (id, builder_id, name, county_fips, url, fetched_at) "
+                 "VALUES (73, 9, 'Only Plans', '06095', 'https://p.example/o', '2026-11-03')")
+    conn.execute("INSERT INTO plans (community_id, name) VALUES (73, 'Plan 1')")
     conn.execute("INSERT INTO plans (community_id, name) VALUES (71, 'Plan 1')")
     conn.execute("INSERT INTO communities (id, builder_id, name, county_fips, url, fetched_at) "
                  "VALUES (72, 1, 'Empty Page', '06081', 'https://b.example/e', '2026-11-03')")
@@ -35,6 +39,7 @@ def test_a_community_with_plans_but_no_homes_is_listed_but_not_counted(conn, tmp
     export(conn, tmp_path / "web", tmp_path / "site.db", today=TODAY)
     site = json.loads((tmp_path / "web" / "site.json").read_text())
     assert site["meta"]["communities"] == site_before
+    assert site["meta"]["builders"] == len({c["builder"] for c in s.values() if c["homes"] > 0})
     assert (tmp_path / "web" / "c" / "71.json").exists()
 
 

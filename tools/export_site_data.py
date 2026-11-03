@@ -170,7 +170,7 @@ def export(conn, out_dir: Path = WEB, db_path: Path = SITE_DB, today: str | None
             "rate_date": rate["as_of"] if rate else None, "rate_source": "FRED MORTGAGE30US",
             "assumptions": {"down_payment_pct": 20, "term_years": 30},
             "communities": sum(c["homes"] > 0 for c in comms), "mapped": sum(c["lat"] is not None for c in comms),
-            "homes": len(homes), "builders": len({c["builder"] for c in comms}),
+            "homes": len(homes), "builders": len({c["builder"] for c in comms if c["homes"] > 0}),
             "with_past_sales": sum(c["has_past_sales"] for c in comms),
             "history": history_meta(conn)}
     if (out_dir / "c").exists():
