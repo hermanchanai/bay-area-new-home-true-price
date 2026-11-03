@@ -3,8 +3,9 @@
 What does a new Bay Area home actually cost once the builder's incentives are counted, and what do the
 county's records say about the homes already sold in that community?
 
-For every production-builder community in Contra Costa, Alameda, Santa Clara and San Joaquin
-counties, this project collects move-in-ready homes with street addresses, floor plans and incentive
+For production-builder communities in eight counties in and around the Bay Area (Contra Costa, Alameda, Santa Clara,
+San Mateo, Solano, Sonoma, Napa and San Joaquin; San Francisco and Marin showed none on the builders we read), this project collects
+move-in-ready homes with street addresses or lots, floor plans and incentive
 fine print from the builders' own sites. It turns each incentive (flat cash, closing credits,
 permanent rate buydowns, 2/1 buydowns, ARM promos) into a dollar value, and shows the result
 as a true-price range next to the county assessor's records for homes sold in earlier phases.
@@ -82,7 +83,7 @@ SQLite ──► export ──► static site (Netlify)       SQLite ──► a
 Every morning `python -m tools.daily_refresh` (a launchd job on the build machine) fetches every builder again,
 re-extracts only pages whose prices, amounts or rates changed (pages change other text daily: office hours,
 tracking tokens), reprices, records each home's asking and true price in `price_history`, and redeploys.
-Model spend is capped at $1 a day; a page that misses extraction keeps its last one, as does a builder whose site
+Model spend is capped at $2 a day; a page that misses extraction keeps its last one, as does a builder whose site
 fails that morning (dropped connections are retried first), and a day that loads under 70% of the previous day's
 homes is not published. Each home keeps a permanent id, so links and cited answers
 stay on the same home. The site shows each home's price history, and the whole series is a CSV:
