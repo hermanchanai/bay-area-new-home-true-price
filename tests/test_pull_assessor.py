@@ -1,5 +1,5 @@
-"""Fixtures are the attribute dicts of single public parcels, copied from the county layers on
-2026-10-27 (the same parcels the probes checked)."""
+"""Fixtures are made-up parcels shaped like the attribute dicts the county layers return (field names as
+probed 2026-10-27); no real parcel, address or price."""
 from tools import db
 from tools.pull_assessor import (clean, epoch_ms_to_date, norm_alameda, norm_contra_costa,
                                  norm_san_joaquin, norm_transfers, ring_centroid, to_int,

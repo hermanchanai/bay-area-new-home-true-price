@@ -31,6 +31,7 @@ from tools.pull_assessor import _query, epoch_ms_to_date, load_counties, to_int
 
 ROOT = Path(__file__).resolve().parent.parent
 REPORTS = ROOT / "eval" / "reports"
+CHECKS = ROOT / ".tmp" / "reports"     # per-parcel hand checks: addresses and prices, never committed
 CACHE = ROOT / ".tmp" / "link"
 RADIUS_M = 900
 MIN_NEW_SHARE = 0.6
@@ -436,22 +437,27 @@ def report(conn, comms: list[dict], checks: list[dict] | None) -> Path:
         f"- {c['county']} · {c['builder']} · {c['name']}: " +
         (c["reason"] if not c.get("centre") else
          f"{c['linked']} linked, {len(c.get('sales', []))} usable estimates") for c in hidden]
+    path = REPORTS / f"{date.today()}__past_sales.md"
     if checks:
-        lines += ["", "## Hand checks against the live assessor layers", ""]
+        private = CHECKS / f"{date.today()}__past_sales_checks.md"
+        where = private.relative_to(ROOT) if private.is_relative_to(ROOT) else private
+        lines += ["", f"Per-parcel hand checks (addresses and prices, so not committed): {where}"]
+        detail = ["## Hand checks against the live assessor layers", ""]
         for h in comm_checks:
             s = h["summary"]
-            lines += [f"**{h['community']}** ({h['builder']}, {h['county']}): n {s['n']}, "
-                      f"median ${s['median_est_price']:,}, {s['period']}, {s['method']}", ""]
-            lines += [f"- {ch['apn']} {ch['address']}: stored ${ch['stored_total']:,}, live "
-                      + (f"${ch['live_total']:,}" if ch["live_total"] is not None else "missing")
-                      + (" ✓" if ch["value_ok"] else " ✗")
-                      + (f"; transfer ${ch['transfer_price']:,} " + ("✓" if ch["transfer_ok"] else "✗")
-                         if "transfer_ok" in ch else "") for ch in h["checks"]] + [""]
-        lines += ["**Alameda transfer-tax prices** (live list; value ÷ price trended 2% per roll since the sale):", ""]
-        lines += [f"- {x['apn']} {x['address']}: {x['doc_date']} ${x['price']:,} "
-                  + ("✓" if x["live_ok"] else "✗") + f"; value ratio {x['value_ratio']}"
-                  + (" (linked)" if x["linked"] else "") for x in tt]
-    path = REPORTS / f"{date.today()}__past_sales.md"
+            detail += [f"**{h['community']}** ({h['builder']}, {h['county']}): n {s['n']}, "
+                       f"median ${s['median_est_price']:,}, {s['period']}, {s['method']}", ""]
+            detail += [f"- {ch['apn']} {ch['address']}: stored ${ch['stored_total']:,}, live "
+                       + (f"${ch['live_total']:,}" if ch["live_total"] is not None else "missing")
+                       + (" ✓" if ch["value_ok"] else " ✗")
+                       + (f"; transfer ${ch['transfer_price']:,} " + ("✓" if ch["transfer_ok"] else "✗")
+                          if "transfer_ok" in ch else "") for ch in h["checks"]] + [""]
+        detail += ["**Alameda transfer-tax prices** (live list; value ÷ price trended 2% per roll since the sale):", ""]
+        detail += [f"- {x['apn']} {x['address']}: {x['doc_date']} ${x['price']:,} "
+                   + ("✓" if x["live_ok"] else "✗") + f"; value ratio {x['value_ratio']}"
+                   + (" (linked)" if x["linked"] else "") for x in tt]
+        private.parent.mkdir(parents=True, exist_ok=True)
+        private.write_text("\n".join(detail) + "\n")
     path.write_text("\n".join(lines) + "\n")
     return path
 

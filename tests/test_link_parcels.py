@@ -157,3 +157,26 @@ def test_parcels_far_outside_the_community_home_sizes_belong_to_another_collecti
     tract = [{**p, "living_sqft": s} for p, s in zip(TRACT, (1600, 1700, 2600, None, 1650))]
     got = link(tract, streets={"A", "B"}, exact=set(), centre=(37.9903, -121.7003), sqft=(1560, 1763))
     assert sorted(g["apn"] for g in got) == ["100100001", "100100002", "100100004"]   # 2,600 sq ft dropped
+
+
+def test_the_committed_report_carries_no_parcel_address_or_price(tmp_path, monkeypatch):
+    """Data rights: past sales ship as community aggregates only. The 10-27 report listed APNs, addresses, assessed
+    values and transfer prices in eval/reports (committed); they belong in the gitignored hand-check file."""
+    import tools.link_parcels as lp
+    from tools import db
+    monkeypatch.setattr(lp, "REPORTS", tmp_path / "reports")
+    monkeypatch.setattr(lp, "CHECKS", tmp_path / "checks", raising=False)
+    (tmp_path / "reports").mkdir()
+    summary = {"n": 6, "median_est_price": 900_000, "p25": 850_000, "p75": 950_000, "period": "2025", "method": "m"}
+    checks = {"communities": [{"community": "Example Grove", "builder": "B", "county": "alameda", "summary": summary,
+                               "checks": [{"apn": "900-00-001", "address": "100 EXAMPLE CT", "stored_total": 1_111_111,
+                                           "live_total": 1_111_111, "value_ok": True}]}],
+              "transfers": [{"apn": "900-00-002", "address": "200 SAMPLE DR", "doc_date": "2024-01-01",
+                             "price": 1_250_000, "live_ok": True, "value_ratio": 1.0, "linked": False}]}
+    path = lp.report(db.connect(":memory:"), [], checks)
+    text = path.read_text()
+    for private in ("900-00-001", "100 EXAMPLE CT", "1,111,111", "900-00-002", "200 SAMPLE DR", "1,250,000"):
+        assert private not in text
+    assert "1/1 sampled parcel values" in text
+    kept = (tmp_path / "checks" / path.name.replace("__past_sales", "__past_sales_checks")).read_text()
+    assert "100 EXAMPLE CT" in kept and "1,250,000" in kept
