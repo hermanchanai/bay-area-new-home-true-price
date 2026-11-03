@@ -88,7 +88,6 @@ questions:
     - 10657 Aretha Ln.
     - 324 Solis Ct.
     - 299 Viceroy Way
-    - 2147 Trojan Street
     - 7435 Forbes Avenue
     - 392 Badlands Circle
     - 316 Clodius Way
@@ -172,15 +171,16 @@ questions:
     - 17165 Coral Tree Lane
     - 5629 Fallen Leaf Lane
     - 16507 Barnett Street
+    - 7958 Floyd Glenn Wise Drive
     - 320 W Nasergholi Avenue
     - 93 W. Semolina Lane
-    - 1221 N. Girardi Drive
     - 317 E CLYDESDALE COURT
+    - 1221 N. Girardi Drive
     - 5684 Wildrye Lane
     - 7957 Floyd Glenn Wise Drive
-    - 228 W Nasergholi Avenue
     - 314 E CLYDESDALE COURT
     - 313 E Gobind Blvd
+    - 228 W Nasergholi Avenue
     - 1322 N. Martorella Avenue
     - 1529 Riverfront Drive
     - 5680 Wildrye Lane
@@ -245,7 +245,6 @@ questions:
     - 2875 DAWSON CREEK ST
     - 2977 DAWSON CREEK ST
     - 2867 DAWSON CREEK ST
-    - 3514 Lakeshore Ave
     - Lot 93
     - 316 Solis Ct.
     - 266 Victorious St.
@@ -257,10 +256,10 @@ questions:
     - 748 Villa Ticino Dr.
     - 728 Villa Ticino Dr.
     - Lot 94
-    - 3513 Caples Way
     - 2231 HEWINS ST
     - 2447 GOLDEN BEAR ST
     - 10694 Aretha Ln.
+    - 3514 Lakeshore Ave
     - 717 Villa Ticino Dr.
     - 2425 GOLDEN BEAR ST
     - 2491 GOLDEN BEAR ST
@@ -282,6 +281,7 @@ questions:
     - 1576 TORREY DR
     - Lot 421
     - 10682 Aretha Ln.
+    - 3513 Caples Way
     - 2363 EMMA DR
     - 10657 Aretha Ln.
     - 1868 Serene Ct
@@ -329,12 +329,12 @@ questions:
     - 320 W Nasergholi Avenue
     - 317 E CLYDESDALE COURT
     - 1897 Island Ln
-    - 228 W Nasergholi Avenue
     - 314 E CLYDESDALE COURT
     - 313 E Gobind Blvd
+    - 228 W Nasergholi Avenue
+    - 1529 Riverfront Drive
     - 1881 Island Lane
     - 3199 Boca Way
-    - 1529 Riverfront Drive
     - 3753 Scholl Lane
     - 3171 Boca Way
     - 1904 S LAZULI STREET
@@ -349,8 +349,8 @@ questions:
     - 481 W Calabria Drive
     - 1461 N Padano Lane
     - 93 W. Semolina Lane
-    - 1221 N. Girardi Drive
     - 317 E CLYDESDALE COURT
+    - 1221 N. Girardi Drive
     - 314 E CLYDESDALE COURT
     - 313 E Gobind Blvd
     - 1904 S LAZULI STREET
@@ -378,18 +378,18 @@ questions:
   question: What's for sale in Tracy under $800,000?
   expect:
     top3_any_of:
-    - 3514 Lakeshore Ave
     - Lot 93
     - Lot 94
+    - 3514 Lakeshore Ave
     - 1851 Serene Ct
     eligible:
-    - 3514 Lakeshore Ave
     - Lot 93
     - Lot 94
-    - 3513 Caples Way
+    - 3514 Lakeshore Ave
     - 1851 Serene Ct
     - Lot 346
     - Lot 421
+    - 3513 Caples Way
     - 1868 Serene Ct
     - 7435 Forbes Avenue
     - '28'
@@ -418,6 +418,7 @@ questions:
     - 660 South Main St
     - 1319 Laurel Way
     - 401 Tonkin Terrace, Unit 6
+    - 19605 Juniper Lp
     - 1200 Althea Terr, Unit 312
 - id: q09
   question: What incentives does Lilac at Oakwood Trails offer, and what are they worth?
@@ -493,19 +494,25 @@ questions:
   question: What's the cheapest home in a 55+ community?
   expect:
     top3_all_of:
-    - 1319 Marceline Drive
+    - 2240 Hopskotch Street
     eligible:
+    - 2240 Hopskotch Street
+    - 2395 Reunion Lane
+    - 2438 Revival Lane
+    - 2407 Reunion Lane
     - 1319 Marceline Drive
+    - 2335 Reunion Lane
+    - 350 Cottonwood Path
     - 1306 Parkcrest Circle
-    - 3514 Lakeshore Ave
     - 1312 Parkcrest Circle
-    - 3513 Caples Way
+    - 3514 Lakeshore Ave
     - 1453 Sparrow Ave
     - 1851 Serene Ct
     - 1095 Riverbend Drive
     - 1135 Riverbend Drive
     - 1151 Riverbend Drive
     - 1127 Riverbend Drive
+    - 3513 Caples Way
     - 927 Conrad Street
     - 1079 Riverbend Drive
     - 1288 Parkcrest Circle

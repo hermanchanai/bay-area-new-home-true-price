@@ -1,21 +1,21 @@
 # True prices, pages fetched 2026-11-03
 
-Market rate 7.24% (2026-10-29) (FRED MORTGAGE30US); 20% down, 30-year term; jumbo loans +0.25 pt. 455 homes, 444 with an asking price, 394 with at least one offer.
+Market rate 7.24% (2026-10-29) (FRED MORTGAGE30US); 20% down, 30-year term; jumbo loans +0.25 pt. 532 homes, 521 with an asking price, 456 with at least one offer.
 
 **Day 4 gate: PASS**: homes with a price and an offer but no true-price range: 0.
 
 | Offer kind | Offers × homes | Counted | Not counted: in price | Not counted: buyer-limited | Filled from offers page | Avg value high |
 |---|---:|---:|---:|---:|---:|---:|
-| price_cut | 228 | 0 | 228 | 0 | 0 | 0.0 |
-| arm_promo | 164 | 164 | 0 | 0 | 57 | 75820.0 |
-| unquantified | 130 | 130 | 0 | 0 | 0 | 0.0 |
-| perm_rate | 106 | 106 | 0 | 0 | 60 | 90507.0 |
-| flat_cash | 91 | 13 | 13 | 59 | 0 | 5912.0 |
-| closing_credit | 65 | 48 | 0 | 17 | 0 | 12927.0 |
-| temp_buydown | 39 | 39 | 0 | 0 | 0 | 46903.0 |
-| first_year_rate | 18 | 18 | 0 | 0 | 0 | 5122.0 |
+| price_cut | 259 | 0 | 259 | 0 | 0 | 0.0 |
+| arm_promo | 191 | 191 | 0 | 0 | 60 | 76732.0 |
+| unquantified | 182 | 182 | 0 | 0 | 0 | 0.0 |
+| perm_rate | 110 | 110 | 0 | 0 | 63 | 90186.0 |
+| flat_cash | 98 | 13 | 12 | 68 | 0 | 5622.0 |
+| closing_credit | 80 | 58 | 0 | 22 | 0 | 13691.0 |
+| temp_buydown | 39 | 39 | 0 | 0 | 0 | 46512.0 |
+| first_year_rate | 27 | 27 | 0 | 0 | 0 | 4988.0 |
 
-Average discount 4.3% guaranteed to 5.0% at most; 272 homes have an offer worth more than $0 (offers don't stack unless the fine print says they combine).
+Average discount 4.1% guaranteed to 4.7% at most; 308 homes have an offer worth more than $0 (offers don't stack unless the fine print says they combine).
 
 ## Ten biggest discounts
 

@@ -17,17 +17,17 @@ Built for the Meta Global AI Developer Hackathon (Indie track, "Build for Your W
 
 ## In numbers (data read 2026-11-03; refreshed every morning)
 
-- 455 move-in-ready homes in 117 communities from 15 builders; every home has a street address or lot.
-- 444 homes priced: incentives cut the asking price by 4.3% guaranteed, up to 5.0% at most, at a 7.24%
+- 532 move-in-ready homes in 138 communities from 16 builders; every home has a street address or lot. Another 86 communities
+  show floor plans with nothing ready to move into, and are listed but not counted.
+- 521 homes priced: incentives cut the asking price by 4.1% guaranteed, up to 4.7% at most, at a 7.24%
   market rate. Savings a builder already shows in the price are never counted twice.
 - 37 communities show 453 earlier homes' county records (assessed value as published, no estimates); 27 of them
   have enough for a median.
 - Extraction accuracy on 43 hand-checked pages: home recall 99.3%; price, beds and sq ft 100%.
   Hold-out builder (never tuned on): 151/151 homes.
-- Agent, on frozen 11-03 data: Muse Spark 20/20 hand-checked questions, Muse Spark Open (the live model) 18/20.
-  The trace check (every dollar figure must appear in a tool result) caught its two misses: both had the main answer
-  right, but one rounded a side figure ($1,698,000 as $1.69M) and one called a $16,709 gap "$15K".
-- Total Meta model spend for the whole build, daily price checks included: about $8.
+- Agent, on frozen 11-03 data: Muse Spark 20/20 hand-checked questions, Muse Spark Open (the live model) 19/20. Its one
+  miss correctly answered "none" but also named the nearest home over budget, which the check doesn't allow.
+- Total Meta model spend for the whole build, daily price checks included: about $9.
 
 ## Meta models used
 
@@ -35,11 +35,11 @@ Spend from the build's own ledger (`llm_calls`, repeat calls served from cache c
 
 | Job | Model and mode | Calls | Cost |
 |---|---|---:|---:|
-| Extract homes, plans and incentives from ~290 builder pages, one extractor for every site, plus daily re-reads of changed pages | Muse Spark 1.3, contributor | 1,027 | $4.44 |
-| Re-extract pages that fail validation | Muse Spark 1.3, standard | 40 | $1.40 |
+| Extract homes, plans and incentives from ~340 builder pages, one extractor for every site, plus daily re-reads of changed pages | Muse Spark 1.3, contributor | 1,141 | $5.04 |
+| Re-extract pages that fail validation | Muse Spark 1.3, standard | 43 | $1.93 |
 | Extraction eval on open weights | Muse Spark Open | 43 | $1.04 |
-| Buyer agent with 7 read-only database tools (native tool calls), eval runs | Muse Spark Open | 331 | $0.69 |
-| Same agent, eval runs | Muse Spark 1.3, contributor | 492 | $0.10 |
+| Buyer agent with 7 read-only database tools (native tool calls), eval runs | Muse Spark Open | 478 | $1.01 |
+| Same agent, eval runs | Muse Spark 1.3, contributor | 645 | $0.13 |
 | Read room labels off floor-plan images (vision) | Muse Spark 1.3, contributor | 432 | $0.10 |
 
 Contributor mode lets Meta train on the request and is about 12× cheaper. It only ever sees public
@@ -57,7 +57,7 @@ $1.04). Against Muse Spark contributor on the same pages ([report](eval/reports/
 | Plan beds | 100% | 95.1% |
 | Pages failed | 0 of 43 | 1 of 43 (output ran on to the 32k-token limit) |
 
-The buyer agent on Muse Spark Open passes 18 of the same 20 hand-checked questions, with every dollar
+The buyer agent on Muse Spark Open passes 19 of the same 20 hand-checked questions, with every dollar
 figure traced to a tool result ([report](eval/reports/2026-11-03__agent__agent_open.md);
 `python -m tools.eval_agent --purpose agent_open`). The site shows the tool calls behind every answer. The eval runs on a frozen copy of the 11-03 data, so the
 daily refresh can't move its answers; `python -m tools.derive_agent_truth --freeze` rebuilds the key from
@@ -103,7 +103,10 @@ https://bay-area-true-price.netlify.app/data/price_history.csv
 
 - Listings and incentives are re-read every morning at 05:30 Pacific; a builder can change either
   in between. A page that could not be fetched keeps its last reading for up to 3 days, marked as carried.
-- Santa Clara has no free assessor values, so no records there. Most Alameda communities selling now
+- County records cover Alameda, Contra Costa and San Joaquin only. Santa Clara has no free assessor values, and San Mateo,
+  Solano, Sonoma and Napa haven't been pulled. Sonoma's builders list no move-in-ready homes today, so it shows communities only.
+- Some builders aren't covered: FCB, D.R. Horton and Richmond American need JavaScript or show a bot challenge, and a few small
+  builders (Landsea, Integral and others) weren't added. Most Alameda communities selling now
   have no closed sales on the roll yet, and Alameda's transfer list ends 3/2025.
 - An assessed value is not a sale price. San Joaquin publishes no sale dates, so its homes count once built
   before the roll's lien date; a builder still owning a finished home would show its construction value.
@@ -258,3 +261,6 @@ building period.
     rate well under its APR with no loan named counts for 5 years; the average is now 4.3%, up to 5.0%. Values that look
     part-built are withheld. Communities with under 5 records list them with no median. The site shows the agent's tool calls.
     Eval re-frozen on the corrected 11-03 data, so the example answers carry the corrected prices: Muse Spark 20/20, Muse Spark Open 18/20.
+    Later that day: added San Mateo, Solano, Sonoma and Napa with FHFA's 2026 loan limits (and San Joaquin's, blank until now), K. Hovnanian
+    and Brookfield's East Bay page, a list of communities with no move-in-ready homes, and a Google base map. 532 homes, Muse Spark 20/20,
+    Muse Spark Open 19/20 on the re-frozen data.
