@@ -30,6 +30,7 @@ from tools.agent_tools import (
     HOME_SQL,
     SORTS,
     _county_name,
+    describe_steps,
     _home,
     get_community,
     get_plan,
@@ -139,7 +140,8 @@ def demo_answers(conn, runs: Path) -> dict:
             log.warning("%s cites ids no longer in the DB; dropped", f.name)
             continue
         checked = date.fromtimestamp(f.stat().st_mtime).isoformat()     # the eval run that passed it
-        out[question_key(r["question"])] = {"question": r["question"], "answer": r["answer"], "checked": checked}
+        out[question_key(r["question"])] = {"question": r["question"], "answer": r["answer"], "checked": checked,
+                                             "steps": describe_steps(r.get("trace") or [])}
     return out
 
 
@@ -166,7 +168,7 @@ def export(conn, out_dir: Path = WEB, db_path: Path = SITE_DB, today: str | None
     meta = {"generated": today, "market_rate": rate["rate"] if rate else None,
             "rate_date": rate["as_of"] if rate else None, "rate_source": "FRED MORTGAGE30US",
             "assumptions": {"down_payment_pct": 20, "term_years": 30},
-            "communities": len(comms), "mapped": sum(c["lat"] is not None for c in comms),
+            "communities": sum(c["homes"] > 0 for c in comms), "mapped": sum(c["lat"] is not None for c in comms),
             "homes": len(homes), "builders": len({c["builder"] for c in comms}),
             "with_past_sales": sum(c["has_past_sales"] for c in comms),
             "history": history_meta(conn)}

@@ -31,7 +31,7 @@ from flask import Flask, jsonify, request, send_from_directory
 
 from tools import db, llm
 from tools.agent import run as run_agent
-from tools.agent_tools import reprice_home
+from tools.agent_tools import describe_steps, reprice_home
 from tools.export_site_data import SITE_DB, WEB, question_key
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -97,9 +97,11 @@ def create_app(db_path: Path = SITE_DB, run=run_agent, live: dict | None = None,
             return jsonify(error=f"Keep it under {live['max_question_chars']} characters."), 400
         key = question_key(q)
         if key in demo:
-            return jsonify(answer=demo[key]["answer"], source="checked", checked=demo[key].get("checked"), cost_usd=0)
+            return jsonify(answer=demo[key]["answer"], source="checked", checked=demo[key].get("checked"), cost_usd=0,
+                           steps=demo[key].get("steps", []))
         if (today(), key) in answered:
-            return jsonify(answer=answered[(today(), key)], source="cached", cost_usd=0)
+            answer, steps = answered[(today(), key)]
+            return jsonify(answer=answer, source="cached", cost_usd=0, steps=steps)
         conn = db.connect(db_path)
         try:
             if _spent(conn, today()) >= live["daily_cap_usd"]:
@@ -116,9 +118,10 @@ def create_app(db_path: Path = SITE_DB, run=run_agent, live: dict | None = None,
                 return jsonify(error="The agent is unavailable right now. The example questions still work."), 503
         finally:
             conn.close()
-        answered[(today(), key)] = out["answer"]
+        steps = describe_steps(out["trace"])
+        answered[(today(), key)] = (out["answer"], steps)
         return jsonify(answer=out["answer"], source="live", cost_usd=round(out["cost_usd"], 4), turns=out["turns"],
-                       tools=[t["tool"] for t in out["trace"]])
+                       steps=steps)
 
     @app.get("/api/reprice")
     def reprice():

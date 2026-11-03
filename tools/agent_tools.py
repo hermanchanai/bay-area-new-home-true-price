@@ -247,7 +247,8 @@ def past_sales(conn, community_id: int) -> dict:
              "records": records}
     if r["median_value"] is None:
         return {**out, "past_sales": "records_only", **found,
-                "reason": f"Only {r['n']} homes here have a full assessed value, too few for a median."}
+                "reason": f"Only {r['n']} home{'s here have' if r['n'] != 1 else ' here has'} a full assessed value, too few for "
+                          "a median."}
     return {**out, "past_sales": "found", "median_value": r["median_value"], "p25": r["p25"], "p75": r["p75"], **found}
 
 
@@ -387,6 +388,45 @@ TOOLS = [
     _fn("compare", "Side-by-side facts and offers for 2-6 homes.",
         {"home_ids": {"type": "array", "items": {"type": "integer"}}}, ["home_ids"]),
 ]
+STEP_LABEL = {"search_homes": "Searched homes", "find_communities": "Looked up communities",
+              "get_community": "Opened a community", "get_plan": "Opened a floor plan",
+              "price_incentives": "Re-priced a home", "past_sales": "Read county records", "compare": "Compared"}
+
+
+def _step_arg(key: str, value) -> str:
+    if isinstance(value, bool):
+        return key.replace("_", " ") if value else f"not {key.replace('_', ' ')}"
+    shown = ", ".join(value) if isinstance(value, list) else f"{value:g}" if isinstance(value, float) else value
+    if key.endswith("_price") and isinstance(value, int):
+        shown = f"${value:,}"
+    return f"{key.replace('_', ' ')} {shown}"
+
+
+def describe_steps(trace: list[dict]) -> list[str]:
+    """Each tool call in plain words, for the site to show under an answer."""
+    out = []
+    for t in trace:
+        name, args, res = t["tool"], t.get("args") or {}, t.get("result") or {}
+        text = STEP_LABEL.get(name, name)
+        if name == "compare":
+            text += f" {len(args.get('home_ids') or [])} homes"
+        elif name == "price_incentives":
+            text += f" at {args.get('down_payment_pct', 0):g}% down"
+        elif name in ("search_homes", "find_communities"):
+            shown = "; ".join(_step_arg(k, v) for k, v in args.items() if k not in ("sort", "limit"))
+            text += f": {shown}" if shown else ""
+        elif res.get("community") or res.get("name"):
+            text += f": {res.get('community') or res['name']}"
+        if "error" in res or res.get("past_sales", "") is None:
+            text += " → nothing found"
+        elif "total_matching" in res:
+            text += f" → {res['total_matching']} found"
+        elif name == "past_sales":
+            text += f" → {res['n']} homes"
+        out.append(text)
+    return out
+
+
 HANDLERS = {"search_homes": search_homes, "find_communities": find_communities, "get_community": get_community,
             "get_plan": get_plan, "price_incentives": reprice_home, "past_sales": past_sales, "compare": compare}
 

@@ -28,9 +28,9 @@ def app(conn, tmp_path):
                      "VALUES ('meta', 'm', ?, 'k', 0.4, 1, ?)",
                      (purpose, datetime.now(UTC).isoformat(timespec="seconds")))
         conn.commit()
-        return {"answer": f"About {question} [H1]", "turns": 2, "cost_usd": 0.4, "trace": [{"tool": "search_homes"}]}
+        return {"answer": f"About {question} [H1]", "turns": 2, "cost_usd": 0.4, "trace": [{"tool": "search_homes", "args": {"city": "Dublin"}, "result": {"total_matching": 3}}]}
 
-    demo = {"homes in tracy": {"question": "Homes in Tracy?", "answer": "1 Oak St [H1]"}}
+    demo = {"homes in tracy": {"question": "Homes in Tracy?", "answer": "1 Oak St [H1]", "steps": ["Searched homes: city Tracy → 1 found"]}}
     a = create_app(db_path=path, run=fake_run, live=CFG, demo=demo)
     a.testing = True
     a.calls = calls
@@ -46,7 +46,7 @@ def test_example_questions_come_from_the_hand_checked_cache_for_free(app):
     for _ in range(5):                                       # never rate-limited, never calls the model
         r = ask(c, "  homes in TRACY ")
         assert r.status_code == 200 and r.json["answer"] == "1 Oak St [H1]" and r.json["source"] == "checked"
-    assert app.calls == []
+    assert app.calls == [] and r.json["steps"] == ["Searched homes: city Tracy → 1 found"]
 
 
 def test_a_live_question_uses_standard_mode_and_repeats_are_cached(app):
@@ -54,7 +54,9 @@ def test_a_live_question_uses_standard_mode_and_repeats_are_cached(app):
     r = ask(c, "3 beds in Dublin?")
     assert r.status_code == 200 and r.json["source"] == "live" and r.json["answer"].startswith("About")
     assert app.calls == [("3 beds in Dublin?", "agent_live")]   # not contributor mode: Meta doesn't train on it
-    assert ask(c, "3 beds in dublin").json["source"] == "cached"
+    assert r.json["steps"] == ["Searched homes: city Dublin → 3 found"]
+    again = ask(c, "3 beds in dublin").json
+    assert again["source"] == "cached" and again["steps"] == r.json["steps"]
     assert len(app.calls) == 1
 
 

@@ -46,13 +46,15 @@ def test_export_writes_site_json_detail_files_and_a_slim_db(conn, tmp_path):
 def test_demo_answers_keep_only_answers_whose_citations_exist(conn, tmp_path):
     runs = tmp_path / "runs"
     runs.mkdir()
-    ok = {"question": "Homes in Tracy?", "answer": "1 Oak St [H1] in Oak Grove [C1]", "score": {"pass": True}}
+    ok = {"question": "Homes in Tracy?", "answer": "1 Oak St [H1] in Oak Grove [C1]", "score": {"pass": True},
+          "trace": [{"tool": "search_homes", "args": {"city": "Tracy"}, "result": {"total_matching": 1}}]}
     stale = {"question": "Old?", "answer": "Gone [H999]", "score": {"pass": True}}
     failed = {"question": "Bad?", "answer": "[H1]", "score": {"pass": False}}
     for i, r in enumerate([ok, stale, failed]):
         (runs / f"q{i}.json").write_text(json.dumps(r))
     got = demo_answers(conn, runs)
     assert list(got) == ["homes in tracy"] and got["homes in tracy"]["answer"] == "1 Oak St [H1] in Oak Grove [C1]"
+    assert got["homes in tracy"]["steps"] == ["Searched homes: city Tracy → 1 found"]
     assert re.fullmatch(r"\d{4}-\d{2}-\d{2}", got["homes in tracy"]["checked"])     # the day its eval run passed
 
 

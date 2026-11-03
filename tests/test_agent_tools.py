@@ -127,6 +127,27 @@ def test_past_sales_with_under_five_records_lists_them_with_no_median(conn):
     assert "assessed value" in got["method"] and "not a sale price" in got["caveat"]
 
 
+def test_steps_say_what_each_tool_call_did_in_plain_words():
+    from tools.agent_tools import describe_steps
+    got = describe_steps([
+        {"tool": "search_homes", "args": {"county": ["Contra Costa", "San Joaquin"], "min_beds": 4.0, "max_true_price": 1_100_000,
+                                          "move_in_now": True, "age_restricted": False, "sort": "true_price", "limit": 5},
+         "result": {"total_matching": 7, "homes": []}},
+        {"tool": "past_sales", "args": {"community_id": 75},
+         "result": {"community": "Cairnway", "past_sales": "found", "n": 43, "median_value": 820_284}},
+        {"tool": "get_community", "args": {"community_id": 3}, "result": {"name": "Oak Grove", "homes": []}},
+        {"tool": "compare", "args": {"home_ids": [1, 2]}, "result": {"homes": [{}, {}]}},
+        {"tool": "price_incentives", "args": {"home_id": 9, "down_payment_pct": 10}, "result": {"true_price_high": 655_558}},
+        {"tool": "get_plan", "args": {"plan_id": 999}, "result": {"error": "no plan 999"}},
+    ])
+    assert got == ["Searched homes: county Contra Costa, San Joaquin; min beds 4; max true price $1,100,000; move in now; not age restricted → 7 found",
+                   "Read county records: Cairnway → 43 homes",
+                   "Opened a community: Oak Grove",
+                   "Compared 2 homes",
+                   "Re-priced a home at 10% down",
+                   "Opened a floor plan → nothing found"]
+
+
 def test_agent_loop_runs_tools_and_returns_the_final_answer(conn):
     from tools.agent import run
     from tools.llm import Result

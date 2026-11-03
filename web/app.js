@@ -218,11 +218,13 @@ async function route() {
 function openDrawer(html) {
   $("#drawer").innerHTML = html;
   $("#drawer").classList.remove("translate-x-full");
+  $("#drawer").classList.add("shadow-2xl");
   $("#backdrop").classList.remove("hidden");
   document.body.style.overflow = "hidden";
 }
 function closeDrawer() {
   $("#drawer").classList.add("translate-x-full");
+  $("#drawer").classList.remove("shadow-2xl");
   $("#backdrop").classList.add("hidden");
   document.body.style.overflow = "";
 }
@@ -278,7 +280,7 @@ function drawerHTML(d) {
         <div><div class="text-xs text-slate-500">Middle half</div><div>${short(ps.p25)} – ${short(ps.p75)}</div></div>
         <div><div class="text-xs text-slate-500">Median asking today</div><div>${usd(ps.median_asking_now)}</div></div></div>
        <p class="text-xs text-slate-500 mt-2">${ps.n} homes, ${/^\d{4} to \d{4}$/.test(ps.period) ? "built" : "sold"} ${esc(ps.period)}; ${esc(ps.method)}. ${esc(ps.caveat)}</p>`
-    : `<p class="text-sm text-slate-500">${esc(ps.reason)}</p>${ps.past_sales ? `<p class="text-xs text-slate-500 mt-2">${esc(ps.method)}. ${esc(ps.caveat)}</p>` : ""}`;
+    : `<p class="text-sm text-slate-500">${esc(ps.reason)}</p>${ps.past_sales ? `<p class="text-xs text-slate-500 mt-2">Records show ${esc(ps.method)}. ${esc(ps.caveat)}</p>` : ""}`;
   const past = ps.past_sales ? `${summary}${heldBack ? `<p class="text-xs text-slate-500 mt-1">${heldBack}</p>` : ""}${recordsTable}` : summary;
 
   const incs = d.incentives.length ? d.incentives.map((i) => `<li class="py-2 border-t border-slate-100">
@@ -380,8 +382,15 @@ async function ask() {
     return;
   }
   const label = { checked: `Answer checked by hand${res.checked ? " on " + day(res.checked) + "; prices may have moved since" : ""}`, cached: "Live answer from Muse Spark Open (asked earlier today)",
-    live: `Live answer from Muse Spark Open · ${res.turns} steps · $${(res.cost_usd ?? 0).toFixed(3)}` }[res.source] || "";
-  box.innerHTML = `<div class="text-[11px] uppercase tracking-wide text-slate-400 mb-1">${label}</div>${answerHTML(res.answer)}`;
+    live: `Live answer from Muse Spark Open · $${(res.cost_usd ?? 0).toFixed(3)}` }[res.source] || "";
+  box.innerHTML = `<div class="text-[11px] uppercase tracking-wide text-slate-400 mb-1">${label}</div>${answerHTML(res.answer)}${stepsHTML(res.steps)}`;
+}
+
+// What the agent did: its read-only tool calls, in order.
+function stepsHTML(steps) {
+  if (!steps || !steps.length) return "";
+  return `<details open class="mt-3 border-t border-slate-100 pt-2"><summary class="text-xs text-slate-500 cursor-pointer">How the agent got this: ${steps.length} tool call${steps.length > 1 ? "s" : ""}</summary>
+    <ol class="list-decimal pl-4 mt-1 text-xs text-slate-500">${steps.map((t) => `<li>${esc(t)}</li>`).join("")}</ol></details>`;
 }
 
 // Markdown subset (paragraphs, lists, bold) with [H12] / [C3] / [P7] citations as numbered source links.
