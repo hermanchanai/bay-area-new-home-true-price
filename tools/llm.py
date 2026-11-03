@@ -13,6 +13,7 @@ import json
 import logging
 import os
 import re
+import threading
 import time
 from dataclasses import dataclass
 from datetime import datetime, timezone
@@ -31,6 +32,8 @@ RETRY_STATUS = {429, 500, 502, 503, 504}
 ATTEMPTS = 4
 
 log = logging.getLogger(__name__)
+_held: dict[str, float] = {}     # provider -> worst case of calls in flight in this process, not yet in the ledger
+_held_lock = threading.Lock()
 
 
 class LLMError(RuntimeError):
@@ -132,16 +135,26 @@ def chat(messages: list[dict], *, purpose: str, provider: str | None = None, mod
         raise BudgetExceeded(f"{provider}/{model} has no price in config; refusing to call it")
     est_in = int(len(json.dumps(messages)) / cfg.get("chars_per_token", 3.0))
     worst = cost_usd(price, est_in, 0, max_out or 32000)
-    used = spent(conn, provider)
-    if used + worst > prov["cap_usd"]:
-        raise BudgetExceeded(f"{provider}: spent ${used:.4f} + worst case ${worst:.4f} "
-                             f"> cap ${prov['cap_usd']:.2f}")
-    if prov.get("daily_cap_usd") is not None:     # UTC day; the daily price check's ceiling
-        today = spent(conn, provider, datetime.now(timezone.utc).date().isoformat())
-        if today + worst > prov["daily_cap_usd"]:
-            raise BudgetExceeded(f"{provider}: spent ${today:.4f} today + worst case ${worst:.4f} "
-                                 f"> daily cap ${prov['daily_cap_usd']:.2f}")
+    with _held_lock:      # parallel workers: a call in flight holds its worst case until it records (review 4)
+        held = _held.get(provider, 0.0)
+        used = spent(conn, provider) + held
+        if used + worst > prov["cap_usd"]:
+            raise BudgetExceeded(f"{provider}: spent ${used:.4f} (incl. ${held:.4f} in flight) + worst case "
+                                 f"${worst:.4f} > cap ${prov['cap_usd']:.2f}")
+        if prov.get("daily_cap_usd") is not None:     # UTC day; the daily price check's ceiling
+            today = spent(conn, provider, datetime.now(timezone.utc).date().isoformat()) + held
+            if today + worst > prov["daily_cap_usd"]:
+                raise BudgetExceeded(f"{provider}: spent ${today:.4f} today (incl. ${held:.4f} in flight) + worst "
+                                     f"case ${worst:.4f} > daily cap ${prov['daily_cap_usd']:.2f}")
+        _held[provider] = held + worst
+    try:
+        return _send(conn, body, prov, provider, model, purpose, key, price, est_in, cache_file, session, timeout)
+    finally:
+        with _held_lock:
+            _held[provider] -= worst
 
+
+def _send(conn, body, prov, provider, model, purpose, key, price, est_in, cache_file, session, timeout) -> Result:
     load_dotenv(ROOT / ".env", override=True)
     api_key = os.environ.get(prov["key_env"])
     if not api_key:

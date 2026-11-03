@@ -48,23 +48,28 @@ def ready_month(ready: str | None, status: str | None, today: str) -> str | None
     now = today[:7]
     ym = None
     s = (ready or "").strip()
-    if m := re.match(r"(\d{4})-(\d{2})-\d{2}", s):
+    if m := re.match(r"(\d{4})-(\d{2})", s):
         ym = f"{m[1]}-{m[2]}"
     elif m := re.match(r"(\d{1,2})/\d{1,2}/(\d{4})", s):
         ym = f"{m[2]}-{int(m[1]):02d}"
     elif months := [MONTHS[w[:3].lower()] for w in re.findall(r"[A-Za-z]{3,}", s) if w[:3].lower() in MONTHS]:
-        # a year belongs to the month written just before it ('Nov 2026'), or else to the next one ('2027 November');
-        # months after the last dated one roll forward from it ('Dec 2026 / Jan' = 2027-01); no year: from today
-        dated, pending = {}, None
+        # a year belongs to the month written just before it ('Nov 2026'), unless a separator stands between them and
+        # a month follows ('Nov / 2027 Jan'), or else to the next one ('2027 November'); months after the last dated
+        # one roll forward from it ('Dec 2026 / Jan' = 2027-01); no year: from today
+        toks = list(re.finditer(r"[A-Za-z]{3,}|\b20\d{2}\b", s))
+        dated, pending, end = {}, None, 0
         k = -1
-        for t in re.findall(r"[A-Za-z]{3,}|\b20\d{2}\b", s):
-            if t.isdigit():
-                if k >= 0 and k not in dated:
-                    dated[k] = int(t)
+        for i, t in enumerate(toks):
+            if t[0].isdigit():
+                after = any(not u[0].isdigit() and u[0][:3].lower() in MONTHS for u in toks[i + 1:])
+                joined = re.fullmatch(r"[\s,.]*", s[end:t.start()]) is not None
+                if k >= 0 and k not in dated and (joined or not after):
+                    dated[k] = int(t[0])
                 else:
-                    pending = int(t)
-            elif t[:3].lower() in MONTHS:
+                    pending = int(t[0])
+            elif t[0][:3].lower() in MONTHS:
                 k += 1
+                end = t.end()
                 if pending:
                     dated[k], pending = pending, None
         last = max(dated) if dated else -1

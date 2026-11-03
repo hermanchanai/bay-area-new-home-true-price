@@ -8,6 +8,7 @@ from tools.daily_refresh import (
     carry_forward,
     enough_homes,
     fingerprint,
+    same_listing,
     reuse_unchanged,
 )
 from tools.snapshot_prices import snapshot
@@ -322,3 +323,21 @@ def test_the_fingerprint_sees_a_different_home_at_the_same_price():
     assert fingerprint("1 Oak St $900,000 Available") != fingerprint("3 Elm St $900,000 Available")
     assert fingerprint("Homesite 12 $900,000") != fingerprint("Homesite 14 $900,000")
     assert fingerprint("1 Oak St $900,000 open 10-6") == fingerprint("1 Oak St $900,000 Closed today")
+
+
+def test_the_fingerprint_sees_two_homes_trade_prices():
+    """Codex review 4 #A1: addresses and prices were sorted apart, so two homes swapping prices fingerprinted the
+    same and both stale prices were republished as fresh. Homes listed in another order are still the same page."""
+    page = "1 Oak St $900,000 Available. 3 Elm St $950,000 Available."
+    assert not same_listing(page, "1 Oak St $950,000 Available. 3 Elm St $900,000 Available.")
+    assert not same_listing("Homesite 12 $900,000 Homesite 14 $950,000", "Homesite 12 $950,000 Homesite 14 $900,000")
+    assert same_listing(page, "3 Elm St $950,000 Available. 1 Oak St $900,000 Available.")
+    assert same_listing(page, "1 Oak St $900,000 Open 10-6. 3 Elm St $950,000 Closed today.")
+    assert not same_listing(page, page.replace("$950,000", "$940,000"))
+
+
+def test_a_drive_time_is_not_an_address():
+    """Codex review 4 #A3: '15 min drive' matched the street pattern, so a changed drive time re-extracted a page."""
+    assert fingerprint("1 Oak St $900,000. 15 min drive to BART") == \
+        fingerprint("1 Oak St $900,000. 20 min drive to BART")
+    assert fingerprint("100 5th Ave $900,000") != fingerprint("102 5th Ave $900,000")    # numbered streets still count

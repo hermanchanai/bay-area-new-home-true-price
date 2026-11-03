@@ -144,3 +144,34 @@ def test_daily_cap_counts_only_todays_spend(env):
     with pytest.raises(llm.BudgetExceeded, match="today"):
         llm.chat([{"role": "user", "content": "b"}], purpose="t", session=FakeSession(), conn=env["conn"],
                  cache_dir=env["cache_dir"], cfg=cfg)
+
+
+def test_concurrent_calls_cannot_overshoot_the_daily_cap(env, tmp_path):
+    """Codex review 4 #A2: parallel extraction workers each checked today's spend before any had recorded, so the
+    $1 daily cap ran to $1.39. A call in flight holds its worst case against the cap until it records."""
+    import threading
+    path = tmp_path / "ledger.db"
+    db.connect(path)
+    cfg = {**CFG, "providers": {"meta": {**CFG["providers"]["meta"], "cap_usd": 100, "daily_cap_usd": 0.0075}}}
+    entered, release = threading.Event(), threading.Event()
+
+    class Blocking(FakeSession):
+        def post(self, *a, **k):
+            entered.set()
+            release.wait(5)
+            return super().post(*a, **k)
+
+    first = threading.Thread(target=lambda: llm.chat([{"role": "user", "content": "a"}], purpose="t",
+                                                     session=Blocking(ok()), conn=db.connect(path),
+                                                     cache_dir=env["cache_dir"], cfg=cfg))
+    first.start()
+    assert entered.wait(5)
+    try:
+        with pytest.raises(llm.BudgetExceeded):     # worst case ~$0.0043 each: two in flight exceed $0.0075
+            llm.chat([{"role": "user", "content": "b"}], purpose="t", session=FakeSession(ok()),
+                     conn=db.connect(path), cache_dir=env["cache_dir"], cfg=cfg)
+    finally:
+        release.set()
+        first.join()
+    llm.chat([{"role": "user", "content": "c"}], purpose="t", session=FakeSession(ok(prompt=10, completion=10)),
+             conn=db.connect(path), cache_dir=env["cache_dir"], cfg=cfg)   # its real $0.0021 + this worst case fit

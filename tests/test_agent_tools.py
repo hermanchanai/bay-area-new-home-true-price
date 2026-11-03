@@ -169,3 +169,11 @@ def test_ready_month_rolls_a_range_whose_end_has_no_year():
 def test_ready_month_keeps_a_year_written_before_the_month():
     """Codex review 3 B#1: '2027 November' read as 2026-11 after the round-2 change."""
     assert ready_month("2027 November", "month", "2026-10-30") == "2027-11"
+
+
+def test_ready_month_year_against_the_next_month_and_month_only_iso():
+    """Codex review 4 #B1/#B2: 'Nov / 2027 Jan' read as 2028-01; '2026-12' was an unknown date."""
+    from tools.agent_tools import ready_month
+    assert ready_month("Nov / 2027 Jan", "month", "2026-10-30") == "2027-01"
+    assert ready_month("Nov 2026 Jan", "month", "2026-10-30") == "2027-01"
+    assert ready_month("2026-12", "month", "2026-10-30") == "2026-12"

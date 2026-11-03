@@ -70,18 +70,43 @@ def expected_communities() -> dict[str, int]:
 
 MONEY = re.compile(r"\$\s?\d{1,3}(?:,\d{3})+|\$\s?\d+(?:\.\d+)?\s?[kKmM]\b|\b\d+(?:\.\d+)?\s?%")
 BARE = re.compile(r"(?<![\w.\-])[1-9]\d{5,7}(?![\w.\-])")      # 100,000-99,999,999 unformatted: prices in page data
-STREET = re.compile(r"\b\d{1,6}\s+(?:[A-Za-z][\w.']*\s+){0,3}(?:st|street|ave?|avenue|dr|drive|ln|lane|ct|court|way|rd|"
-                    r"road|blvd|cir|circle|pl|place|ter|terrace|loop|pkwy|parkway|common|glen|row)\b", re.IGNORECASE)
+STREET = re.compile(r"(?<![\w,.$])\d{1,6}\s+(?:[A-Z0-9][\w.']*\s+){1,3}(?i:st|street|ave?|avenue|dr|drive|ln|lane|ct|court|way|"
+                    r"rd|road|blvd|cir|circle|pl|place|ter|terrace|loop|pkwy|parkway|common|glen|row)\b")
+                    # capitalised (or numbered) name words: '15 min drive' is not an address
 LOT = re.compile(r"\b(?:lot|home\s?site)\s*#?\s*(\d+)\b", re.IGNORECASE)
 
 
+def _tokens(text: str) -> list[tuple[str, bool]]:
+    return [(t, anchor) for _, t, anchor in sorted(
+        [(m.start(), m.group().replace(" ", ""), False) for m in MONEY.finditer(text)]
+        + [(m.start(), m.group(), False) for m in BARE.finditer(text)]
+        + [(m.start(), " ".join(m.group().lower().split()), True) for m in STREET.finditer(text)]
+        + [(m.start(), f"lot {m[1]}", True) for m in LOT.finditer(text)])]
+
+
 def fingerprint(text: str) -> list[str]:
-    """Every dollar amount, percentage, price-sized number, street address and lot on the page, sorted. Same list =
-    same listing: the same homes at the same prices (10-30 review: a home swapped for another at the same price
-    must not look unchanged)."""
-    return sorted([m.replace(" ", "") for m in MONEY.findall(text)] + BARE.findall(text)
-                  + [" ".join(m.lower().split()) for m in STREET.findall(text)]
-                  + [f"lot {n}" for n in LOT.findall(text)])
+    """Every dollar amount, percentage, price-sized number, street address and lot on the page, sorted (10-30
+    review: a home swapped for another at the same price must not look unchanged)."""
+    return sorted(t for t, _ in _tokens(text))
+
+
+def _prices_by_home(text: str) -> dict[str, set[str]]:
+    """Each address or lot -> the prices written straight after it."""
+    found, out = _tokens(text), {}
+    for (t, anchor), (nxt, nxt_anchor) in zip(found, found[1:]):
+        if anchor and not nxt_anchor and not nxt.endswith("%"):
+            out.setdefault(t, set()).add(nxt)
+    return out
+
+
+def same_listing(then: str, now: str) -> bool:
+    """The same homes at the same prices: the same figures and addresses, and no home that has a price written
+    after it on both days has none of the same ones (review 4: two homes trading prices is a change). Homes listed in
+    another order, or page data that moves a price before its address or repeats an address, are not."""
+    if fingerprint(then) != fingerprint(now):
+        return False
+    a, b = _prices_by_home(then), _prices_by_home(now)
+    return all(a[k] & b[k] for k in a.keys() & b.keys())
 
 
 def _fetched(day: str, raw: Path) -> list[str]:
@@ -132,7 +157,7 @@ def reuse_unchanged(day: str, raw: Path = RAW, pre: Path = PRE, extract: Path = 
             continue
         src_day, r = found
         then_md = pre / (r.get("carried_from") or src_day) / f"{page}.md"    # the page the extraction was made from
-        if then_md.exists() and fingerprint(then_md.read_text()) == fingerprint(today_md.read_text()):
+        if then_md.exists() and same_listing(then_md.read_text(), today_md.read_text()):
             routes[page] = _reuse(day, src_day, r, extract, unchanged=True, unfetched=False, last_fetched=day)
             reused.append(page)
     routes_path.parent.mkdir(parents=True, exist_ok=True)

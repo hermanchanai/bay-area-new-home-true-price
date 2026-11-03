@@ -57,16 +57,19 @@ def ready_month(ready: str | None, status: str | None, today: str) -> str | None
     elif m := re.match(r"(\d{1,2})/\d{1,2}/(\d{4})", s):
         ym = f"{m[2]}-{int(m[1]):02d}"
     else:
-        pairs, pending = [], None                        # [month, its year or None], in order
-        for t in re.findall(r"[A-Za-z]+|20\d\d", s):
-            if t.isdigit():                              # 'Nov 2026' (after) or '2027 November' (before)
-                if pairs and pairs[-1][1] is None:
-                    pairs[-1][1] = int(t)
+        pairs, pending, end = [], None, 0                # [month, its year or None], in order
+        toks = list(re.finditer(r"[A-Za-z]+|20\d\d", s))
+        for i, t in enumerate(toks):
+            if t[0].isdigit():                           # 'Nov 2026' (after) or '2027 November' (before); a year
+                nxt = any(u[0][:3].lower() in MONTHS for u in toks[i + 1:] if not u[0].isdigit())
+                tight = not s[end:t.start()].strip(" ,.")    # set off by '/' with a month after: 'Nov / 2027 Jan'
+                if pairs and pairs[-1][1] is None and (tight or not nxt):
+                    pairs[-1][1] = int(t[0])
                 else:
-                    pending = int(t)
-            elif t[:3].lower() in MONTHS:
-                pairs.append([MONTHS[t[:3].lower()], pending])
-                pending = None
+                    pending = int(t[0])
+            elif t[0][:3].lower() in MONTHS:
+                pairs.append([MONTHS[t[0][:3].lower()], pending])
+                pending, end = None, t.end()
         if pairs:
             dated = [i for i, (_, y) in enumerate(pairs) if y]
             # count forward from the last written year, or from today; a month earlier than the one before it

@@ -97,3 +97,9 @@ def test_a_year_written_before_the_month_is_kept():
     """Codex review 3 B#1: '2027 November' read as 2026-11."""
     assert ready_month("2027 November", "month", "2026-10-30") == "2027-11"
     assert ready_month("2027 Nov / Dec", "month", "2026-10-30") == "2027-12"
+
+
+def test_a_year_written_against_the_next_month_belongs_to_it():
+    """Codex review 4 #B1: 'Nov / 2027 Jan' read as Nov 2027 then Jan 2028."""
+    assert ready_month("Nov / 2027 Jan", "month", "2026-10-30") == "2027-01"
+    assert ready_month("Nov 2026 Jan", "month", "2026-10-30") == "2027-01"       # space-joined year stays with Nov
