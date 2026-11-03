@@ -167,7 +167,7 @@ builders:
     name: K. Hovnanian Homes
     site: https://www.khov.com
     start: [https://www.khov.com/new-construction-homes/california/solano-county/]
-    community_pattern: 'https://www\.khov\.com/new-construction-homes/california/(?P<city>[a-z-]+)/(?P<slug>[a-z0-9-]+)/?"'
+    community_pattern: 'https://www\.khov\.com(?P<path>/new-construction-homes/california/(?P<city>[a-z-]+)/(?P<slug>[a-z0-9-]+))/?"'
     expected_communities: 2
 
   - key: ponderosa
