@@ -1,4 +1,4 @@
-# City / place slugs (as builders write them in URLs) -> county key. Only these four counties are in scope.
+# City / place slugs (as builders write them in URLs) -> county key. Only these counties are in scope.
 alameda: [alameda, albany, berkeley, castro-valley, dublin, emeryville, fremont, hayward, livermore, newark,
           oakland, piedmont, pleasanton, san-leandro, san-lorenzo, sunol, union-city]
 contra_costa: [alamo, antioch, bay-point, brentwood, byron, clayton, concord, danville, discovery-bay,
@@ -7,3 +7,9 @@ contra_costa: [alamo, antioch, bay-point, brentwood, byron, clayton, concord, da
 santa_clara: [campbell, cupertino, gilroy, los-altos, los-gatos, milpitas, monte-sereno, morgan-hill,
               mountain-view, palo-alto, san-jose, san-martin, santa-clara, saratoga, sunnyvale]
 san_joaquin: [escalon, french-camp, lathrop, lodi, manteca, mountain-house, ripon, stockton, tracy]
+san_mateo: [atherton, belmont, brisbane, burlingame, colma, daly-city, east-palo-alto, el-granada, foster-city,
+            half-moon-bay, hillsborough, menlo-park, millbrae, moss-beach, pacifica, portola-valley, redwood-city,
+            san-bruno, san-carlos, san-mateo, south-san-francisco, woodside]
+solano: [benicia, dixon, fairfield, rio-vista, suisun-city, vacaville, vallejo]
+sonoma: [cloverdale, cotati, healdsburg, penngrove, petaluma, rohnert-park, santa-rosa, sebastopol, sonoma, windsor]
+napa: [american-canyon, calistoga, napa, st-helena, yountville]

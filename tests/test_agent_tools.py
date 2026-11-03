@@ -113,9 +113,25 @@ def test_call_dispatches_and_reports_bad_arguments_instead_of_raising(conn):
                                  "sale_date": "2023", "living_sqft": 1_700, "beds": 3, "recorded_price": None}
     assert got["withheld"] == 1
     assert call(conn, "past_sales", {"community_id": 2})["past_sales"] is None
-    assert "error" in call(conn, "search_homes", {"county": "Napa"})
+    assert "error" in call(conn, "search_homes", {"county": "Fresno"})
     assert "error" in call(conn, "no_such_tool", {})
     assert "error" in call(conn, "get_community", {"community_id": 999})
+
+
+def test_a_county_with_no_assessor_pull_says_so_and_santa_clara_keeps_its_reason(conn):
+    conn.execute("UPDATE communities SET county_fips = '06081' WHERE id = 2")
+    got = call(conn, "past_sales", {"community_id": 2})
+    assert got["past_sales"] is None and "San Mateo" in got["reason"] and got["county"] == "San Mateo"
+    conn.execute("UPDATE communities SET county_fips = '06085' WHERE id = 2")
+    assert "Santa Clara" in call(conn, "past_sales", {"community_id": 2})["reason"]
+    conn.execute("UPDATE communities SET county_fips = '06013' WHERE id = 2")
+    assert "yet" in call(conn, "past_sales", {"community_id": 2})["reason"]   # a county we did pull
+
+
+def test_the_search_tool_names_every_covered_county():
+    from tools.agent_tools import COUNTY
+    for name in ("Alameda", "San Mateo", "Solano", "Sonoma", "Napa"):
+        assert name in COUNTY["description"]
 
 
 def test_past_sales_with_under_five_records_lists_them_with_no_median(conn):

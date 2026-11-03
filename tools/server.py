@@ -91,7 +91,7 @@ def create_app(db_path: Path = SITE_DB, run=run_agent, live: dict | None = None,
         body = request.get_json(silent=True)
         q = (body or {}).get("question") if isinstance(body, dict) else None
         if not isinstance(q, str) or not q.strip():
-            return jsonify(error="Ask a question about new homes in the four counties."), 400
+            return jsonify(error="Ask a question about new homes in the eight counties covered."), 400
         q = q.strip()
         if len(q) > live["max_question_chars"]:
             return jsonify(error=f"Keep it under {live['max_question_chars']} characters."), 400

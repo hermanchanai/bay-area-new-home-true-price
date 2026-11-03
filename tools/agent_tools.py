@@ -229,9 +229,11 @@ def past_sales(conn, community_id: int) -> dict:
     r = conn.execute("SELECT * FROM past_sales WHERE community_id = ?", (community_id,)).fetchone()
     if r is None:
         out["past_sales"] = None
-        out["reason"] = ("Santa Clara County's open assessor data has no sale prices or values."
+        pulled = next((x["assessor"].get("past_sales") for x in _counties() if x["fips"] == c["county_fips"]), None)
+        out["reason"] = ("No home in this community has a full assessed value on the county roll yet." if pulled else
+                         "Santa Clara County's open assessor data has no sale prices or values."
                          if c["county_fips"] == "06085" else
-                         "No home in this community has a full assessed value on the county roll yet.")
+                         f"{out['county']} County's assessor records aren't on this site.")
         return out
     records = [dict(x) for x in conn.execute(
         "SELECT address, assessed_value, roll_year, sale_date, living_sqft, beds, recorded_price FROM past_records "
@@ -356,7 +358,7 @@ def _fn(name, desc, props, required=()):
 
 
 COUNTY = {"type": "array", "items": {"type": "string"},
-          "description": "County names: Alameda, Contra Costa, Santa Clara, San Joaquin"}
+          "description": "County names: " + ", ".join(c["name"] for c in _counties())}
 TOOLS = [
     _fn("search_homes", "Find move-in-ready and under-construction homes for sale. Returns homes sorted by true "
         "price (asking minus the dollar value of builder incentives; sorted on the guaranteed end) with ids to "

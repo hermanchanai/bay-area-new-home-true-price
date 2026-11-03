@@ -23,6 +23,21 @@ def test_summary_per_community_uses_the_guaranteed_true_price(conn):
     assert oak["has_past_sales"] and not s[2]["has_past_sales"]
 
 
+def test_a_community_with_plans_but_no_homes_is_listed_but_not_counted(conn, tmp_path):
+    conn.execute("INSERT INTO communities (id, builder_id, name, county_fips, url, fetched_at) "
+                 "VALUES (71, 1, 'The Highlands', '06081', 'https://b.example/h', '2026-11-03')")
+    conn.execute("INSERT INTO plans (community_id, name) VALUES (71, 'Plan 1')")
+    conn.execute("INSERT INTO communities (id, builder_id, name, county_fips, url, fetched_at) "
+                 "VALUES (72, 1, 'Empty Page', '06081', 'https://b.example/e', '2026-11-03')")
+    s = {c["id"]: c for c in summarize(conn, TODAY)}
+    assert s[71]["homes"] == 0 and s[71]["county"] == "San Mateo" and 72 not in s
+    site_before = sum(1 for c in s.values() if c["homes"] > 0)
+    export(conn, tmp_path / "web", tmp_path / "site.db", today=TODAY)
+    site = json.loads((tmp_path / "web" / "site.json").read_text())
+    assert site["meta"]["communities"] == site_before
+    assert (tmp_path / "web" / "c" / "71.json").exists()
+
+
 def test_export_writes_site_json_detail_files_and_a_slim_db(conn, tmp_path):
     conn.execute("INSERT INTO parcels (county, apn, address, total, lat, lng, pulled_at) "
                  "VALUES ('x', '1', '1 Oak St', 900000, 37.7, -121.4, 'd')")

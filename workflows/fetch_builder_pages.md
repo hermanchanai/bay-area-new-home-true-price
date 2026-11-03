@@ -1,6 +1,6 @@
 # Workflow: fetch builder pages
 
-**Objective:** save each builder's community pages for our four counties to `.tmp/raw/<date>/<builder>/`
+**Objective:** save each builder's community pages for the counties in `config/cities.yaml` to `.tmp/raw/<date>/<builder>/`
 (gitignored; never committed), so extraction can run, and re-run, without touching the sites again.
 
 **Run:** `.venv/bin/python -m tools.fetch_builder_pages --builder all`, or a builder key from

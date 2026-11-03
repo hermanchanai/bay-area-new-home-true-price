@@ -1,7 +1,8 @@
 # Priority counties. Assessor endpoints and field names come from the 2026-10-26 probes and were
 # re-checked live with ?f=json on 2026-10-27.
-# conforming_limit_1unit: FHFA 2026 one-unit limit. Alameda / Contra Costa / Santa Clara
-# $1,249,125 per secondary sources; San Joaquin not yet confirmed (null = no jumbo adjustment).
+# conforming_limit_1unit: FHFA 2026 one-unit limit, from FHFA's county file
+# (fullcountyloanlimitlist2026_hera-based_final_flat.xlsx, read 2026-11-03).
+# San Mateo, Solano, Sonoma and Napa added 2026-11-03: listings and incentives only, assessors not pulled.
 #
 # assessor.universe_where: the parcels we pull — single-family homes built or sold since 2022,
 # which covers every phase of the communities selling now. Counts on 2026-10-27:
@@ -53,10 +54,34 @@ counties:
   - key: san_joaquin
     name: San Joaquin
     fips: "06077"
-    conforming_limit_1unit: null
+    conforming_limit_1unit: 832750
     assessor:
       status: green
       parcels: https://services2.arcgis.com/GQhSReJEO6f7tsvy/ArcGIS/rest/services/Parcels/FeatureServer/0
       universe_where: "USECODE = '10' AND YEAR_BUILT >= '2022'"
       centroid: server
       past_sales: {roll_fy: 2026, sale_date: year_built}   # universe is already new homes only
+
+  - key: san_mateo
+    name: San Mateo
+    fips: "06081"
+    conforming_limit_1unit: 1249125
+    assessor: {status: red}
+
+  - key: solano
+    name: Solano
+    fips: "06095"
+    conforming_limit_1unit: 832750
+    assessor: {status: red}
+
+  - key: sonoma
+    name: Sonoma
+    fips: "06097"
+    conforming_limit_1unit: 897000
+    assessor: {status: red}
+
+  - key: napa
+    name: Napa
+    fips: "06055"
+    conforming_limit_1unit: 1017750
+    assessor: {status: red}

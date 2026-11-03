@@ -22,7 +22,7 @@ from tools.link_parcels import distance_m, page_pins
 NOMINATIM = "https://nominatim.openstreetmap.org/search"
 UA = {"User-Agent": "bay-area-new-home-true-price/0.1 (+https://github.com/hermanchanai/bay-area-new-home-true-price)"}
 AGREE_KM = 1.5
-BAY = (36.9, 38.4, -122.7, -120.8)       # lat min/max, lng min/max: the four counties with room to spare
+BAY = (36.9, 39.0, -123.3, -120.8)       # lat min/max, lng min/max: the eight counties with room to spare
 PAUSE_S = 1.2
 log = logging.getLogger(__name__)
 

@@ -25,3 +25,10 @@ def test_pick_prefers_the_builders_own_map_pin_then_osm_streets():
     spread = {(37.38, -122.08), (37.40, -122.11)}
     assert pick(spread, lambda: [(37.39, -122.09)]) == ((37.39, -122.09), "osm_street")
     assert pick(set(), list) == (None, None)
+
+
+def test_every_new_county_is_inside_the_map_bounds():
+    from tools.geocode_communities import cluster_centre
+    for name, point in {"Santa Rosa": (38.44, -122.71), "Cloverdale": (38.81, -123.02), "Calistoga": (38.58, -122.58),
+                        "San Bruno": (37.63, -122.41), "Half Moon Bay": (37.46, -122.43), "Dixon": (38.45, -121.82)}.items():
+        assert cluster_centre({point}) == point, name

@@ -59,14 +59,15 @@ def _pct(part, whole):
 
 
 def summarize(conn, today: str) -> list[dict]:
-    """One row per community that has homes or a map position."""
+    """One row per community that has homes, a map position, or floor plans (still selling, nothing ready to move into)."""
     rows = conn.execute(
         "SELECT c.*, b.name builder, COUNT(h.id) n, MIN(h.price) min_asking, MIN(t.true_high) min_true, "
         "MAX(1.0 * t.value_low / t.asking) dlo, MAX(1.0 * t.value_high / t.asking) dhi, "
         "SUM(h.move_in_status = 'now') ready_now, ps.n past_n FROM communities c "
         "JOIN builders b ON b.id = c.builder_id LEFT JOIN homes h ON h.community_id = c.id "
         "LEFT JOIN true_prices t ON t.home_id = h.id LEFT JOIN past_sales ps ON ps.community_id = c.id "
-        "GROUP BY c.id HAVING COUNT(h.id) > 0 OR c.lat IS NOT NULL ORDER BY c.id").fetchall()
+        "GROUP BY c.id HAVING COUNT(h.id) > 0 OR c.lat IS NOT NULL "
+        "OR EXISTS (SELECT 1 FROM plans p WHERE p.community_id = c.id) ORDER BY c.id").fetchall()
     return [{"id": r["id"], "name": r["name"], "builder": r["builder"],
              "city": re.sub(r",\s*CA$", "", r["city"] or ""), "county": _county_name(r["county_fips"]),
              "lat": r["lat"], "lng": r["lng"], "geo_method": r["geo_method"], "product": r["product"],
