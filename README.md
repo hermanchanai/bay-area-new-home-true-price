@@ -22,8 +22,9 @@ Built for the Meta Global AI Developer Hackathon (Indie track, "Build for Your W
 - 27 communities show 460 earlier homes' county records (assessed value as published, no estimates).
 - Extraction accuracy on 43 hand-checked pages: home recall 99.3%; price, beds and sq ft 100%.
   Hold-out builder (never tuned on): 151/151 homes.
-- Agent: 20/20 hand-checked questions on both Muse Spark Open (the live model) and Muse Spark, scored on
-  frozen 10-30 data; every dollar figure traced to a database row.
+- Agent, on frozen 10-30 data: Muse Spark 20/20 hand-checked questions, Muse Spark Open (the live model) 18/20;
+  its two misses were a correct "none" that also named the nearest home, and a correct price difference it
+  worked out itself, which the trace check (every dollar figure must appear in a tool result) rejects.
 - Total Meta model spend for the whole build, daily price checks included: about $4.
 
 ## Meta models used
