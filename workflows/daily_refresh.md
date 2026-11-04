@@ -9,7 +9,7 @@ By hand: `.venv/bin/python -m tools.daily_refresh --no-deploy` (no publish). Log
 prices, amounts and rates are unchanged; extract the rest; carry forward what couldn't be read; `load_records`; stop if
 under 70% of the previous day's homes; geocode; snapshot; export; deploy Netlify, then the agent API on Railway.
 
-**Limits:** model spend $2 a day (`config/llm.yaml`). A carried page keeps its reading for up to 3 days.
+**Limits:** model spend $10 a day (`config/llm.yaml`). A carried page keeps its reading for up to 3 days.
 
 **After a run**
 - The site and API update themselves. `web/data/` in the repo does not: commit it by hand to keep the public copy current.

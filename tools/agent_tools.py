@@ -20,7 +20,7 @@ from tools.price_incentives import Assumptions, Incentive, true_price
 ROOT = Path(__file__).resolve().parent.parent
 MONTHS = {m.lower(): i for i, m in enumerate(calendar.month_abbr) if m}
 MAX_ROWS = 25
-# True price ranks and budgets use the guaranteed end (true_high): an "up to $250K" offer may pay $0.
+# True price ranks and budgets use true_high, which counts an "up to $250K" offer as $0: it may pay nothing.
 SORTS = {"true_price": "COALESCE(t.true_high, h.price) IS NULL, COALESCE(t.true_high, h.price)",
          "asking": "h.price IS NULL, h.price",
          "discount": "COALESCE(1.0 * t.value_high / t.asking, 0) DESC"}
@@ -180,7 +180,7 @@ def search_homes(conn, county: str | list | None = None, city: str | None = None
     return {"total_matching": len(rows), "homes": rows[:min(int(limit), MAX_ROWS)], "note": " ".join(notes) or None,
             "by_community": [{"community_id": i, "community": n, "homes": k} for (i, n), k in held.most_common()],
             "true_price_basis": "asking minus incentives at 20% down, 30-year fixed, FRED market rate. "
-                                "true_price_high = guaranteed (sorted and filtered on this); true_price_low = "
+                                "true_price_high counts 'up to' offers as $0 (sorted and filtered on this); true_price_low = "
                                 "best case, if every 'up to' offer pays in full"}
 
 
@@ -293,9 +293,7 @@ def get_plan(conn, plan_id: int, rooms: bool = True) -> dict:
     return out
 
 
-def reprice_home(conn, home_id: int, down_payment_pct: float = 20) -> dict:
-    if not 3 <= float(down_payment_pct) <= 100:
-        raise ValueError("down_payment_pct is a percent between 3 and 100")
+def reprice_home(conn, home_id: int) -> dict:
     h = conn.execute("SELECT h.*, c.county_fips FROM homes h JOIN communities c ON c.id = h.community_id "
                      "WHERE h.id = ?", (home_id,)).fetchone()
     if h is None:
@@ -307,7 +305,7 @@ def reprice_home(conn, home_id: int, down_payment_pct: float = 20) -> dict:
     rate = conn.execute("SELECT as_of, rate FROM market_rates WHERE series = 'MORTGAGE30US' "
                         "ORDER BY as_of DESC LIMIT 1").fetchone()
     limit = next((c["conforming_limit_1unit"] for c in _counties() if c["fips"] == h["county_fips"]), None)
-    a = Assumptions(down_payment_pct=float(down_payment_pct) / 100, conforming_limit=limit)
+    a = Assumptions(conforming_limit=limit)
     counted = [r for r in rows if "not_counted" not in (r["flags"] or "")]
     pooled, _ = pricing_set([dict(r) for r in counted], f"home{home_id}")   # same stacking rule as the loader
     incs = [Incentive(kind=r["kind"], amount_usd=r["amount_usd"], amount_is_up_to=bool(r["amount_is_up_to"]),
@@ -324,14 +322,13 @@ def reprice_home(conn, home_id: int, down_payment_pct: float = 20) -> dict:
                           + [offer(i, v, False) for i, v in tp.not_counted],
             "not_counted": [{"label": r["label"], "why": [f for f in json.loads(r["flags"]) if f != "not_counted"]}
                             for r in rows if r not in counted],
-            "assumptions": {"down_payment_pct": float(down_payment_pct), "term_years": a.term_months // 12,
+            "assumptions": {"down_payment_pct": a.down_payment_pct * 100, "term_years": a.term_months // 12,
                             "closing_cost_pct": a.closing_cost_pct * 100, "jumbo_spread_pct": a.jumbo_spread_pct,
                             "conforming_limit": limit},
-            "method_note": "A permanent rate cut is a range: low = the builder's cost (PV of the payment savings), "
-                           "high = the price cut that gives the same payment at the market rate. Offers don't stack "
-                           "unless the fine print says they combine: the buyer picks one, so the guaranteed end "
-                           "uses the offer with the biggest sure value and the best case the offer with the "
-                           "biggest possible value (best_case_choice)."}
+            "method_note": "A lower rate is worth what it costs to buy: one point (1% of the loan) per 0.25% below the "
+                           "no-points rate, the market rate for a fixed loan and 0.50% lower for an ARM. Only the "
+                           "largest offer counts unless the fine print says they combine; true_price_high counts "
+                           "an 'up to' offer as $0 and true_price_low counts it in full (best_case_choice)."}
 
 
 def compare(conn, home_ids: list[int], today: str | None = None) -> dict:
@@ -358,7 +355,7 @@ def compare(conn, home_ids: list[int], today: str | None = None) -> dict:
     return {"homes": out, "differences": [{"home_id": h["home_id"], "vs_home_id": out[0]["home_id"], "asking": gap(h, "asking"),
                                            "true_price_high": gap(h, "true_price_high"), "sqft": gap(h, "sqft")}
                                           for h in out[1:]],
-            "differences_note": "by = how much higher higher_home_id is; true_price_high is the guaranteed end.",
+            "differences_note": "by = how much higher higher_home_id is; true_price_high counts 'up to' offers as $0.",
             "offers_note": "A home's offers don't stack unless the fine print says they combine: the "
                                          "buyer picks one (write 'or', not '+'). The true price range already "
                                          "reflects that."}
@@ -373,12 +370,12 @@ COUNTY = {"type": "array", "items": {"type": "string"},
           "description": "County names: " + ", ".join(c["name"] for c in _counties())}
 TOOLS = [
     _fn("search_homes", "Find move-in-ready and under-construction homes for sale. Returns homes sorted by true "
-        "price (asking minus the dollar value of builder incentives; sorted on the guaranteed end) with ids to "
+        "price (asking minus the dollar value of builder incentives, 'up to' offers counted as $0) with ids to "
         "cite.", {
             "county": COUNTY, "city": {"type": "string"},
             "address": {"type": "string", "description": "a street address, to look up one home"},
             "max_price": {"type": "integer", "description": "max asking price, USD"},
-            "max_true_price": {"type": "integer", "description": "max guaranteed true price, USD"},
+            "max_true_price": {"type": "integer", "description": "max true price, USD"},
             "min_beds": {"type": "number"}, "max_beds": {"type": "number"},
             "product": {"type": "string", "enum": ["SFD", "TH", "condo"],
                         "description": "SFD = detached house, TH = townhome"},
@@ -393,9 +390,8 @@ TOOLS = [
         {"community_id": {"type": "integer"}}, ["community_id"]),
     _fn("get_plan", "One floor plan, with rooms and dimensions when the plan image was read.",
         {"plan_id": {"type": "integer"}}, ["plan_id"]),
-    _fn("price_incentives", "Re-price one home's incentives with the buyer's own down payment.",
-        {"home_id": {"type": "integer"}, "down_payment_pct": {"type": "number", "description": "percent, e.g. 10"}},
-        ["home_id", "down_payment_pct"]),
+    _fn("price_incentives", "One home's incentives in dollars with the method, at 20% down.",
+        {"home_id": {"type": "integer"}}, ["home_id"]),
     _fn("past_sales", "Earlier homes in a community: each one's county assessor record (assessed value as "
         "published, sold date, size) and the community median assessed value.",
         {"community_id": {"type": "integer"}}, ["community_id"]),
@@ -431,8 +427,6 @@ def describe_steps(trace: list[dict]) -> list[str]:
         text = STEP_LABEL.get(name, name)
         if name == "compare" and isinstance(args.get("home_ids"), list):
             text += f" {len(args['home_ids'])} homes"
-        elif name == "price_incentives" and isinstance(args.get("down_payment_pct"), (int, float)):
-            text += f" at {args['down_payment_pct']:g}% down"
         elif name in ("search_homes", "find_communities"):
             shown = "; ".join(_step_arg(k, v) for k, v in args.items() if k not in ("sort", "limit"))
             text += f": {shown}" if shown else ""

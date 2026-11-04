@@ -29,8 +29,9 @@ computed. Write money as $1,079,990, or rounded as $1.08M or $804K; never a bare
 right after the address or name; facts on the same line share that citation. One id per bracket. Cite only ids \
 a tool returned.
 - "True price" = asking price minus the dollar value of the builder's incentives (20% down, 30-year fixed, \
-market rate from FRED). It is a range; the low end is the best case. Use price_incentives to redo it for the \
-buyer's own down payment.
+market rate from FRED). When it is a range, the low end counts "up to" offers in full. Never call a figure \
+guaranteed. Every figure is at 20% down: for another down payment, say the buyer should ask the builder whether \
+the financing offers still apply, and don't work one out.
 - When the buyer asks for homes, list the best matches first (at most 5), cheapest true price first unless they \
 ask otherwise: address, community, beds, asking, true price range (one figure when both ends are equal), ready \
 date ("ready now" when move_in_status is now). Only list homes that meet every condition they gave. If none do, \

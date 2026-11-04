@@ -1,6 +1,6 @@
 # Agent eval, 2026-11-03 (purpose agent_open, data data/eval_2026-11-03.db)
 
-19/20 pass. Spend this run $0.1393 (cached calls cost $0).
+19/20 pass. Spend this run $0.1607 (cached calls cost $0).
 
 **Day 6 gate: PASS** (≥16/20; every dollar figure traces to a tool result).
 
@@ -9,20 +9,20 @@
 | q01 | pass | 2 | search_homes |  |
 | q02 | pass | 2 | search_homes |  |
 | q03 | pass | 3 | search_homes, search_homes |  |
-| q04 | pass | 2 | search_homes |  |
+| q04 | FAIL | 3 | search_homes, price_incentives | none of ['1627 Riverfront Drive', '1461 N Padano Lane', '1421 N Padano Lane'] in the top 3 |
 | q05 | pass | 2 | search_homes |  |
 | q06 | pass | 2 | search_homes |  |
-| q07 | FAIL | 2 | search_homes | none of ['Lot 93', 'Lot 94', '3514 Lakeshore Ave', '1851 Serene Ct'] in the top 3 |
+| q07 | pass | 2 | search_homes |  |
 | q08 | pass | 2 | search_homes |  |
 | q09 | pass | 3 | find_communities, get_community |  |
 | q10 | pass | 3 | find_communities, get_community, past_sales |  |
-| q11 | pass | 3 | find_communities, past_sales |  |
+| q11 | pass | 3 | find_communities, past_sales, get_community |  |
 | q12 | pass | 3 | find_communities, get_community, past_sales |  |
 | q13 | pass | 3 | search_homes, price_incentives |  |
 | q14 | pass | 3 | search_homes, price_incentives |  |
 | q15 | pass | 3 | search_homes, search_homes, compare |  |
 | q16 | pass | 3 | find_communities, get_community |  |
-| q17 | pass | 3 | search_homes, get_plan, get_community |  |
+| q17 | pass | 3 | search_homes, get_plan |  |
 | q18 | pass | 1 |  |  |
 | q19 | pass | 2 | search_homes |  |
 | q20 | pass | 2 | search_homes |  |
@@ -31,250 +31,237 @@
 
 ### q01: I need at least 4 bedrooms, a true price under $1.1M, and to move in by January. Contra Costa or San Joaquin County. What are my best options?
 
-157 homes match — all ready by Jan 2027 with true price under $1.1M for 4+ beds in Contra Costa / San Joaquin.
+You have **156 homes** that meet all 3 conditions — 4+ beds, true price under $1.1M, ready by January — in Contra Costa + San Joaquin.
 
-Cheapest true price first (true price = asking minus builder incentives at 20% down):
+Cheapest true-price options (true price = asking minus builder incentives at 20% down):
 
-* 2977 DAWSON CREEK ST [H174], Alder Grove [C197] — 4bd, asking $615,000, true price $540,468-$555,375, ready now
-* 2867 DAWSON CREEK ST [H168], Alder Grove [C197] — 4bd, asking $619,600, true price $544,511-$559,529, ready 2026-11-23
-* 316 Solis Ct. [H479], Prado at Griffin Park [C102] — 4bd, asking $609,990, true price $574,388, ready now
-* 266 Victorious St. [H55], Sendero at Griffin Park [C101] — 4bd, asking $611,990, true price $576,272, ready now
-* 722 Schut Court [H109], Courts [C69] — 4bd, asking $576,880, true price $576,880, ready now
+* **316 Solis Ct., Prado at Griffin Park [H479]** — Manteca, 4bd SFD — asking $609,990, true price $575,831 — ready now
+* **4008 Keith Lane, Heritage at Cannery [H12]** — Stockton, 5bd SFD — asking $635,000, true price $576,783 — ready now
+* **722 Schut Court, Courts [H109]** — Ripon, 4bd SFD — asking $576,880, true price $576,880 — ready now
+* **266 Victorious St., Sendero at Griffin Park [H55]** — Manteca, 4bd SFD — asking $611,990, true price $577,719 — ready now
+* **2977 DAWSON CREEK ST, Alder Grove [H174]** — Manteca, 4bd SFD — asking $615,000, true price $580,560 — ready now
 
-All are San Joaquin County; no Contra Costa homes meet these exact filters in the top 5 cheapest, but matches exist across 46 communities including Manteca, Lathrop, Stockton, Ripon.
+First Contra Costa option in the sorted list: **339 Astilbe Street, Newport Pointe [H1]** in Discovery Bay — 5bd, asking $659,000, true price $598,583 — ready now.
 
-Want details on incentives or a different down payment?
+Most matches are in San Joaquin: Riverine (14), Eastwood at Machado Ranch (12), Aspen at Villa Ticino (9), and others. Want me to narrow to Contra Costa only or to a specific city?
 
 ### q02: What's the cheapest home I can move into right now in Alameda County, counting incentives?
 
-The cheapest move-in-ready home in Alameda County by true price (asking minus builder incentives) is:
+In Alameda County, **31 homes** are move-in ready now.
 
-* **4894 Las Positas Road** in Alicante at Arroyo Crossings [H431] — 2 bed / 2.5 bath condo, 1,436 sqft — asking $699,000, true price $662,694 — ready now.
+The cheapest counting incentives is:
 
-There are 31 move-in-ready homes total matching in Alameda County, sorted on guaranteed true price at 20% down, 30-year fixed at FRED market rate.
+* **4894 Las Positas Road** [H431] in Alicante at Arroyo Crossings — Livermore — 2 bed condo — asking $699,000 — true price **$665,672** (asking minus $33,328 in builder incentives, valued at 20% down, 30-year fixed) — ready now.
+
+That's the lowest true price — $665,672 — among Alameda County homes with move_in_status = now, sorted by true price.
 
 ### q03: Are there any 3-bedroom townhomes in Santa Clara County under $1.3M after incentives?
 
-No — there are currently **0** 3-bedroom townhomes in Santa Clara County with a guaranteed true price under $1.3M after incentives [based on 20% down, 30-year fixed at market rate].
+No — there are **0** 3-bedroom townhomes in Santa Clara County with a true price under $1.3M at 20% down.
 
-That price condition is what rules them out. In total there are 6 matching 3-bedroom townhomes in Santa Clara County, but the cheapest true price is $1.65M — all are above $1.3M.
+"True price" is asking price minus the dollar value of builder incentives at 20% down, 30-year fixed, at the FRED market rate.
 
-Want me to relax the budget to ~$1.7M true price, or check nearby counties (Alameda, San Mateo, etc.) for 3-bedroom townhomes under $1.3M?
+That $1.3M true-price cap is what rules everything out. Without it, there are 6 3-bedroom townhomes in the county, all with true prices from $1.65M up — the cheapest is in Mountain View and Palo Alto, starting at $1.65M asking with no current incentives, so true price equals asking.
+
+Want me to relax the filter? I can check:
+* the same 3BR townhome type in nearby counties, or
+* 2-bedroom townhomes or condos in Santa Clara County under $1.3M true price
 
 ### q04: Which home in San Joaquin County has the biggest discount from builder incentives?
 
-The biggest builder discount in San Joaquin County is at **Ashbourne at Ellis**:
+The biggest builder-incentive discount in San Joaquin County is:
 
-* Lot 264 - Sutton plan [H457] - 4 bed / 3 bath, 2,302 sqft - asking $831,690 - true price $683,380 - $713,042
-  * Discount up to $148,310 (17.8%) - the largest of 181 homes county-wide on a 20% down, 30-year fixed basis
+**10732 Stevie Dr. [H16]** in Heritage at Cannery [C185] — 4 bed / 2 bath, 3,316 sqft
+- Asking: $824,025
+- True price: $748,478 (asking minus incentives at 20% down)
+- Discount: $75,547 from a 3.875% rate for first 5 years (5-year ARM promo) [H16]
+- Ready Dec. 2026 [H16]
 
-Next largest by total dollars in the same sort are:
-* Lot 263 - Whitby [H456] - asking $826,379 - discount up to $147,363
-* Lot 28 at Kingsley at Ellis [H458] - asking $817,167 - discount up to $145,720
+All figures at 20% down, 30-year fixed, market rate 7.24% from FRED on 2026-10-29.
 
 ### q05: Five bedrooms in Mountain House, ready to move in now. Cheapest first?
 
-Found 11 homes with 5 bedrooms in Mountain House ready now — cheapest true price first [H255][H331][H336][H94][H258]:
+11 homes in Mountain House with 5+ beds ready now — cheapest true price first (5-bedroom):
 
-- **361 E Beatrice Avenue** [H255] — Cypress at Avina, 5 bd — asking $793,146, true price $732,537 — ready now
-- **481 W Calabria Drive** [H331] — Silverleaf at Lakeshore, 5 bd — asking $899,000, true price $899,000 — ready now
-- **1461 N Padano Lane** [H336] — Trailview at Lakeshore, 5 bd — asking $1,018,000, true price $916,505 — ready now
-- **93 W. Semolina Lane** [H94] — Mezzano, 5 bd — asking $948,880, true price $948,880 — ready now
-- **317 E CLYDESDALE COURT** [H258] — Laurel at Avina, 5 bd — asking $1,043,830, true price $955,430 — ready now
+* 361 E Beatrice Avenue [H255] — Cypress at Avina — 5bd — $793,146 asking, true price $748,730 — ready now
+* 481 W Calabria Drive [H331] — Silverleaf at Lakeshore — 5bd — $899,000 asking, true price $899,000 — ready now
+* 1461 N Padano Lane [H336] — Trailview at Lakeshore — 5bd — $1,018,000 asking, true price $936,886 — ready now
+* 93 W. Semolina Lane [H94] — Mezzano — 5bd — $948,880 asking, true price $948,880 — ready now
+* 1221 N. Girardi Drive [H93] — Mezzano — 5bd — $960,062 asking, true price $960,062 — ready now
 
-All are move-in ready. Want details on any of these or see the other 6?
+There are 11 total matching move-in-now homes with 5+ beds: 3 more in Laurel at Avina, 2 in Turano, 1 in Sequoia at Avina (6bd).
+
+True price = asking minus builder incentives at 20% down. Want the next 5 or a different budget?
 
 ### q06: Show me homes with a bedroom on the ground floor for under $650k after incentives.
 
-Found **10 homes** with a ground-floor bedroom under **$650K true price** (asking minus incentives) — all are Lennar SFDs in San Joaquin County. Note: only Lennar floor plans with readable images can be checked for downstairs bedrooms so far.
+Found 10 homes with a downstairs bedroom under $650K after incentives (at 20% down). Cheapest 5 by true price:
 
-Cheapest 5 by true price:
+- **1082 Bruin Road** [H78] in Cypress, Manteca — 3bd SFD, asking $475,999, true price $475,999 — ready now
+- **830 Jazz Way** [H82] in Evergreen, Manteca — 4bd SFD, asking $584,233, true price $584,233 — under construction
+- **3139 Workman Avenue** [H68] in Driftway, Lathrop — 4bd SFD, asking $589,880, true price $589,880 — ready now
+- **4846 Badger Creek Court** [H69] in Heritage, Lathrop — 4bd SFD, asking $595,880, true price $595,880 — ready now
+- **866 Jazz Way** [H83] in Evergreen, Manteca — 4bd SFD, asking $597,529, true price $597,529 — under construction
 
-* **1082 Bruin Road** [H78] — Cypress, Manteca — 3 bed, asking **$475,999**, true price **$475,999**, ready now
-* **830 Jazz Way** [H82] — Evergreen, Manteca — 4 bed, asking **$584,233**, true price **$584,233**, under construction
-* **3139 Workman Avenue** [H68] — Driftway, Lathrop — 4 bed, asking **$589,880**, true price **$589,880**, ready now
-* **4846 Badger Creek Court** [H69] — Heritage, Lathrop — 4 bed, asking **$595,880**, true price **$595,880**, ready now
-* **866 Jazz Way** [H83] — Evergreen, Manteca — 4 bed, asking **$597,529**, true price **$597,529**, under construction
-
-5 more match up to $648,652 — ask if you want the full list or to filter by city/move-in date.
+Note: Only homes whose floor plan image was read can be checked for a downstairs bedroom so far (Lennar plans); other homes may also have one. All true prices shown at 20% down — ask the builder if financing offers apply at a different down payment.
 
 ### q07: What's for sale in Tracy under $800,000?
 
-Found 16 homes in Tracy under $800,000 asking:
+In Tracy under $800,000 asking, 16 homes match across 8 communities [H454].
 
-Cheapest by true price (asking minus incentives, 20% down):
+Cheapest by true price (asking minus incentives at 20% down):
 
-- Lot 93, Ashbourne at Ellis [C191] — 3 bd, asking $659,950, true $542,266-$565,803, ready now
-- Lot 94, Ashbourne at Ellis [C191] — 3 bd, asking $709,950, true $583,349-$608,670, ready now
-- 3514 Lakeshore Ave, Regency at Tracy Lakes - Pinecrest Collection [C106] — 2 bd, asking $649,221, true $614,197, ready Apr 2027
-- 1851 Serene Ct, Regency at Tracy Lakes - Laguna Collection [C107] — 2 bd, asking $661,972, true $650,583, ready Mar 2027
-- Lot 346, Montrose at Ellis [C192] — 4 bd, asking $759,990, true $624,466-$651,571, ready TBD
+- Lot 93, Ashbourne at Ellis [H454] — 3 bd, asking $659,950, true price $620,564, ready now
+- 3514 Lakeshore Ave, Regency at Tracy Lakes - Pinecrest Collection [H366] — 2 bd, asking $649,221, true price $638,051, ready 2027-04-22
+- 1851 Serene Ct, Regency at Tracy Lakes - Laguna Collection [H362] — 2 bd, asking $661,972, true price $650,583, ready 2027-03-16
+- Lot 94, Ashbourne at Ellis [H455] — 3 bd, asking $709,950, true price $667,580, ready now
+- 1868 Serene Ct, Regency at Tracy Lakes - Laguna Collection [H364] — 3 bd, asking $699,000, true price $686,974, ready now
 
-Total by community: Laguna Collection 4, Boulder 3, Ashbourne 2, Pinecrest 2, Montrose 2, Cairnway 1, Crestwick 1, Ridgerton 1.
-
-Want details on a specific home or different beds/ready date?
+Most matches are in Regency at Tracy Lakes - Laguna Collection (4), Boulder (3), Ashbourne at Ellis (2) and others. Want details on any of these or to filter by beds/ready date?
 
 ### q08: Any condos in Santa Clara County under $1M after incentives that are ready by December?
 
-Yes — 9 condos in Santa Clara County match under $1M true price and ready by December 2026:
+Yes — 7 condos in Santa Clara County are under $1M on true price and ready by December (true price = asking minus incentives at 20% down) [H241]:
 
-Cheapest true price first:
+Cheapest 5 by true price:
 
-- 1351 Laurel Way, The District [H241] — 3 bd — asking $858,966 — true price $793,328 — ready now
-- 1249 Pueblo Ln., Haven at Crosswinds [H45] — 3 bd — asking $940,853 — true price $885,941 — ready now
-- 1307 Laurel Way, The District [H243] — 3 bd — asking $963,707 — true price $890,065 — ready now
-- 1357 Laurel Way, The District [H242] — 3 bd — asking $1,013,923 — true price $936,444 — ready now
-- 660 South Main St, Toll Brothers at South Main [H376] — 3 bd — asking $1,099,000 — true price $914,618 to $951,495 — ready now
+* **1351 Laurel Way** [H241] — The District [C18], Milpitas — 3bd — asking $858,966 — true price $810,864 — ready now
+* **1249 Pueblo Ln.** [H45] — Haven at Crosswinds [C89], Morgan Hill — 3bd — asking $940,853 — true price $888,165 — ready now
+* **1307 Laurel Way** [H243] — The District [C18], Milpitas — 3bd — asking $963,707 — true price $909,739 — ready now
+* **1357 Laurel Way** [H242] — The District [C18], Milpitas — 3bd — asking $1,013,923 — true price $957,143 — ready now
+* **1200 Althea Terr, Unit 312** [H368] — Outlook at The Station [C114], Sunnyvale — 1bd — asking $999,000 — true price $981,812 — ready now
 
-All 9 are ready now (Nov 2026). True price = asking minus builder incentives at 20% down, 30-yr fixed, FRED rate. Want the other 4 or a different down payment?
+All 7 are ready now (Nov 2026). 2 more match beyond these 5 — let me know if you want the full list or a different beds/price filter.
 
 ### q09: What incentives does Lilac at Oakwood Trails offer, and what are they worth?
 
-Lilac at Oakwood Trails [C17] in Manteca by Pulte Homes offers:
+Lilac at Oakwood Trails [C17] - Pulte Homes, Manteca - offers:
 
-* **4.99% / 5.892% APR 7/6 ARM fixed for 7 years** on select quick move-in homes [C17] — value **$54,806 - $64,219** depending on the home [C17]. Rate adjusts every 6 months starting year 8 [C17]. Priced with Pulte Mortgage LLC, 20% down, 30-year fixed at market rate — this drives the true price (asking minus incentive value).
+* **4.99% / 5.892% APR 7/6 ARM fixed for 7 years** on select quick move-in homes - value **$40,164 to $47,062** at 20% down, 30-year fixed market rate from FRED. Adjusts every 6 months starting year 8.
+* **Honoring Our Hometown Heroes $2,000 incentive** - value **$2,000** - for teachers, nurses, EMS, police, firefighters & military.
 
-* **Honoring Our Hometown Heroes $2,000 incentive** for teachers, nurses, EMS, police, firefighters & military [C17] — worth **$2,000** [C17].
+Both are *not* included in the asking price, so true price = asking minus these values.
 
-* **Appliance Package** (washer, dryer, refrigerator) [C17] — no dollar value assigned, not counted in true price [C17].
+* **$80,000 in Savings** and **$75,000 in Savings** price cuts - value **$0** for true price calc because they are already included in the asking price.
+* **Appliance Package** (washer, dryer, refrigerator) - unquantified, value **$0**.
 
-* **$80,000 and $75,000 in Savings price cuts** [C17] on two homes are already included in the asking price, so added value is $0 [C17].
-
-Homes listed already reflect the true-price savings — e.g. true price low $662,409 to $776,171.
+3 homes listed, e.g. 1576 Torrey Dr asking $717,215, true price $677,051 with the ARM + $2k counted.
 
 ### q10: What did earlier buyers pay at Cairnway in Tracy, compared with today's asking prices?
 
-At Cairnway in Tracy [C75]:
+At Cairnway in Tracy [C75] - Lennar / SFD:
 
-**Today's asking prices:** 4 homes listed, median asking $823,268. Askings are $729,016 to $831,423:
-- 2706 Emery St - $729,016 [C75]
-- 2617 Emery St - $819,715 [C75]
-- 2665 Dashwood St - $826,821 [C75]
-- 2698 Emery St - $831,423 [C75]
+**Today - 4 homes listed, ready now:**
+* 2706 Emery Street — Residence 1, 4bd/2.5ba 2,220 sqft — asking $729,016
+* 2617 Emery Street — Residence 4, 5bd/3ba 3,196 sqft — asking $819,715
+* 2665 Dashwood Street — Residence 4, 5bd/3ba 3,196 sqft — asking $826,821
+* 2698 Emery Street — Residence 3, 4bd/3ba 2,763 sqft — asking $831,423
+Median asking now: $823,268 [C75].
 
-All include price cuts ($74K-$116K) already in price; true price = asking.
+**Earlier buyers - 43 county records 2024 to 2025 [C75]:**
+Past sales are San Joaquin County assessor records — each home's assessed value (land + improvements) as published on the roll, not estimates or appraisals. An assessed value is not a sale price. Recorded sale prices not published in this county.
 
-**Earlier buyers (county records):** San Joaquin publishes assessed value (land + improvements), not sale price. For 43 homes built 2024-2025:
-- Median assessed value $820,284 [C75]
-- 25th percentile $779,682, 75th $860,895 [C75]
-- Range $669,200 to $946,437 in individual records [C75]
+* Median assessed value: $820,284, with middle 50% $779,682 - $860,895 [C75]
+* Example: 2730 Emery St (2,220 sqft 4bd) assessed $669,200; 2656 Dashwood St (3,196 sqft 5bd) assessed $946,437
 
-In short: today's median asking ($823,268) is very close to the median assessed value of earlier homes ($820,284). Keep in mind assessed values are not sale prices.
+All figures at 20% down; today's asking prices already include builder price cuts ($74K-$116K).
 
 ### q11: What did buyers pay for homes at Orchard Grove in Brentwood?
 
-At **Orchard Grove** in Brentwood [C124] (Shea Homes, SFD) — past sales from county assessor records:
+Orchard Grove [C124] in Brentwood (Contra Costa) — past sales are county assessor records, not sale prices. Contra Costa publishes assessed value (land + improvements), not a recorded sale price:
 
-* **15 homes** with values reset to their last sale, **Jun 2025 - Dec 2025**
-* **Median assessed value: $1,346,502**
-* 25th percentile: $1,167,200 — 75th percentile: $1,440,600
-* Median asking now: $1,424,943
+* 15 homes with assessed values reset to their last sale, deeds 2025-06 to 2025-12
+* Median assessed value $1,346,502, middle 50% $1,167,200 to $1,440,600
+* Recent examples: 469 Trellis Way — assessed $1,346,502 (sale 2025-06-23), 482 Trellis Way — $1,723,500 (2025-09-30), 463 Trellis Way — $1,022,168 (2025-12-16)
 
-These are **assessed values as published on the county roll (land + improvements)** — in Contra Costa, not recorded sale prices. County note: *not appraisals; an assessed value is not a sale price.*
+For context, 4 homes are currently listed at Orchard Grove [C124] with median asking $1,424,943.
 
-Examples on Trellis Way:
-* 482 TRELLIS WAY — $1,723,500 (2025-09-30)
-* 488 TRELLIS WAY — $1,586,900 (2025-10-02)
-* 452 TRELLIS WAY — $1,489,500 (2025-12-30)
-* 410 TRELLIS WAY — $1,468,500 (2025-11-25)
-* 469 TRELLIS WAY — $1,346,502 (2025-06-23)
-* 463 TRELLIS WAY — $1,022,168 (2025-12-16)
-
-Want current listed homes there to compare?
+An assessed value is not a sale price — it's the value on the county roll for tax purposes.
 
 ### q12: What did earlier buyers pay at The District in Milpitas?
 
-The tools have no answer for what earlier buyers paid at The District in Milpitas [C18].
+The District in Milpitas [C18] is in Santa Clara County.
 
-* Why: Santa Clara County's open assessor data has no sale prices or values, so past sales can't be retrieved for this community. Only Alameda, Contra Costa and San Joaquin have assessed values/sale prices in the data — Santa Clara is not covered.
+I checked county assessor records for earlier buyers there, but Santa Clara County's open assessor data has no sale prices or assessed values to report — so I can't provide past sales for this community.
 
-I can tell you about homes currently listed there instead:
+Past sales are available only for Alameda, Contra Costa, and San Joaquin counties in the coverage area (Alameda, Contra Costa, Santa Clara, San Mateo, Solano, Sonoma, Napa, San Joaquin).
 
-The District [C18] by Pulte Homes in Milpitas has 13 homes listed, with asking prices from $858,966 to $1.35M — e.g., condo inventory ready now. Want me to list those current options or check a nearby community in a covered county?
+If you want pricing context for The District [C18], I can share current asking prices and true prices (asking minus builder incentives at 20% down) — 13 homes are listed now from $858,966 — or look up past sales for a community in a county where that data is published.
 
-### q13: If I put 10% down on 1576 Torrey Dr in Manteca, what's its true price?
+### q13: What's the true price of 1576 Torrey Dr in Manteca?
 
-1576 Torrey Dr [H234] in Lilac at Oakwood Trails, Manteca — asking $717,215, 5bd/3ba, 2,590 sqft, ready Jan 2027:
+1576 TORREY DR [H234] in Lilac at Oakwood Trails [C17] — Manteca:
 
-With **10% down**, true price is **$655,558** [H234] — asking minus $61,657 in incentives at market rate 7.24% (30yr fixed, as of 2026-10-29).
+* Asking: $717,215
+* True price: **$677,051** — asking minus incentives at 20% down [H234]. Ready Jan 2027, under construction.
 
-Incentive counted: 4.99% / 5.892% APR 7/6 ARM fixed for 7 years on select quick move-in homes.
+Incentive counted: 4.99% / 5.892% APR 7/6 ARM rate fixed for 7 years valued at $40,164 [H234] — valued as cost of points to buy down from market rate 7.24% (2026-10-29 FRED).
 
-For comparison, at 20% down the true price was $662,409.
+Not counted in true price: $80,000 in Savings (already in asking price) and eligibility-limited Hometown Heroes incentive.
 
-### q14: With 5% down, how much is the 4.99% ARM offer on 361 E Beatrice Avenue worth?
+At another down payment, ask the builder whether the financing offer still applies — don't guess.
 
-With 5% down, the 4.99% / 5.892% APR 7/6 ARM fixed for 7 years on **361 E Beatrice Avenue** [H255] is worth **$71,973**.
+### q14: How much is the 4.99% ARM offer on 361 E Beatrice Avenue worth?
 
-* Asking: $793,146 - incentive = true price $721,173 [H255] (at market rate 7.24% on 2026-10-29, 30-year fixed, 3% closing costs).
+At 361 E Beatrice Avenue [H255] — Cypress at Avina:
 
-That value is the present value of the payment savings during the 7-year fixed period vs. the market rate — it's the builder's cost / your savings, not an additional price cut.
+* Asking $793,146, true price $748,730 [H255] (asking minus incentives at 20% down)
+* The **4.99% / 5.892% APR 7/6 ARM rate fixed for 7 years** is valued at **$44,416** [H255]
+
+That's what it would cost to buy the rate down: priced at 1 point (1% of loan) per 0.25% below the no-points rate, with the ARM no-points rate at 0.50% below the fixed market rate of 7.24% on 2026-10-29. Only the largest offer counts unless they combine.
 
 ### q15: Compare 361 E Beatrice Avenue in Mountain House with 1162 Bradbury Drive in Discovery Bay.
 
-**361 E Beatrice Avenue, Mountain House [H255]** — Cypress at Avina [C19], Pulte Homes, Plan 2, 5 bd / 3 ba, 2,689 sqft, SFD, ready now.
-- Asking $793,146, true price $732,537 [H255]
-- Incentive counted: 4.99% / 5.892% APR 7/6 ARM rate fixed for 7 years — $60,609 value [H255]
+Both are Pulte SFDs, ready now:
 
-**1162 Bradbury Drive, Discovery Bay [H224]** — Seagrass [C13], Pulte Homes, Plan 1, 4 bd / 3 ba, 2,178 sqft, SFD, ready now.
-- Asking $776,437, true price $717,105 [H224]
-- Incentive counted: 4.99% / 5.892% APR 7/6 ARM rate fixed for 7 years on select quick move-in homes — $59,332 value [H224]
+* **361 E Beatrice Avenue, Mountain House - Cypress at Avina [H255]** — 5 bed / 3 bath, 2,689 sqft. Asking $793,146, true price $748,730 (asking minus incentives at 20% down) [H255]. Main incentive: 4.99% / 5.892% APR 7/6 ARM fixed for 7 years valued at $44,416 [H255].
 
-**Differences:**
-- Mountain House asks $16,709 more and its guaranteed true price is $15,432 more than Discovery Bay.
-- Mountain House is 511 sqft larger.
-- Mountain House has 1 more bedroom; both have 3 baths.
+* **1162 Bradbury Drive, Discovery Bay - Seagrass [H224]** — 4 bed / 3 bath, 2,178 sqft. Asking $776,437, true price $732,957 [H224]. Same ARM offer valued at $43,480 [H224].
 
-Both offer a non-stacked $2,000 Hometown Heroes incentive and Appliance Package not counted in true price.
+Comparison: Beatrice is $16,709 higher asking and $15,773 higher true price, and 511 sqft larger than Bradbury [H224]. Both list Hometown Heroes $2,000 and an Appliance Package, but offers don't stack unless fine print says they combine — true price reflects one offer at a time.
 
 ### q16: Which floor plans at Driftway in Lathrop have a bedroom downstairs?
 
-All 4 floor plans at Driftway in Lathrop [C46] have a bedroom downstairs:
+At Driftway [C46] in Lathrop, all 4 floor plans have a bedroom downstairs (layout read from plan image):
 
-* **Residence 1X** [P252] - 4 bd / 3 ba, 1,907 sqft, from $587,880 - downstairs bedroom
-* **Residence 1** [P251] - 4 bd / 3 ba, 1,870 sqft, from $629,880 - downstairs bedroom
-* **Residence 2** [P253] - 4 bd / 3 ba, 2,151 sqft, from $628,880 - downstairs bedroom + loft
-* **Residence 3** [P254] - 5 bd / 3 ba, 2,366 sqft, from $655,880 - downstairs bedroom
+- **Residence 1** [P251] — 4 beds, 3 baths, 1,870 sqft, from $629,880
+- **Residence 1X** [P252] — 4 beds, 3 baths, 1,907 sqft, from $587,880
+- **Residence 2** [P253] — 4 beds, 3 baths, 2,151 sqft, from $628,880 — also has a loft
+- **Residence 3** [P254] — 5 beds, 3 baths, 2,366 sqft, from $655,880
+
+All are noted as downstairs_bedroom = true.
 
 ### q17: How big is the owner's suite in the home at 3139 Workman Avenue?
 
-The home at 3139 Workman Avenue [H68] is the Residence 1X [P252] plan.
+3139 Workman Avenue [H68] is a Residence 1X [P252] at Driftway.
 
-Owner's Suite (2nd floor): **14' x 14' 5"** [P252].
-
-It's part of the Driftway community [C46] in Lathrop — 4 bed / 3 bath, 1,907 sq ft, asking $589,880.
+Per the plan image read, the Owner's Suite is on floor 2 and measures **14' x 14' 5"** [P252].
 
 ### q18: Any new homes in Marin under $900k?
 
-I don't have new-home coverage for Marin County — my search covers the eight Bay Area counties of Alameda, Contra Costa, Santa Clara, San Mateo, Solano, Sonoma, Napa and San Joaquin [no tools needed as Marin is outside the covered area].
+I don't cover Marin — I have new homes from production builders in **Alameda, Contra Costa, Santa Clara, San Mateo, Solano, Sonoma, Napa and San Joaquin** counties only, so I can't report prices or availability in Marin.
 
-If you'd like, I can look for new homes under $900K in the closest counties I do cover to Marin, like Sonoma, Solano or Contra Costa — would you like me to pull those?
+If you'd like, I can search those eight Bay Area counties for new homes under $900K — for example nearby in Sonoma, Solano, Contra Costa or Alameda — and show asking vs. true price, ready dates, and incentives. Want me to pull the best matches under $900K?
 
 ### q19: What's the cheapest home in a 55+ community?
 
-The cheapest home in a 55+ community is:
+Cheapest 55+ home is **2240 Hopskotch Street** in **Luminescence at Liberty** [H489] in Rio Vista (Solano) — 2 bed, 1,606 sqft, asking **$360,900**, true price **$360,900** at 20% down.
 
-* **2240 Hopskotch Street** at Luminescence at Liberty [C242] in Rio Vista (Solano County) — 2 bed / 2.5 bath, 1,606 sq ft — asking $360,900, true price $360,900 [H489]
+There are 36 homes in 55+ communities right now, spread across 10 communities — most at The Meadows at Marsh Creek (9), Luminescence at Liberty (5), and Regency at Tracy Lakes - Laguna Collection (4).
 
-No builder incentives are currently offered on this home, so asking and true price are the same.
-
-There are 36 homes available in 55+ communities across the Bay Area counties I cover, with the next cheapest also at Luminescence at Liberty [C242]:
-* 2395 Reunion Lane — $399,900 true price $399,900 [H490]
-* 2438 Revival Lane — $399,900 true price $399,900 [H491]
-
-Want details on ready dates, or filter by beds/location?
+Every figure is at 20% down; for another down payment, ask the builder whether the financing offers still apply.
 
 ### q20: Anything in Dublin with 4 bedrooms for under $1.6M after incentives?
 
-In Dublin, 6 homes with 4 beds are $1.6M or under **after incentives** — sorted cheapest true price first:
+Yes — 6 homes in Dublin with 4 beds under $1.6M after incentives (true price at 20% down):
 
-1. **1715 Central Parkway** [H418] - Jasmine at Francis Ranch [C29] - 4bd - asking $1,102,777 - true price $1,045,499 - ready now
-2. **1717 Central Parkway** [H419] - Jasmine at Francis Ranch [C29] - 4bd - asking $1,107,544 - true price $1,050,019 - ready now
-3. **1733 Central Parkway** [H417] - Jasmine at Francis Ranch [C29] - 4bd - asking $1,115,093 - true price $1,057,176 - ready now
-4. **1719 Central Parkway** [H420] - Jasmine at Francis Ranch [C29] - 4bd - asking $1,238,161 - true price $1,173,852 - ready now
-5. **1732 Wayfairing Ave** [H422] - Jasmine at Francis Ranch [C29] - 4bd - asking $1,475,565 - true price $1,398,925 - ready December 2026
+* **1715 Central Parkway [H418]**, Jasmine at Francis Ranch — 4bd/3.5ba, 1,970 sqft — asking $1,102,777, true price $1,050,197 — ready now
+* **1717 Central Parkway [H419]**, Jasmine at Francis Ranch — 4bd/3.5ba, 1,970 sqft — asking $1,107,544, true price $1,054,736 — ready now
+* **1733 Central Parkway [H417]**, Jasmine at Francis Ranch — 4bd/3.5ba, 1,970 sqft — asking $1,115,093, true price $1,061,925 — ready now
+* **1719 Central Parkway [H420]**, Jasmine at Francis Ranch — 4bd/3.5ba, 2,071 sqft — asking $1,238,161, true price $1,179,125 — ready now
+* **1732 Wayfairing Ave [H422]**, Jasmine at Francis Ranch — 4bd/3.0ba, 1,935 sqft — asking $1,475,565, true price $1,405,210 — ready December 2026
 
-One more match not shown is at Parkton. All true prices are asking minus builder incentives at 20% down.
+Total matching: 6 — 5 at Jasmine at Francis Ranch and 1 at Parkton (3960 Viggo Way, true price $1,599,463).
 
-Want the cheapest 5 with details, or Parkton info?
+True price = asking minus builder incentives valued at 20% down, 30-year fixed at market rate.
 

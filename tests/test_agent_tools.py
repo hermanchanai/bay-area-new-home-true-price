@@ -1,4 +1,4 @@
-"""agent_tools: ready dates, home search filters, re-pricing with the buyer's own down payment, past sales."""
+"""agent_tools: ready dates, home search filters, the incentive math at 20% down, past sales."""
 import json
 
 import pytest
@@ -93,17 +93,11 @@ def test_search_results_carry_ids_sources_and_precomputed_discounts(conn):
     assert h["source_url"] == "https://b.example/h" and h["fetched"] == "2026-10-27"
 
 
-def test_reprice_reruns_the_math_with_the_buyers_down_payment(conn):
-    at20 = reprice_home(conn, 1, down_payment_pct=20)
-    at10 = reprice_home(conn, 1, down_payment_pct=10)
-    assert at20["asking"] == at10["asking"] == 900_000
-    # bigger loan: the builder's cost of the rate cut (PV of savings) grows; the payment-equivalent cut is a
-    # ratio of payments, so it doesn't move
-    assert at10["incentive_value_low"] > at20["incentive_value_low"]
-    assert at10["incentive_value_high"] == at20["incentive_value_high"]
-    assert at10["assumptions"]["down_payment_pct"] == 10 and at10["market_rate"] == 6.25
-    assert at10["true_price_low"] == 900_000 - at10["incentive_value_high"]
-
+def test_reprice_is_at_20_pct_down_only(conn):
+    r = reprice_home(conn, 1)
+    assert r["asking"] == 900_000 and r["assumptions"]["down_payment_pct"] == 20 and r["market_rate"] == 6.25
+    with pytest.raises(TypeError):
+        reprice_home(conn, 1, down_payment_pct=10)
 
 def test_call_dispatches_and_reports_bad_arguments_instead_of_raising(conn):
     got = call(conn, "past_sales", {"community_id": 1})
@@ -153,20 +147,19 @@ def test_steps_say_what_each_tool_call_did_in_plain_words():
          "result": {"community": "Cairnway", "past_sales": "found", "n": 43, "median_value": 820_284}},
         {"tool": "get_community", "args": {"community_id": 3}, "result": {"name": "Oak Grove", "homes": []}},
         {"tool": "compare", "args": {"home_ids": [1, 2]}, "result": {"homes": [{}, {}]}},
-        {"tool": "price_incentives", "args": {"home_id": 9, "down_payment_pct": 10}, "result": {"true_price_high": 655_558}},
+        {"tool": "price_incentives", "args": {"home_id": 9}, "result": {"true_price_high": 655_558}},
         {"tool": "get_plan", "args": {"plan_id": 999}, "result": {"error": "no plan 999"}},
     ])
     assert got == ["Searched homes: county Contra Costa, San Joaquin; min beds 4; max true price $1,100,000; move in now; not age restricted → 7 found",
                    "Read county records: Cairnway → 43 homes",
                    "Opened a community: Oak Grove",
                    "Compared 2 homes",
-                   "Re-priced a home at 10% down",
+                   "Re-priced a home",
                    "Opened a floor plan → nothing found"]
 
 
 @pytest.mark.parametrize("name,args", [
-    ("price_incentives", {"home_id": 9, "down_payment_pct": "ten"}),
-    ("price_incentives", {"home_id": 9, "down_payment_pct": [10]}),
+    ("price_incentives", {"home_id": "nine"}),
     ("compare", {"home_ids": "1, 2"}),
     ("search_homes", {"county": [1, 2], "min_beds": "four", "max_true_price": "lots"}),
     ("search_homes", ["not", "an", "object"]),
@@ -205,13 +198,13 @@ def test_reprice_does_not_stack_offers_unless_the_fine_print_says_they_combine(c
                  "source_url, label) VALUES (2, 'home', 5, 'flat_cash', 300000, 1, 'Up to $300K', 'u', 'flex')")
     conn.execute("INSERT INTO incentive_values VALUES (1, 5, 6.25, '2026-10-22', 1, 1, 'm', '{}', '[]')")
     conn.execute("INSERT INTO incentive_values VALUES (2, 5, 6.25, '2026-10-22', 0, 300000, 'm', '{}', '[]')")
-    r = reprice_home(conn, 5, down_payment_pct=20)
+    r = reprice_home(conn, 5)
     rate_cut = next(o for o in r["incentives"] if o["label"] == "4.99% fixed")
     assert r["incentive_value_high"] == 300_000                       # the bigger offer, not the sum
     assert r["incentive_value_low"] == rate_cut["value_low"]          # guaranteed floor: the rate cut
     assert r["true_price_low"] == 700_000
     conn.execute("UPDATE incentives SET fine_print = 'Up to $300K. May be combined with other offers.' WHERE id = 2")
-    assert reprice_home(conn, 5, down_payment_pct=20)["incentive_value_high"] > 300_000   # stacks when it says so
+    assert reprice_home(conn, 5)["incentive_value_high"] > 300_000   # stacks when it says so
 
 
 def test_search_finds_a_home_by_street_address(conn):

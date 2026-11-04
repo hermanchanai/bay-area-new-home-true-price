@@ -7,6 +7,10 @@ closing_cost_pct: 0.03
 # Extra rate (percentage points) a jumbo loan — above the county conforming limit — pays over the
 # conforming market rate.
 jumbo_spread_pct: 0.25
+# What a lower rate costs to buy: one point (1% of the loan) per this much off the no-points rate (tools/price_incentives.py).
+rate_pct_per_point: 0.25
+# A 7/6 ARM's no-points rate, this far under the 30-year fixed. No free daily source; published gaps in 2026 ran 0.31 to 0.83.
+arm_par_spread_pct: 0.50
 
 market_rate:
   source: FRED MORTGAGE30US (Freddie Mac PMMS, 30-yr fixed, weekly)

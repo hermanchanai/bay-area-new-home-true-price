@@ -38,8 +38,9 @@
 <header class="border-b border-slate-200 bg-white">
   <div class="max-w-7xl mx-auto px-4 py-4 flex flex-col gap-1">
     <h1 class="text-xl sm:text-2xl font-semibold tracking-tight">Bay Area New-Home True Price</h1>
-    <p class="text-sm text-slate-600 max-w-3xl">New homes you can buy now from production builders in eight counties in and around the Bay Area, with
-      each builder's incentives turned into dollars. <b>True price</b> = asking price minus what the incentives are worth.</p>
+    <p class="text-sm text-slate-600 max-w-3xl">Every production-builder community in eight counties in and around the Bay Area: what each
+      advertises and how its prices and incentives change over time, plus county records of earlier homes in the same community.
+      <b>True price</b> = asking price minus what the incentives are worth.</p>
     <p id="stats" class="text-xs text-slate-500 num"></p>
   </div>
 </header>
@@ -92,13 +93,10 @@
       <p id="unmapped" class="text-xs text-slate-500"></p>
     </div>
     <div class="lg:col-span-2 bg-white border border-slate-200 rounded-xl shadow-sm flex flex-col lg:h-[70vh]">
-      <div class="px-4 py-2 border-b border-slate-100 text-xs text-slate-500">Cheapest guaranteed true price first</div>
+      <div id="list-head" class="px-4 py-2 border-b border-slate-100 text-xs text-slate-500">Communities, lowest starting price first</div>
       <ul id="list" class="divide-y divide-slate-100 lg:overflow-y-auto"></ul>
     </div>
   </section>
-
-  <!-- Selling, nothing ready to move into -->
-  <section id="no-homes" class="hidden bg-white border border-slate-200 rounded-xl p-4 text-sm"></section>
 
   <!-- Method -->
   <section class="bg-white border border-slate-200 rounded-xl p-4 text-sm text-slate-600 flex flex-col gap-2">
@@ -106,10 +104,9 @@
     <p id="method-rate"></p>
     <p id="method-history"></p>
     <p>Cash, price cuts and closing credits count at face value (a closing credit up to typical closing costs). A
-      lower mortgage rate is a range: the low end is what the builder pays to buy it down (the present value of
-      the payment savings), the high end is the price cut that would give the same monthly payment at the market rate.
-      An "up to" offer may pay nothing, so the <b>guaranteed</b> true price counts only what is sure; the best case
-      counts every offer in full. Offers don't stack unless the fine print says they combine: you pick one.</p>
+      temporary buydown counts as the payments it covers. An "up to" offer may pay nothing, so homes are ranked with it
+      at $0, and shown in full beside that. The true price counts only the largest incentive unless the fine print says
+      they combine. Every figure is at 20% down: ask the builder whether a financing offer applies to yours.</p>
     <p>Earlier homes in a community show their county records as published: the assessed value (land + improvements)
       once it has been reset to the home's last sale, and in Alameda the recorded sale price. Nothing is estimated; an
       assessed value is not a sale price. Records exist for Alameda, Contra Costa and San Joaquin only: Santa Clara's open
@@ -122,8 +119,8 @@
 
 <!-- Community drawer -->
 <div id="backdrop" class="hidden fixed inset-0 bg-slate-900/30 z-[1000]"></div>
-<aside id="drawer" class="fixed top-0 right-0 h-full w-full md:w-[680px] bg-white z-[1001] translate-x-full overflow-y-auto"
-       aria-label="Community details"></aside>
+<aside id="drawer" class="fixed top-0 right-0 h-full w-full bg-white z-[1001] translate-x-full overflow-y-auto"
+       aria-label="Community page"></aside>
 
 <footer class="max-w-7xl mx-auto px-4 pb-8 text-xs text-slate-400">Built for the Meta hackathon, October 2026.
   <span id="map-credit">Map © <a class="underline" href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors.</span>

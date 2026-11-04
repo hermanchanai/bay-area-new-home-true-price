@@ -18,9 +18,9 @@ def test_ready_month_reads_builder_dates_and_ready_now_is_the_freeze_month():
     assert ready_month(None, "under_construction", today) is None     # unknown: left out
 
 
-def test_arm_worth_matches_the_hand_check_for_1576_torrey_at_10_pct_down():
-    # $717,215, 4.99% fixed 7 years vs 7.24%: worth $61,657 (agent's reprice tool gave the same on 10-30)
-    assert arm_worth(717_215, 0.10, 7.24, 4.99, 7) == 61_657
+def test_arm_worth_matches_the_hand_check_for_1576_torrey():
+    # $717,215 at 20% down, 4.99% vs ARM par 6.74%: 7 points of the $573,772 loan
+    assert arm_worth(717_215, 0.20, 7.24, 4.99) == 40_164
 
 
 def test_ranked_keeps_ties_with_the_last_place():
@@ -33,12 +33,10 @@ def test_explicit_years_across_a_range_go_with_the_last_month():
     assert ready_month("Dec 2026 / Jan 2027", "month", "2026-10-30") == "2027-01"
 
 
-def test_a_promo_rate_at_or_above_market_is_worth_nothing_and_a_zero_rate_works():
-    """Codex review 1 (chunk 4) #3: a 4.99% promo against a 4.50% market came out at -$13,711 (the product
-    says $0); a 0% rate divided by zero."""
-    assert arm_worth(717_215, 0.10, 4.50, 4.99, 7) == 0
-    assert arm_worth(717_215, 0.10, 4.99, 4.99, 7) == 0
-    assert arm_worth(360_000, 0.0, 6.0, 0.0, 1) > 0
+def test_a_promo_rate_at_or_above_arm_par_is_worth_nothing():
+    assert arm_worth(800_000, 0.20, 7.24, 6.74) == 0
+    assert arm_worth(800_000, 0.20, 7.24, 7.5) == 0
+    assert arm_worth(1_000_000, 0.20, 7.24, 5.25) == 47_680
 
 
 def test_a_tie_for_cheapest_is_any_of_not_all_of():

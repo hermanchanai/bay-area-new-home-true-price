@@ -5,12 +5,12 @@ tools/agent_tools.py (the agent's own code is never called here, so a bug there 
     python -m tools.derive_agent_truth               # re-derive from the copy the key already names
 
 Writes eval/agent_questions.yaml (questions kept, `expect` blocks and `db` rewritten). Definitions:
-- true price = the guaranteed end (true_prices.true_high: asking minus the offers every buyer gets);
+- true price = true_prices.true_high: asking minus offers, with an "up to" offer counted as $0;
   best case = true_low. A home with no true price is priced at its asking price.
 - ready month: 'now' = the freeze month; else the builder's date ('2026-11-30', '11/30/2026', 'Nov 2026';
   a month with no year is its next occurrence, 'Dec/Jan' the later one). No date = unknown, left out.
 - a home is named by its address, else its lot.
-- q04 "biggest discount": top 3 by the guaranteed discount and top 3 by the best case both count; eligible =
+- q04 "biggest discount": top 3 by the discount with "up to" offers at $0 and top 3 with them in full both count; eligible =
   every San Joaquin home with any discount. q07 "under $800,000": either reading counts (cheapest by true
   price or by asking); eligible = true price under $800,000, which includes every asking price under it.
 - The agent dates "ready now" by the day the eval runs, the key by the freeze day: re-freeze if the eval
@@ -38,14 +38,14 @@ HEADER = """\
 # can't make the key stale; re-freeze and re-derive to move the eval to newer data.
 # - top3_any_of / top3_all_of: homes the answer must rank in its first 3 [H<id>] citations
 # - eligible: every home meeting all the question's conditions; nothing else may be in the top 3
-#   (true price = the guaranteed end, asking minus offers every buyer gets; "ready by" = the builder's date)
+#   (true price = true_high, asking minus offers with "up to" at $0; "ready by" = the builder's date)
 # - must_mention: text the answer must contain (a list = any one of them), case-insensitive
 # - must_mention_amount: per group, the answer states one of these dollar amounts at its written precision
 #   ($54.8k counts as $54,806); must_name: a name that must appear whole ('Residence 1' is not in 'Residence 1X')
 # - no_homes: the right answer is "none"; citing any home fails
-# - q04: top 3 by the guaranteed or by the best-case discount; q07: cheapest by true price or by asking
-# Hand-computed values (ARM worth = PV over the fixed years of the payment saved vs the market rate, at the
-# market rate; loan = price less the down payment; market {rate}% FRED {rate_date}):
+# - q04: top 3 with "up to" offers at $0 or in full; q07: cheapest by true price or by asking
+# Hand-computed values (ARM worth = points to buy the rate from ARM par, market less 0.50%, one point per 0.25%;
+# loan = price less 20% down; market {rate}% FRED {rate_date}):
 {notes}
 """
 
@@ -118,18 +118,10 @@ def names(hs: list[dict]) -> list[str]:
     return list(dict.fromkeys(h["name"] for h in cheapest(hs)))
 
 
-def pmt(rate_pct: float, loan: float) -> float:
-    i = rate_pct / 1200
-    return loan / 360 if i == 0 else loan * i / (1 - (1 + i) ** -360)
-
-
-def arm_worth(price: int, down: float, market: float, promo: float, years: int) -> int:
-    """A promo at or above the market rate saves nothing: worth $0, never negative."""
-    if promo >= market:
-        return 0
-    loan, i = price * (1 - down), market / 1200
-    saving = pmt(market, loan) - pmt(promo, loan)
-    return round(sum(saving / (1 + i) ** k for k in range(1, years * 12 + 1)))
+def arm_worth(price: int, down: float, market: float, promo: float) -> int:
+    """Points to buy the promo from ARM par (market less 0.50%), one point per 0.25%; never negative."""
+    par = market - 0.50
+    return round(max(0, par - promo) * 4 / 100 * price * (1 - down))
 
 
 def cheapest_expect(hs: list[dict]) -> dict:
@@ -211,7 +203,7 @@ def derive(conn, today: str) -> tuple[dict, list[str]]:
                   else {"must_mention": [[f"{med / 1e6:.2f}", f"{med // 1000:,}"], "assessed"]})
     e["q12"] = {"must_mention": ["Santa Clara"]}
 
-    for qid, addr, down in (("q13", "1576 TORREY DR", 0.10), ("q14", "361 E Beatrice Avenue", 0.05)):
+    for qid, addr, down in (("q13", "1576 TORREY DR", 0.20), ("q14", "361 E Beatrice Avenue", 0.20)):
         hid, price, fips = one(conn, "SELECT h.id, h.price, c.county_fips FROM homes h JOIN communities c "
                                      "ON c.id = h.community_id WHERE h.address = ?", addr)
         arm = [r for r in conn.execute(
@@ -219,9 +211,9 @@ def derive(conn, today: str) -> tuple[dict, list[str]]:
             "WHERE v.home_id = ? AND i.kind = 'arm_promo'", (hid,))]
         if len(arm) != 1 or fips != sj:        # San Joaquin has no conforming limit in config: no jumbo spread
             raise SystemExit(f"{qid}: expected one ARM offer on a San Joaquin home, got {arm} {fips}")
-        promo, years = arm[0][0], int(re.search(r"\d+", arm[0][1])[0])
-        worth = arm_worth(price, down, rate, promo, years)
-        notes.append(f"{qid} {addr} at {down:.0%} down: {promo}% {years}-yr ARM worth ${worth:,} "
+        promo = arm[0][0]
+        worth = arm_worth(price, down, rate, promo)
+        notes.append(f"{qid} {addr} at {down:.0%} down: {promo}% ARM worth ${worth:,} "
                      f"-> true price ${price - worth:,} (asking ${price:,}).")
         e[qid] = {"must_mention_amount": [[price - worth] if qid == "q13" else [worth]]}
 

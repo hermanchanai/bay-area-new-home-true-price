@@ -88,14 +88,8 @@ def test_bad_questions_are_refused_before_any_model_call(app):
     assert app.calls == []
 
 
-def test_reprice_reruns_the_math_for_free(app):
-    c = app.test_client()
-    r = c.get("/api/reprice?home_id=1&down=10")
-    assert r.status_code == 200 and r.json["assumptions"]["down_payment_pct"] == 10
-    assert r.json["true_price_low"] < 900_000
-    assert c.get("/api/reprice?home_id=1&down=1").status_code == 400
-    assert c.get("/api/reprice?home_id=999&down=20").status_code == 400
-    assert app.calls == []
+def test_there_is_no_endpoint_to_change_the_down_payment(app):
+    assert app.test_client().get("/api/reprice?home_id=1&down=10").status_code == 404
 
 
 def test_health_reports_spend_against_the_caps(app):

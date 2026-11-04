@@ -11,7 +11,6 @@ POST /api/ask {"question": ...}
      behind a per-IP hourly and daily limit and a daily and total spend cap (config/llm.yaml `live`), summed
      from this server's own llm_calls ledger. A cap is checked before a question, so one question can overshoot
      it by its own cost (cents).
-GET /api/reprice?home_id=&down=   the incentive math with the buyer's own down payment (no model, $0)
 GET /api/health                   the live model, counts and today's spend
 
 The visitor IP is Netlify's client header when proxied, else X-Forwarded-For, else the socket. Those headers
@@ -31,7 +30,7 @@ from flask import Flask, jsonify, request, send_from_directory
 
 from tools import db, llm
 from tools.agent import run as run_agent
-from tools.agent_tools import describe_steps, reprice_home
+from tools.agent_tools import describe_steps
 from tools.export_site_data import SITE_DB, WEB, question_key
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -122,16 +121,6 @@ def create_app(db_path: Path = SITE_DB, run=run_agent, live: dict | None = None,
         answered[(today(), key)] = (out["answer"], steps)
         return jsonify(answer=out["answer"], source="live", cost_usd=round(out["cost_usd"], 4), turns=out["turns"],
                        steps=steps)
-
-    @app.get("/api/reprice")
-    def reprice():
-        conn = db.connect(db_path)
-        try:
-            return jsonify(reprice_home(conn, int(request.args["home_id"]), float(request.args.get("down", 20))))
-        except (KeyError, ValueError) as e:
-            return jsonify(error=str(e)), 400
-        finally:
-            conn.close()
 
     @app.get("/api/health")
     def health():

@@ -19,14 +19,14 @@ Built for the Meta Global AI Developer Hackathon (Indie track, "Build for Your W
 
 - 532 move-in-ready homes in 138 communities from 16 builders; every home has a street address or lot. Another 81 communities
   (19 of them coming soon) show floor plans with nothing ready to move into, and are listed but not counted. Sold-out ones are left off.
-- 521 homes priced: incentives cut the asking price by 4.1% guaranteed, up to 4.7% at most, at a 7.24%
+- 521 homes priced: incentives cut the asking price by 2.8% with "up to" offers at $0, 3.0% with them in full, at a 7.24%
   market rate. Savings a builder already shows in the price are never counted twice.
 - 37 communities show 453 earlier homes' county records (assessed value as published, no estimates); 27 of them
   have enough for a median.
 - Extraction accuracy on 43 hand-checked pages: home recall 99.3%; price, beds and sq ft 100%.
   Hold-out builder (never tuned on): 151/151 homes.
 - Agent, on frozen 11-03 data: Muse Spark 20/20 hand-checked questions, Muse Spark Open (the live model) 19/20. Its one
-  miss listed the right homes but cited their communities instead of each home, which the check doesn't allow.
+  miss: asked for the biggest discount, it ranked by share of the price (9.2%), while the key ranks by dollars.
 - Total Meta model spend for the whole build, daily price checks included: about $10.
 
 ## Meta models used
@@ -83,7 +83,7 @@ SQLite ──► export ──► static site (Netlify)       SQLite ──► a
 Every morning `python -m tools.daily_refresh` (a launchd job on the build machine) fetches every builder again,
 re-extracts only pages whose prices, amounts or rates changed (pages change other text daily: office hours,
 tracking tokens), reprices, records each home's asking and true price in `price_history`, and redeploys.
-Model spend is capped at $2 a day; a page that misses extraction keeps its last one, as does a builder whose site
+Model spend is capped at $10 a day on the Meta API; a page that misses extraction keeps its last one, as does a builder whose site
 fails that morning (dropped connections are retried first), and a day that loads under 70% of the previous day's
 homes is not published. Each home keeps a permanent id, so links and cited answers
 stay on the same home. The site shows each home's price history, and the whole series is a CSV:
@@ -110,10 +110,17 @@ https://bay-area-true-price.netlify.app/data/price_history.csv
   have no closed sales on the roll yet, and Alameda's transfer list ends 3/2025.
 - An assessed value is not a sale price. San Joaquin publishes no sale dates, so its homes count once built
   before the roll's lien date; a builder still owning a finished home would show its construction value.
-- "Up to" incentives may pay $0, so rankings use the guaranteed end of the range.
-- A rate offer is only counted for 30 years when the builder says it's fixed. Meritage's terms page confirms its
+- "Up to" incentives may pay $0, so rankings count them at $0.
+- A lower rate is valued at what it would cost to buy: one point (1% of the loan) per 0.25% below the no-points rate. That rate
+  is the market rate for a fixed loan and an estimated 0.50% lower for an ARM, because no free daily ARM rate exists; published gaps
+  in 2026 ran 0.31 to 0.83. On a $1,074,533 loan at 4.99%, that range moves the value between $61,033 and $83,384.
+- Every figure is at 20% down. A financing offer may not apply at every down payment, so the site doesn't pretend to rework it.
+- The 0–3% "worth asking" note on community pages is our estimate of what builders may give beyond what they advertise. It isn't
+  from any builder and isn't counted in any price.
+- Home history in `price_history.csv` before 2026-11-03 used the earlier rate method (payment savings), so compare asking prices across those dates, not true prices.
+- A rate offer is only treated as fixed when the builder says it's fixed. Meritage's terms page confirms its
   4.99% is a 7/6 ARM, so it's valued that way. Trumark's 5.25% (5.993% APR) names no loan on any page we read, so it's
-  marked "term not stated" and valued for 5 years; that may be too low. KB's 4.99% is an FHA 5/1 ARM and its terms page gives
+  marked "term not stated" and valued like an ARM; that may be too low. KB's 4.99% is an FHA 5/1 ARM and its terms page gives
   no conventional rate, so it's valued like any loan at 20% down; that leaves out FHA mortgage insurance and may be too high. True prices in the history before 11-03 used
   the older reading of these offers.
 - Not financial advice. The builder's own page is the source of truth; every figure links to it.
@@ -271,3 +278,4 @@ building period.
     Same frozen data: Muse Spark 20/20, Muse Spark Open 19/20, with a different miss from the earlier run.
     14 communities with homes had no map pin although their builders' pages say where they are; the geocoder now reads those records. 137 of 138 are on the map; Woodside Estates' page gives no location.
     Every community now gets a pin, not just those with a priced home: 215 of 219 communities still selling or coming soon (hollow pin = floor plans only). Each shows its lowest advertised price and how that and its priced offers have moved, from `community_history`, backfilled to Oct 27 from saved readings (Nov 3 for the four newest counties). Older prices aren't on record. Lennar's 555,555 placeholder on 40 plans no longer shows as a price.
+    Rebuilt around what no single visit to a builder's site shows. Each community has its own page: advertised price over time, every priced offer with first and last seen dates, then county records of earlier homes. The list is by community and starting price, the map has one color, and every figure is at 20% down. A lower rate is now valued at the points it would cost to buy, which cut the average discount from 4.1% to 2.8%. Fixed along the way: "7/6 ARM, 2-1" was read as 7 and 6 points off the rate (19 offers).

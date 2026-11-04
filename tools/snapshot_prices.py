@@ -108,11 +108,13 @@ def community_changes(rows: list[tuple]) -> dict:
     in between changes nothing."""
     if not rows:
         return {}
-    seen, moves, price = {}, [], None
+    seen, moves, series, price = {}, [], [], None
     for day, from_price, offers in rows:
         if from_price and price and from_price != price:
             moves.append({"date": day, "was": price, "now": from_price})
         price = from_price or price
+        if from_price:
+            series.append([day, from_price])
         for i in offers:
             if i.get("amount_usd") or i.get("rate"):
                 key = (i["kind"], float(i.get("amount_usd") or 0), i.get("rate"))
@@ -121,7 +123,10 @@ def community_changes(rows: list[tuple]) -> dict:
     return {"tracked_since": first, "last_checked": latest, "advertised_from": price, "price_changes": moves,
             "incentives": rows[-1][2],
             "incentives_added": [{"date": s["first"], "label": s["label"]} for s in seen.values() if s["first"] > first],
-            "incentives_ended": [{"last_seen": s["last"], "label": s["label"]} for s in seen.values() if s["last"] < latest]}
+            "incentives_ended": [{"last_seen": s["last"], "label": s["label"]} for s in seen.values() if s["last"] < latest],
+            "series": series,
+            "offers_seen": [{"label": s["label"], "first_seen": s["first"], "last_seen": s["last"], "active": s["last"] == latest}
+                            for s in seen.values()]}
 
 
 def write_csv(conn, path: Path) -> int:

@@ -1,6 +1,7 @@
-"""Expected values were computed by hand (a separate scratch calculation on 2026-10-26, written
-before this module existed), not read back from the implementation. Base case: $1,000,000 price,
-20% down, 30-yr amortization, market rate 6.25%, savings discounted monthly at the market rate."""
+"""Expected values were computed by hand, not read back from the implementation. Base case: $1,000,000 price,
+20% down, $800,000 loan, 30-yr amortization, market rate 6.25%. A lower rate is worth what it costs to buy
+(Herman, 2026-11-03): one point (1% of the loan) per 0.25% below par; par is the market rate for a fixed loan,
+0.50% lower for an ARM. Temporary buydowns stay the subsidy actually paid."""
 import pytest
 
 from tools.price_incentives import (Assumptions, Incentive, comparison_rate, monthly_payment,
@@ -19,10 +20,14 @@ def test_monthly_payment_base_case():
     assert monthly_payment(4.99, 800_000) == pytest.approx(4289.69, abs=0.01)
 
 
-def test_permanent_rate_buydown_two_views():
+def test_fixed_rate_is_worth_the_points_to_buy_it_from_the_market_rate():
     v = value_incentive(Incentive("perm_rate", rate=4.99, structure="30yr fixed"), P, MKT)
-    assert v.high == pytest.approx(129_128, abs=1)  # payment-equivalent price cut
-    assert v.low == pytest.approx(103_303, abs=1)   # builder cost, PV over 360 months
+    assert v.low == v.high == 40_320                # (6.25 - 4.99) / 0.25 = 5.04 points of $800,000
+
+
+def test_the_heights_arm_from_herman_example():
+    v = value_incentive(Incentive("arm_promo", rate=4.99, structure="7/6 ARM"), 1_343_166, 7.24)
+    assert v.low == v.high == 75_217                # par 6.74, 7.0 points of $1,074,533
 
 
 def test_two_one_buydown():
@@ -35,9 +40,14 @@ def test_three_two_one_buydown():
     assert v.low == v.high == pytest.approx(33_193, abs=1)
 
 
-def test_arm_promo_counts_only_fixed_period():
+def test_arm_is_worth_the_points_to_buy_it_from_arm_par():
     v = value_incentive(Incentive("arm_promo", rate=4.99, structure="7/6 ARM"), P, MKT)
-    assert v.low == v.high == pytest.approx(43_185, abs=1)
+    assert v.low == v.high == 24_320                # par 5.75: 3.04 points of $800,000
+
+
+def test_an_arm_at_or_above_arm_par_is_worth_nothing():
+    v = value_incentive(Incentive("arm_promo", rate=5.9, structure="7/6 ARM"), P, MKT)
+    assert (v.low, v.high) == (0, 0) and "promo_not_below_market" in v.flags
 
 
 def test_first_year_rate_treated_as_one_zero_buydown():
@@ -83,8 +93,7 @@ def test_jumbo_loan_compares_against_jumbo_market_rate():
     a = Assumptions(conforming_limit=1_249_125)
     assert comparison_rate(2_000_000, MKT, a) == pytest.approx(6.50)
     v = value_incentive(Incentive("perm_rate", rate=4.99), 2_000_000, MKT, a)
-    assert v.high == pytest.approx(303_314, abs=1)
-    assert v.low == pytest.approx(242_651, abs=1)
+    assert v.low == v.high == 96_640                # (6.50 - 4.99) / 0.25 = 6.04 points of $1.6M
 
 
 def test_conforming_loan_keeps_market_rate():
@@ -99,10 +108,10 @@ def test_pool_counts_only_its_biggest_option_and_other_pools_stack():
         Incentive("closing_credit", amount_usd=2_500),
     ]
     tp = true_price(P, incs, MKT)
-    assert tp.value_high == pytest.approx(129_128 + 2_500, abs=1)
-    assert tp.value_low == pytest.approx(103_303 + 2_500, abs=1)
-    assert tp.true_low == pytest.approx(P - 129_128 - 2_500, abs=1)
-    assert tp.true_high == pytest.approx(P - 103_303 - 2_500, abs=1)
+    assert tp.value_high == 50_000 + 2_500          # "up to" paid in full beats the rate
+    assert tp.value_low == 40_320 + 2_500           # the rate, if the "up to" pays nothing
+    assert tp.true_low == P - 52_500
+    assert tp.true_high == P - 42_820
     assert len(tp.counted) == 2 and len(tp.not_counted) == 1
 
 
@@ -121,10 +130,18 @@ def test_choose_one_pool_guarantees_the_best_floor_and_caps_at_the_best_ceiling(
     assert tp.value_high == 250_000 and tp.value_low == arm_alone.value_low > 0
 
 
-def test_a_rate_whose_term_is_not_stated_counts_for_five_years_only():
+def test_a_rate_whose_term_is_not_stated_counts_like_an_arm():
     a = Assumptions()
-    forever = value_incentive(Incentive(kind="perm_rate", rate=5.25), 1_000_000, 7.24, a)
+    fixed = value_incentive(Incentive(kind="perm_rate", rate=5.25), 1_000_000, 7.24, a)
     v = value_incentive(Incentive(kind="perm_rate", rate=5.25, structure="term not stated"), 1_000_000, 7.24, a)
     arm = value_incentive(Incentive(kind="arm_promo", rate=5.25, structure="5/6 ARM"), 1_000_000, 7.24, a)
-    assert (v.low, v.high) == (arm.low, arm.high) and v.low == v.high
-    assert v.method == "term_unstated_5yr_pv" and v.low < forever.low
+    assert (v.low, v.high) == (arm.low, arm.high) == (47_680, 47_680)   # par 6.74: 5.96 points of $800,000
+    assert v.method == "term_unstated_points" and v.low < fixed.low
+
+
+def test_an_arm_term_in_a_buydowns_structure_is_not_part_of_the_buydown():
+    # "7/6 ARM, 2-1" is a 2-1 buydown: 7 and 6 aren't percentage points off the rate. Same value as a plain 2-1.
+    plain = value_incentive(Incentive("temp_buydown", rate=5.75, structure="2-1"), P, MKT)
+    for structure in ("7/6 ARM, 2-1", "5/1 ARM with 2/1 buydown", "2/1 buydown 5/1 ARM"):
+        v = value_incentive(Incentive("temp_buydown", rate=5.75, structure=structure), P, MKT)
+        assert (v.low, v.high, v.method) == (plain.low, plain.high, "buydown_2-1_pv"), structure

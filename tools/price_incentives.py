@@ -13,7 +13,8 @@ class Assumptions:
     closing_cost_pct: float = 0.03
     jumbo_spread_pct: float = 0.25
     conforming_limit: int | None = None
-    unstated_term_years: int = 5     # a rate with no stated term counts this long: the shortest ARM period builders here use
+    rate_pct_per_point: float = 0.25  # one point (1% of the loan) buys this much off the rate
+    arm_par_spread_pct: float = 0.50  # a 7/6 ARM's no-points rate sits this far under the 30-year fixed
 
 
 @dataclass(frozen=True)
@@ -105,7 +106,7 @@ def value_incentive(inc: Incentive, price: float, market_rate_pct: float, a: Ass
         if inc.kind == "first_year_rate":
             steps, flags = [1], flags + ("assumed_1-0",)
         else:
-            steps = [s for s in _ints(inc.structure) if s > 0]
+            steps = [s for s in _ints(re.sub(r"\d+/\d+\s*ARM", "", inc.structure or "", flags=re.I)) if s > 0]
             if not steps:
                 return Value(0, 0, inc.kind, flags + ("missing_input",))
         note = inc.note_rate if inc.note_rate is not None else inc.rate + steps[0]
@@ -116,25 +117,16 @@ def value_incentive(inc: Incentive, price: float, market_rate_pct: float, a: Ass
         v = round(_pv(savings, market))
         return Value(v, v, f"buydown_{'-'.join(map(str, steps))}_pv", flags)
 
-    if inc.rate >= market:
+    # A lower rate is worth what it costs to buy from the no-points rate. An offer with no term named counts as an ARM.
+    arm = inc.kind == "arm_promo" or inc.structure == TERM_NOT_STATED
+    par = market - a.arm_par_spread_pct if arm else market
+    if inc.rate >= par:
         return Value(0, 0, inc.kind, flags + ("promo_not_below_market",))
-    saving = monthly_payment(market, loan, n) - monthly_payment(inc.rate, loan, n)
-
-    if inc.kind == "arm_promo":
-        years = _ints(inc.structure)
-        if not years:
-            return Value(0, 0, inc.kind, flags + ("missing_input",))
-        v = round(_pv([saving] * years[0] * 12, market))
-        return Value(v, v, f"arm_fixed_{years[0]}yr_pv", flags)
-
-    if inc.structure == TERM_NOT_STATED:
-        v = round(_pv([saving] * a.unstated_term_years * 12, market))
-        return Value(v, v, f"term_unstated_{a.unstated_term_years}yr_pv", flags)
-
-    # perm_rate: buyer view = price cut with the same payment at market; builder view = PV of savings.
-    payment_equiv_cut = price * (1 - monthly_payment(inc.rate, loan, n) / monthly_payment(market, loan, n))
-    builder_cost = _pv([saving] * n, market)
-    return Value(round(builder_cost), round(payment_equiv_cut), "perm_builder_cost..payment_equiv_cut", flags)
+    if inc.kind == "arm_promo" and not _ints(inc.structure):
+        return Value(0, 0, inc.kind, flags + ("missing_input",))
+    v = round((par - inc.rate) / a.rate_pct_per_point / 100 * loan)
+    method = "arm_points" if inc.kind == "arm_promo" else "term_unstated_points" if arm else "fixed_points"
+    return Value(v, v, method, flags)
 
 
 def true_price(price: float, incentives: list[Incentive], market_rate_pct: float,

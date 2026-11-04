@@ -81,3 +81,23 @@ def test_the_site_gets_each_communitys_advertised_price_and_changes(conn):
     s = {c["id"]: c for c in summarize(conn, "2026-11-03")}
     assert s[81]["advertised_from"] == 1249990 and s[81]["tracked_since"] == "2026-11-03"
     assert s[81]["plan_beds_max"] == 4 and s[81]["incentives"][0]["label"] == RATE["label"]
+
+
+def test_a_community_page_gets_the_daily_series_and_every_offer_with_its_dates():
+    out = community_changes([("2026-09-01", 700, [CASH]), ("2026-10-27", None, [CASH, BANNER]), ("2026-11-03", 650, [RATE])])
+    assert out["series"] == [["2026-09-01", 700], ["2026-11-03", 650]]
+    assert out["offers_seen"] == [{"label": CASH["label"], "first_seen": "2026-09-01", "last_seen": "2026-10-27", "active": False},
+                                  {"label": RATE["label"], "first_seen": "2026-11-03", "last_seen": "2026-11-03", "active": True}]
+
+
+def test_the_series_goes_on_the_community_page_not_in_the_site_file(conn, tmp_path):
+    from tools.export_site_data import community_detail, export
+    _add(conn, 81, "selling")
+    conn.execute("INSERT INTO community_history (snapshot_date, community_url, from_price, incentives) VALUES "
+                 "('2026-11-03', 'https://b.example/81', 1249990, '[]')")
+    s = {c["id"]: c for c in summarize(conn, "2026-11-03")}
+    assert "series" not in s[81] and "offers_seen" not in s[81]
+    assert community_detail(conn, 81, "2026-11-03")["series"] == [["2026-11-03", 1249990]]
+    meta = export(conn, tmp_path / "web", tmp_path / "site.db", today="2026-11-03")
+    assert meta["assumptions"]["unadvertised_incentive_pct"] == [0, 3]
+    assert meta["assumptions"]["rate_pct_per_point"] == 0.25 and meta["assumptions"]["arm_par_spread_pct"] == 0.5

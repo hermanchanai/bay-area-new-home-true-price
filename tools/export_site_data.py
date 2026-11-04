@@ -20,7 +20,6 @@ import logging
 import os
 import re
 import shutil
-from collections import defaultdict
 from datetime import date
 from pathlib import Path
 
@@ -37,7 +36,10 @@ from tools.agent_tools import (
     get_plan,
 )
 from tools.eval_agent import RUNS, cited
+from tools.price_incentives import Assumptions
 from tools.snapshot_prices import community_changes, home_key
+
+ASSUME = Assumptions()
 
 ROOT = Path(__file__).resolve().parent.parent
 WEB = ROOT / "web" / "data"
@@ -59,6 +61,12 @@ def _pct(part, whole):
     return round(100 * part / whole, 1) if part is not None and whole else None
 
 
+def _history(conn, url: str) -> dict:
+    return community_changes([(r[0], r[1], json.loads(r[2])) for r in conn.execute(
+        "SELECT snapshot_date, from_price, incentives FROM community_history WHERE community_url = ? AND carried = 0 "
+        "ORDER BY snapshot_date", (url,))])
+
+
 def summarize(conn, today: str) -> list[dict]:
     """One row per community that has homes, a map position, or floor plans (still selling, nothing ready to move into)."""
     rows = conn.execute(
@@ -70,10 +78,6 @@ def summarize(conn, today: str) -> list[dict]:
         "GROUP BY c.id HAVING COUNT(h.id) > 0 OR c.lat IS NOT NULL "
         "OR EXISTS (SELECT 1 FROM plans p WHERE p.community_id = c.id) ORDER BY c.id").fetchall()
     beds = dict(conn.execute("SELECT community_id, MAX(beds_max) FROM plans GROUP BY community_id").fetchall())
-    history = defaultdict(list)
-    for r in conn.execute("SELECT community_url, snapshot_date, from_price, incentives FROM community_history "
-                          "WHERE carried = 0 ORDER BY snapshot_date"):
-        history[r[0]].append((r[1], r[2], json.loads(r[3])))
     return [{"id": r["id"], "name": r["name"], "builder": r["builder"],
              "city": re.sub(r",\s*CA$", "", r["city"] or ""), "county": _county_name(r["county_fips"]),
              "lat": r["lat"], "lng": r["lng"], "geo_method": r["geo_method"], "product": r["product"],
@@ -84,7 +88,7 @@ def summarize(conn, today: str) -> list[dict]:
              "max_discount_pct_best": round(100 * r["dhi"], 1) if r["dhi"] is not None else None,
              "has_past_sales": r["past_n"] is not None,
              "list_without_homes": not r["n"] and r["status"] != "sold_out", "plan_beds_max": beds.get(r["id"]),
-             **community_changes(history[r["url"]])} for r in rows]
+             **{k: v for k, v in _history(conn, r["url"]).items() if k not in ("series", "offers_seen")}} for r in rows]
 
 
 def _why(method: str, flags: str | None) -> str | None:
@@ -132,6 +136,8 @@ def community_detail(conn, cid: int, today: str) -> dict:
             "SELECT snapshot_date, asking, true_high FROM price_history WHERE home_key = ? AND carried = 0 "
             "ORDER BY snapshot_date",
             (home_key(builder_id, url, h.get("address"), h.get("lot")),))]
+    h = _history(conn, url)
+    d["series"], d["offers_seen"] = h.get("series", []), h.get("offers_seen", [])
     return d
 
 
@@ -176,7 +182,8 @@ def export(conn, out_dir: Path = WEB, db_path: Path = SITE_DB, today: str | None
                         "ORDER BY as_of DESC LIMIT 1").fetchone()
     meta = {"generated": today, "market_rate": rate["rate"] if rate else None,
             "rate_date": rate["as_of"] if rate else None, "rate_source": "FRED MORTGAGE30US",
-            "assumptions": {"down_payment_pct": 20, "term_years": 30},
+            "assumptions": {"down_payment_pct": 20, "term_years": 30, "rate_pct_per_point": ASSUME.rate_pct_per_point,
+                            "arm_par_spread_pct": ASSUME.arm_par_spread_pct, "unadvertised_incentive_pct": [0, 3]},
             "communities": sum(c["homes"] > 0 for c in comms), "mapped": sum(c["lat"] is not None for c in comms),
             "homes": len(homes), "builders": len({c["builder"] for c in comms if c["homes"] > 0}),
             "with_past_sales": sum(c["has_past_sales"] for c in comms),

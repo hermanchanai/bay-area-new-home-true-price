@@ -36,7 +36,7 @@ def facts(conn) -> dict:
 def readme_claims(f: dict) -> list[tuple[str, str]]:
     return [("homes, communities, builders", f"{f['homes']} move-in-ready homes in {f['communities']} communities from {f['builders']} builders"),
             ("homes priced", f"{f['priced']} homes priced"),
-            ("discount range", f"{f['low_pct']}% guaranteed, up to {f['high_pct']}% at most"),
+            ("discount range", f"{f['low_pct']}% with \"up to\" offers at $0, {f['high_pct']}% with them in full"),
             ("market rate", f"{f['rate']}%"),
             ("county records", f"{f['with_records']} communities show {f['records']} earlier homes"),
             ("communities with a median", f"{f['with_median']} of them"),
