@@ -269,3 +269,4 @@ building period.
     community because it saw only 5, the search tool reports every match by community; `compare` now returns the differences so the model adds nothing up.
     A Codex review found sold-out communities in the no-homes list; they're gone and coming-soon ones are labelled. KB's FHA ARM is disclosed under Limits.
     Same frozen data: Muse Spark 20/20, Muse Spark Open 19/20, with a different miss from the earlier run.
+    14 communities with homes had no map pin although their builders' pages say where they are; the geocoder now reads those records. 137 of 138 are on the map; Woodside Estates' page gives no location.

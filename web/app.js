@@ -198,7 +198,7 @@ function render() {
   });
   noHomes();
   $("#unmapped").textContent = unmapped.length
-    ? `${unmapped.length} matching ${unmapped.length > 1 ? "communities have" : "community has"} no map pin yet (streets too new for public maps): ${unmapped.map((c) => c.name).join(", ")}. They're in the list.`
+    ? `${unmapped.length} matching ${unmapped.length > 1 ? "communities have" : "community has"} no map pin yet (no location on the builder's page): ${unmapped.map((c) => c.name).join(", ")}. They're in the list.`
     : "";
 
   const list = homes.slice(0, S.shown).map((h) => {
