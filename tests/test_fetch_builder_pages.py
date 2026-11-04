@@ -4,7 +4,7 @@ import types
 import requests
 
 import tools.fetch_builder_pages as fbp
-from tools.fetch_builder_pages import find_paths, floor_ok, in_scope, page_filename, robots_from_response
+from tools.fetch_builder_pages import find_paths, floor_ok, in_scope, load_config, page_filename, robots_from_response
 
 UA = "Mozilla/5.0 (compatible; bay-area-new-home-true-price/0.1)"
 ROBOTS = "User-agent: *\nAllow: /llms.txt\nDisallow: /assets\nDisallow: /sitecore\n"
@@ -175,3 +175,20 @@ def test_every_builder_lands_in_the_run_date_folder_even_past_midnight(tmp_path,
     res = fbp.fetch_builder(b, {"user_agent": "ua", "delay_s": 0}, {}, db.connect(":memory:"), tmp_path,
                             day="2026-11-02")
     assert res["dir"] == str(tmp_path / "2026-11-02" / "kb")
+
+
+def _builder(key: str) -> dict:
+    return next(b for b in load_config()[0]["builders"] if b["key"] == key)
+
+
+def test_seeno_pattern_keeps_real_communities_only():
+    text = ('"/communities/pittsburg/tivoli-at-tuscany-meadows" "/communities/oakley/the-preserve-at-stonewood" '
+            '"/communities/oakley/the-preserve-at-stone-wood" "/communities/undefined/cadence-at-gold-hill" '
+            '"/communities/west-sacramento/the-estates-at-newport" "/homes/pittsburg/tivoli-at-tuscany-meadows/1106-oak"')
+    found = in_scope(find_paths(text, _builder("seeno")["community_pattern"]), load_config()[1])
+    assert [m["path"] for m in found] == ["/communities/pittsburg/tivoli-at-tuscany-meadows",
+                                          "/communities/oakley/the-preserve-at-stonewood"]
+
+
+def test_khov_starts_from_the_state_page():
+    assert _builder("khov")["start"] == ["https://www.khov.com/new-construction-homes/california/"]

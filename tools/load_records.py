@@ -35,6 +35,11 @@ from tools.price_incentives import RATE_KINDS, TERM_NOT_STATED, Assumptions, Inc
 ROOT = Path(__file__).resolve().parent.parent
 EXTRACT = ROOT / ".tmp" / "extract"
 MOVE_IN = {"now": "now", "month": "month", "under_construction": "under_construction"}
+
+
+def move_in_status(status: str | None, builder: dict) -> str | None:
+    """A builder whose pages never say when a home is ready: the model reads its "Available Now" badge as ready now."""
+    return None if builder.get("readiness_not_stated") else MOVE_IN.get(status)
 PRODUCT = {"SFD": "SFD", "TH": "TH", "duet": "TH", "condo": "condo", "mixed": "mixed"}
 
 
@@ -239,6 +244,7 @@ def load(date: str, conn) -> dict:
     pages = read_pages(date)
     cfg = yaml.safe_load((ROOT / "config" / "builders.yaml").read_text())
     names = {b["key"]: b["name"] for b in cfg["builders"]}
+    builders = {b["key"]: b for b in cfg["builders"]}
     counties = {c["key"]: c for c in yaml.safe_load((ROOT / "config" / "counties.yaml").read_text())["counties"]}
     fips_limit = {c["fips"]: c["conforming_limit_1unit"] for c in counties.values()}
     rate_row = conn.execute("SELECT as_of, rate FROM market_rates WHERE series='MORTGAGE30US' "
@@ -294,7 +300,7 @@ def load(date: str, conn) -> dict:
                 "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?) RETURNING id",
                 (stable_home_id(conn, community_id, h.get("address"), h.get("lot")),
                  community_id, plan[0] if plan else None, h.get("address"), h.get("lot"), h.get("price"),
-                 h.get("was_price"), "quick_move_in", MOVE_IN.get(h.get("move_in_status")), h.get("ready_date"),
+                 h.get("was_price"), "quick_move_in", move_in_status(h.get("move_in_status"), builders.get(p["builder"], {})), h.get("ready_date"),
                  h.get("beds"), h.get("baths"), h.get("sqft"), p["url"], p["manifest"].get("fetched_at"),
                  p["page"])).fetchone()[0]
             stats["homes"] += 1

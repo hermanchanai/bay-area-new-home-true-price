@@ -112,3 +112,13 @@ def test_inline_js_json_arrays_are_kept():
     text = preprocess(html, "https://x.com/veranda").text
     assert "## EMBEDDED DATA: js:LocalQMIs" in text and "1234 Veranda Lane" in text
     assert "utag_data" not in text and "page_name" not in text
+
+
+def test_site_wide_store_dropped_page_cards_kept():
+    """Seeno puts its whole site's store on every page: other communities' homes must not reach the model."""
+    other = [{"address": "99 Other Community Way", "price": 999000, "note": "x" * 200}]
+    html = (f"<html><head><script>window.__PRELOADED_STATE__ = {json.dumps({'homes': other})};</script></head>"
+            "<body><h4>1106 Oak Grove Drive</h4><p>$847,920</p></body></html>")
+    t = preprocess(html, url="u").text
+    assert "99 Other Community Way" not in t
+    assert "1106 Oak Grove Drive" in t and "$847,920" in t

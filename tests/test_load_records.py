@@ -1,6 +1,8 @@
 """load_records: dedupe homes across pages, attach incentives, never double-count a cut already in the price."""
 import json
 
+import yaml
+
 import tools.load_records as lr
 from tools.load_records import apply_rate_terms, assign_homes, fill_from_offers, home_incentives, pricing_set
 
@@ -241,3 +243,11 @@ def test_a_plan_the_latest_reading_no_longer_lists_is_removed():
     assert names() == {"Plan 1 Apex", "Plan 1 (Apex)", "Plan 9", "Plan 8"}
     prune_plans(conn, 1, ["Plan 1 Apex"])
     assert names() == {"Plan 1 Apex", "Plan 9", "Plan 8"}        # a floor-plan read or a home still using it stays
+
+
+def test_a_community_badge_is_not_a_home_ready_now():
+    """Seeno's pages say "Available Now" for the community and "Now Selling!" per home, never when a home is ready."""
+    cfg = yaml.safe_load((lr.ROOT / "config" / "builders.yaml").read_text())
+    builders = {b["key"]: b for b in cfg["builders"]}
+    assert lr.move_in_status("now", builders["seeno"]) is None
+    assert lr.move_in_status("now", builders["khov"]) == "now"

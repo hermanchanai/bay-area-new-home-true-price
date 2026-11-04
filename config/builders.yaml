@@ -166,9 +166,9 @@ builders:
   - key: khov
     name: K. Hovnanian Homes
     site: https://www.khov.com
-    start: [https://www.khov.com/new-construction-homes/california/solano-county/]
+    start: [https://www.khov.com/new-construction-homes/california/]   # the state page: county pages list only their own
     community_pattern: 'https://www\.khov\.com(?P<path>/new-construction-homes/california/(?P<city>[a-z-]+)/(?P<slug>[a-z0-9-]+))/?"'
-    expected_communities: 2
+    expected_communities: 5
 
   - key: ponderosa
     name: Ponderosa Homes
@@ -176,6 +176,16 @@ builders:
     start: [https://www.ponderosahomes.com/northern-california/]
     community_pattern: '/northern-california/(?P<slug>[a-z0-9-]+?-in-(?P<city>[a-z-]+))/'
     expected_communities: 1
+
+  # --- added 2026-11-04 from the coverage audit. Its pages carry every home in plain HTML, and its whole site's
+  # store as __PRELOADED_STATE__ (dropped in preprocessing). "stone-wood" is a dead link on its list; so is Bristowe (Vacaville), both 404 on 11-04.
+  - key: seeno
+    name: Seeno Homes
+    site: https://www.seenohomes.com
+    start: [https://www.seenohomes.com/communities]
+    community_pattern: '/communities/(?P<city>[a-z-]+)/(?P<slug>(?!the-preserve-at-stone-wood)[a-z0-9-]+)(?=["/?#\s\\]|$)'
+    readiness_not_stated: true   # "Available Now" is the community's badge; no page says when a home is ready
+    expected_communities: 8
 
   # Skipped (logged, never worked around): their pages carry no community data without running the
   # site's JavaScript. D.R. Horton also shows a Turnstile challenge, which we never solve.

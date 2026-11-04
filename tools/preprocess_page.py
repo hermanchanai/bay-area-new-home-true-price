@@ -79,7 +79,8 @@ def compact_json(obj) -> str:
 
 
 JS_ASSIGN = re.compile(r"(?:\bvar|\blet|\bconst|\bwindow\.)\s*([A-Za-z_$][\w$]*)\s*=\s*(?=[\[{])")
-JS_NOISE = re.compile(r"(?i)(datalayer|utag|analytics|gtm|tracking|settings|legal|config|defaults|validators|keys)")
+# preloaded_state: Seeno's whole-site store on every page (448k tokens, other communities' homes); its cards are in the HTML
+JS_NOISE = re.compile(r"(?i)(datalayer|utag|analytics|gtm|tracking|settings|legal|config|defaults|validators|keys|preloaded_state)")
 JS_MIN_CHARS = 200
 
 
