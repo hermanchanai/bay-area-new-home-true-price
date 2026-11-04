@@ -90,7 +90,7 @@ def plan_timeline(rows: list[tuple]) -> dict[str, dict]:
         for name, price in (prices or {}).items():
             t = out.setdefault(plan_key(name), {"as_of": day, "first": day, "changes": [], "price": price})
             if price != t["price"]:
-                t["changes"].append({"date": day, "was": t["price"], "now": price})
+                t["changes"].append({"date": day, "was": t["price"], "now": price, "since": t["as_of"]})
             t["as_of"], t["price"] = day, price
     return {k: {x: t[x] for x in ("as_of", "first", "changes")} for k, t in out.items()}
 
@@ -130,13 +130,14 @@ def community_changes(rows: list[tuple]) -> dict:
     it was missed in between changes nothing. offers None = this copy can't say (fetch_wayback.capture_row)."""
     if not rows:
         return {}
-    seen, moves, series, price = {}, [], [], None
+    seen, moves, series, price, read = {}, [], [], None, None
     for day, from_price, offers in rows:
         if from_price and price and from_price != price:
-            moves.append({"date": day, "was": price, "now": from_price})
+            moves.append({"date": day, "was": price, "now": from_price, "since": read})
         price = from_price or price
         if from_price:
             series.append([day, from_price])
+            read = day
         for i in offers or []:
             if i.get("amount_usd") or i.get("rate"):
                 key = (i["kind"], float(i.get("amount_usd") or 0), i.get("rate"))

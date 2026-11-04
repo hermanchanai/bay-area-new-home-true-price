@@ -179,6 +179,9 @@ function fitCounty() {
   if (pts.length) S.map.fit(pts);
 }
 
+// A move between two readings far apart happened somewhere between them: don't present the later date as the day it happened.
+const moveDate = (x) => (x.since && (new Date(x.date) - new Date(x.since)) / 864e5 > 3 ? `Between ${day(x.since)} and ${day(x.date)}` : day(x.date));
+
 const shortDate = (d) => new Date(`${d}T12:00:00`).toLocaleDateString("en-US", { month: "short", day: "numeric" });
 
 // Communities with plans but no priced home that pass the filters. A price or bedroom filter can't vouch for one it knows nothing about.
@@ -195,9 +198,9 @@ function plansOnly() {
 function advertisedHTML(c) {
   if (!c.tracked_since) return "";
   const moved = c.price_changes.at(-1);
-  return `<div class="mt-1 text-xs num">${c.advertised_from ? `Advertised from <b>${short(c.advertised_from)}</b>` : "No advertised price"}${moved ? `, was ${short(moved.was)} until ${shortDate(moved.date)}` : ""}</div>
-    ${c.incentives_added.slice(0, 2).map((i) => `<div class="text-xs text-emerald-700">New ${shortDate(i.date)}: ${esc(i.label)}</div>`).join("")}
-    ${c.incentives_ended.slice(0, 2).map((i) => `<div class="text-xs text-slate-500">Gone after ${shortDate(i.last_seen)}: ${esc(i.label)}</div>`).join("")}`;
+  return `<div class="mt-1 text-xs num">${c.advertised_from ? `Advertised from <b>${short(c.advertised_from)}</b>` : "No advertised price"}${moved ? `, was ${short(moved.was)} (${moveDate(moved)})` : ""}</div>
+    ${c.incentives_added.slice(0, 2).map((i) => `<div class="text-xs text-emerald-700">First seen ${shortDate(i.date)}: ${esc(i.label)}</div>`).join("")}
+    ${c.incentives_ended.slice(0, 2).map((i) => `<div class="text-xs text-slate-500">Last seen ${shortDate(i.last_seen)}: ${esc(i.label)}</div>`).join("")}`;
 }
 
 // What a community starts at: the builder's advertised price, else its cheapest home for sale.
@@ -425,7 +428,7 @@ function drawerHTML(d) {
 
   const m = S.site.meta.assumptions.unadvertised_incentive_pct;
   const series = d.series || [], seen = d.offers_seen || [];
-  const moves = (c.price_changes || []).map((x) => `<li>${day(x.date)}: from ${usd(x.was)} to ${usd(x.now)}</li>`).join("");
+  const moves = (c.price_changes || []).map((x) => `<li>${moveDate(x)}: from ${usd(x.was)} to ${usd(x.now)}</li>`).join("");
   const pageOffers = (c.incentives || []).map((i) => `<li class="py-1 border-t border-slate-100 text-sm">${esc(i.label || KIND[i.kind])}${i.expires ? ` <span class="text-xs text-slate-500">(ends ${esc(i.expires)})</span>` : ""}</li>`).join("");
   const offerRows = seen.map((o) => `<tr class="border-t border-slate-100 align-top"><td class="py-1.5 pr-3">${esc(o.label)}</td>
       <td class="py-1.5 pr-3 num whitespace-nowrap">${day(o.first_seen)}</td>
@@ -452,7 +455,7 @@ function drawerHTML(d) {
     const rooms = (p.rooms || []).filter((r) => r.dims).map((r) => `${esc(r.name)} ${esc(r.dims)}`).join(" · ");
     return `<li class="py-2 border-t border-slate-100"><div class="flex justify-between gap-3">
       <div class="font-medium">${p.url ? `<a class="text-sky-700" href="${esc(p.url)}" target="_blank" rel="noopener">${esc(p.name)} ↗</a>` : esc(p.name)}</div><div class="num text-sm text-right">${p.from_price ? `from ${usd(p.from_price)}${p.price_as_of ? `<div class="text-[11px] text-slate-500">${day(p.price_as_of)}</div>` : ""}` : ""}</div></div>
-      ${(p.price_changes || []).map((x) => `<div class="text-xs num ${x.now < x.was ? "text-emerald-700" : "text-rose-700"}">${day(x.date)}: ${usd(x.was)} to ${usd(x.now)}</div>`).join("")}
+      ${(p.price_changes || []).map((x) => `<div class="text-xs num ${x.now < x.was ? "text-emerald-700" : "text-rose-700"}">${moveDate(x)}: ${usd(x.was)} to ${usd(x.now)}</div>`).join("")}
       ${(p.home_offers || []).length ? `<details class="text-xs mt-1"><summary class="cursor-pointer text-sky-700">${p.home_offers.length} incentive${p.home_offers.length > 1 ? "s" : ""} on this plan's homes</summary><ul class="list-disc pl-4 mt-1">${p.home_offers.map((o) => `<li>${esc(o.label)}${o.address ? `: ${esc(o.address)}` : ""}</li>`).join("")}</ul></details>` : ""}
       <div class="text-xs text-slate-500 num">${beds(p.beds_min)}${p.beds_max && p.beds_max !== p.beds_min ? "–" + beds(p.beds_max) : ""} bd · ${p.baths ?? "?"} ba ·
         ${p.sqft_min ? p.sqft_min.toLocaleString() + (p.sqft_max && p.sqft_max !== p.sqft_min ? "–" + p.sqft_max.toLocaleString() : "") + " sq ft" : ""}${p.stories ? " · " + p.stories + " story" : ""}</div>

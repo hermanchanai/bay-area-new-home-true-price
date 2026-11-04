@@ -44,7 +44,8 @@ def test_changes_report_price_moves_and_offers_that_came_and_went():
     out = community_changes(rows)
     assert out["tracked_since"] == "2026-10-27" and out["last_checked"] == "2026-11-03"
     assert out["advertised_from"] == 641990
-    assert out["price_changes"] == [{"date": "2026-10-30", "was": 661990, "now": 641990}]
+    # since: the last reading before the change, so a gap between readings isn't presented as the day it happened
+    assert out["price_changes"] == [{"date": "2026-10-30", "was": 661990, "now": 641990, "since": "2026-10-27"}]
     assert out["incentives_added"] == [{"date": "2026-11-03", "label": RATE["label"]}]
     assert out["incentives_ended"] == [{"last_seen": "2026-10-28", "label": CASH["label"]}]
     assert [i["label"] for i in out["incentives"]] == [RATE["label"]]
@@ -110,7 +111,8 @@ def test_each_plan_keeps_its_price_by_date_whatever_the_spelling():
     rows = [("2026-10-27", {"Plan 1 (Apex)": 900}), ("2026-10-28", {}), ("2026-10-30", {"Plan 1 Apex": 900}),
             ("2026-11-03", {"Plan 1 Apex": 850, "Plan 2": 1000})]
     out = plan_timeline(rows)
-    assert out["plan1apex"] == {"as_of": "2026-11-03", "first": "2026-10-27", "changes": [{"date": "2026-11-03", "was": 900, "now": 850}]}
+    assert out["plan1apex"] == {"as_of": "2026-11-03", "first": "2026-10-27",
+                                "changes": [{"date": "2026-11-03", "was": 900, "now": 850, "since": "2026-10-30"}]}
     assert out["plan2"] == {"as_of": "2026-11-03", "first": "2026-11-03", "changes": []}
 
 
@@ -123,7 +125,8 @@ def test_a_home_only_offer_goes_under_its_floor_plan_not_with_the_community_offe
                  "VALUES (900, 'home', 1, 'price_cut', 80000, 'f', 'https://b.example/oak', '$80,000 in Savings')")
     d = community_detail(conn, 1, "2026-11-03")
     plan = next(p for p in d["plans"] if p["name"] == "Plan 1")
-    assert plan["price_as_of"] == "2026-11-03" and plan["price_changes"] == [{"date": "2026-11-03", "was": 900, "now": 850}]
+    assert plan["price_as_of"] == "2026-11-03"
+    assert plan["price_changes"] == [{"date": "2026-11-03", "was": 900, "now": 850, "since": "2026-10-27"}]
     assert {"label": "$80,000 in Savings", "address": "1 Oak St"} in plan["home_offers"]
     assert all(i["scope"] == "community" for i in d["community_incentives"])
 
