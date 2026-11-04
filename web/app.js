@@ -245,7 +245,7 @@ function inView(rows) {
 
 function renderList() {
   const rows = inView(S.rows);
-  $("#list-head").textContent = `${rows.length} ${rows.length === 1 ? "community" : "communities"} in this map view, lowest starting price first`;
+  $("#list-head").textContent = `${rows.length} ${rows.length === 1 ? "community" : "communities"} in this map view, lowest starting price first · prices as of ${day(S.site.meta.generated)}`;
   rows.sort((a, b) => (startingPrice(a.c, a.hs) ?? Infinity) - (startingPrice(b.c, b.hs) ?? Infinity) || a.c.name.localeCompare(b.c.name));
   const list = rows.slice(0, S.shown).map(({ c, hs }) => {
     const start = startingPrice(c, hs), moved = c.price_changes?.at(-1);
@@ -415,7 +415,8 @@ function drawerHTML(d) {
     : `<p class="text-sm text-slate-500">${esc(ps.reason)}</p>${ps.past_sales ? `<p class="text-xs text-slate-500 mt-2">Records show ${esc(ps.method)}. ${esc(ps.caveat)}</p>` : ""}`;
   const past = ps.past_sales ? `${summary}${heldBack ? `<p class="text-xs text-slate-500 mt-1">${heldBack}</p>` : ""}${recordsTable}` : summary;
 
-  const incs = d.incentives.length ? d.incentives.map((i) => `<li class="py-2 border-t border-slate-100">
+  const communityOffers = d.community_incentives || d.incentives;
+  const incs = communityOffers.length ? communityOffers.map((i) => `<li class="py-2 border-t border-slate-100">
       <div class="flex justify-between gap-3"><div><div class="font-medium">${esc(i.label || KIND[i.kind])}</div>
         <div class="text-xs text-slate-500">${i.structure === "term not stated" ? "Rate offer: the builder's page doesn't say how long it lasts, so it's valued for 5 years" : KIND[i.kind] || esc(i.kind)}${i.amount_is_up_to ? " · up to: may pay less, or nothing" : ""}${/\bFHA\b/.test(i.label || "") ? " · FHA loan: its mortgage insurance isn't counted" : ""}${i.lender ? " · with " + esc(i.lender) : ""}${i.expires ? " · ends " + esc(i.expires) : ""}${i.eligibility ? " · " + esc(i.eligibility) : ""}${i.included_in_price ? " · already in the asking price" : ""}</div></div>
         <div class="text-right num text-sm shrink-0">${i.included_in_price ? "in the price" : i.value_high != null ? range(i.value_low, i.value_high) : "not priced"}${i.homes_priced > 1 ? `<div class="text-[11px] text-slate-400">across ${i.homes_priced} homes</div>` : ""}</div></div>
@@ -430,9 +431,10 @@ function drawerHTML(d) {
       <td class="py-1.5 pr-3 num whitespace-nowrap">${day(o.first_seen)}</td>
       <td class="py-1.5 num whitespace-nowrap ${o.active ? "text-emerald-700" : "text-slate-500"}">${o.active ? "still offered" : day(o.last_seen)}</td></tr>`).join("");
   const start = startingPrice(c, null);
+  const offerCount = communityOffers.length || (c.incentives || []).length;
   const extra = start ? `${usd(0)} to ${usd(Math.round(start * m[1] / 100 / 1000) * 1000)}` : "";
   const trend = c.tracked_since ? `<section><h3 class="font-semibold">Advertised price over time</h3>
-      <p class="text-sm num mt-1">${c.advertised_from ? `Starts at <b>${usd(c.advertised_from)}</b>, the lowest price on the builder's page.` : "No price on the builder's page."}
+      <p class="text-sm num mt-1">${c.advertised_from ? `Starts at <b>${usd(c.advertised_from)}</b> as of ${day(c.last_checked)}, the lowest price on the builder's page.` : "No price on the builder's page."}
         ${series.length < 2 ? `Only one reading so far (${day(c.tracked_since)}).` : moves ? "" : `Unchanged since ${day(series[0][0])}.`}</p>
       ${priceChart(series)}
       ${moves ? `<ul class="text-xs text-slate-700 mt-1 flex flex-col gap-0.5">${moves}</ul>` : ""}
@@ -449,7 +451,9 @@ function drawerHTML(d) {
       p.garage_bays && `${p.garage_bays}-car garage`].filter(Boolean);
     const rooms = (p.rooms || []).filter((r) => r.dims).map((r) => `${esc(r.name)} ${esc(r.dims)}`).join(" · ");
     return `<li class="py-2 border-t border-slate-100"><div class="flex justify-between gap-3">
-      <div class="font-medium">${p.url ? `<a class="text-sky-700" href="${esc(p.url)}" target="_blank" rel="noopener">${esc(p.name)} ↗</a>` : esc(p.name)}</div><div class="num text-sm">${p.from_price ? "from " + usd(p.from_price) : ""}</div></div>
+      <div class="font-medium">${p.url ? `<a class="text-sky-700" href="${esc(p.url)}" target="_blank" rel="noopener">${esc(p.name)} ↗</a>` : esc(p.name)}</div><div class="num text-sm text-right">${p.from_price ? `from ${usd(p.from_price)}${p.price_as_of ? `<div class="text-[11px] text-slate-500">${day(p.price_as_of)}</div>` : ""}` : ""}</div></div>
+      ${(p.price_changes || []).map((x) => `<div class="text-xs num ${x.now < x.was ? "text-emerald-700" : "text-rose-700"}">${day(x.date)}: ${usd(x.was)} to ${usd(x.now)}</div>`).join("")}
+      ${(p.home_offers || []).length ? `<details class="text-xs mt-1"><summary class="cursor-pointer text-sky-700">${p.home_offers.length} incentive${p.home_offers.length > 1 ? "s" : ""} on this plan's homes</summary><ul class="list-disc pl-4 mt-1">${p.home_offers.map((o) => `<li>${esc(o.label)}${o.address ? `: ${esc(o.address)}` : ""}</li>`).join("")}</ul></details>` : ""}
       <div class="text-xs text-slate-500 num">${beds(p.beds_min)}${p.beds_max && p.beds_max !== p.beds_min ? "–" + beds(p.beds_max) : ""} bd · ${p.baths ?? "?"} ba ·
         ${p.sqft_min ? p.sqft_min.toLocaleString() + (p.sqft_max && p.sqft_max !== p.sqft_min ? "–" + p.sqft_max.toLocaleString() : "") + " sq ft" : ""}${p.stories ? " · " + p.stories + " story" : ""}</div>
       ${facts.length ? `<div class="text-xs mt-1">${facts.join(" · ")}</div>` : ""}
@@ -468,17 +472,17 @@ function drawerHTML(d) {
       ${trend}
       <section><h3 class="font-semibold mb-2">Earlier homes in this community: county records</h3>${past}</section>
       ${homes ? `<section><div class="flex flex-wrap items-center justify-between gap-2 mb-2">
-          <h3 class="font-semibold">Homes for sale</h3></div>
+          <h3 class="font-semibold">Homes for sale</h3><span class="text-xs text-slate-500">Prices as of ${day(c.fetched)}</span></div>
         <p class="text-xs text-slate-500 mb-2">True price at 20% down. Where two figures show, the lower counts an "up to" offer in full and the higher counts it as $0.</p>
         <div class="overflow-x-auto"><table class="w-full text-sm"><thead><tr class="text-xs text-slate-500 text-left">
           <th class="py-1 font-normal">Home</th><th class="py-1 font-normal text-right">Asking</th><th class="py-1 font-normal text-right">True price</th></tr></thead>
           <tbody>${homes}</tbody></table></div></section>`
       : `<section><h3 class="font-semibold mb-1">Homes for sale</h3><p class="text-sm text-slate-500">No move-in-ready home listed right now.</p></section>`}
-      <section><h3 class="font-semibold mb-1">${d.incentives.length || (c.incentives || []).length} incentive${(d.incentives.length || (c.incentives || []).length) === 1 ? "" : "s"}</h3>
+      <section><h3 class="font-semibold mb-1">${offerCount} community-wide incentive${offerCount === 1 ? "" : "s"}</h3>
         <p class="text-xs text-slate-500 mb-1">${homes ? `In dollars, for a home at 20% down. The true price counts the largest unless the terms say they combine; ask the builder whether yours do.` : "On the builder's page. Not priced: there's no specific home to price them on."}</p>
         <ul>${homes || !pageOffers ? incs : pageOffers}</ul>
         ${extra ? `<p class="text-sm mt-2 rounded-lg bg-slate-50 border border-slate-200 px-3 py-2"><b>Worth asking:</b> builders may give more than they advertise. Our estimate is ${m[0]}–${m[1]}% of the price, ${extra} at the starting price. Not counted in any price here; only the builder can confirm it.</p>` : ""}</section>
-      <section><h3 class="font-semibold mb-1">Floor plans</h3><ul>${plans || `<li class="text-sm text-slate-500">No plans listed.</li>`}</ul></section>
+      <section><h3 class="font-semibold mb-1">Floor plans</h3><p class="text-xs text-slate-500 mb-1">Each price shows the date it was read. Incentives tied to one home sit under that home's floor plan.</p><ul>${plans || `<li class="text-sm text-slate-500">No plans listed.</li>`}</ul></section>
     </div>`;
 }
 

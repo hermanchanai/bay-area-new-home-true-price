@@ -21,7 +21,7 @@ import requests
 from tools import db, llm
 from tools.extract_listing import SCHEMA, messages_for
 from tools.preprocess_page import preprocess
-from tools.snapshot_prices import advertised_price
+from tools.snapshot_prices import advertised_price, plan_prices
 
 ROOT = Path(__file__).resolve().parent.parent
 OUT = ROOT / ".tmp" / "wayback"
@@ -55,7 +55,8 @@ def capture_row(record: dict, url: str, stamp: str, page: str) -> dict:
               for i in record.get("incentives") or [] if i.get("scope") != "home"]
     priced = any(o["amount_usd"] or o["rate"] for o in offers)
     return {"snapshot_date": f"{stamp[:4]}-{stamp[4:6]}-{stamp[6:8]}", "community_url": url, "from_price": price,
-            "incentives": json.dumps(offers) if priced else None, "source_url": capture_url(stamp, url)}
+            "incentives": json.dumps(offers) if priced else None, "source_url": capture_url(stamp, url),
+            "plans": json.dumps({n: p for n, p in plan_prices(record).items() if f"{p:,}" in page or str(p) in page})}
 
 
 def read_captures(conn, budget_usd: float = 2.0) -> dict:
@@ -72,7 +73,7 @@ def read_captures(conn, budget_usd: float = 2.0) -> dict:
         row = capture_row(llm.parse_json(r.text), m["url"], m["timestamp"], html)
         with conn:
             conn.execute("INSERT OR REPLACE INTO community_history (snapshot_date, community_url, from_price, incentives, "
-                         "source_url) VALUES (:snapshot_date, :community_url, :from_price, :incentives, :source_url)", row)
+                         "source_url, plans) VALUES (:snapshot_date, :community_url, :from_price, :incentives, :source_url, :plans)", row)
         rows += 1
         log.info("%s %s from %s, offers %s", m["timestamp"][:8], m["url"][-40:], row["from_price"], "yes" if row["incentives"] else "no")
         if spent > budget_usd:

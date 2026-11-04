@@ -101,3 +101,36 @@ def test_the_series_goes_on_the_community_page_not_in_the_site_file(conn, tmp_pa
     meta = export(conn, tmp_path / "web", tmp_path / "site.db", today="2026-11-03")
     assert meta["assumptions"]["unadvertised_incentive_pct"] == [0, 3]
     assert meta["assumptions"]["rate_pct_per_point"] == 0.25 and meta["assumptions"]["arm_par_spread_pct"] == 0.5
+
+
+def test_each_plan_keeps_its_price_by_date_whatever_the_spelling():
+    from tools.snapshot_prices import plan_prices, plan_timeline
+    rec = {"plans": [{"name": "Plan 1 (Apex)", "from_price": 900}, {"name": "Lennar stub", "from_price": 555555}, {"name": "No price"}]}
+    assert plan_prices(rec) == {"Plan 1 (Apex)": 900}
+    rows = [("2026-10-27", {"Plan 1 (Apex)": 900}), ("2026-10-28", {}), ("2026-10-30", {"Plan 1 Apex": 900}),
+            ("2026-11-03", {"Plan 1 Apex": 850, "Plan 2": 1000})]
+    out = plan_timeline(rows)
+    assert out["plan1apex"] == {"as_of": "2026-11-03", "first": "2026-10-27", "changes": [{"date": "2026-11-03", "was": 900, "now": 850}]}
+    assert out["plan2"] == {"as_of": "2026-11-03", "first": "2026-11-03", "changes": []}
+
+
+def test_a_home_only_offer_goes_under_its_floor_plan_not_with_the_community_offers(conn):
+    from tools.export_site_data import community_detail
+    conn.execute("INSERT INTO community_history (snapshot_date, community_url, from_price, incentives, plans) VALUES "
+                 "('2026-10-27', 'https://b.example/oak', 900, '[]', ?), ('2026-11-03', 'https://b.example/oak', 850, '[]', ?)",
+                 (json.dumps({"Plan 1": 900}), json.dumps({"Plan 1": 850})))
+    conn.execute("INSERT INTO incentives (id, scope, scope_id, kind, amount_usd, fine_print, source_url, label) "
+                 "VALUES (900, 'home', 1, 'price_cut', 80000, 'f', 'https://b.example/oak', '$80,000 in Savings')")
+    d = community_detail(conn, 1, "2026-11-03")
+    plan = next(p for p in d["plans"] if p["name"] == "Plan 1")
+    assert plan["price_as_of"] == "2026-11-03" and plan["price_changes"] == [{"date": "2026-11-03", "was": 900, "now": 850}]
+    assert {"label": "$80,000 in Savings", "address": "1 Oak St"} in plan["home_offers"]
+    assert all(i["scope"] == "community" for i in d["community_incentives"])
+
+
+def test_a_home_with_no_plan_name_finds_its_plan_by_size_when_only_one_fits(conn):
+    from tools.export_site_data import plan_of_homes
+    conn.execute("INSERT INTO plans (id, community_id, name, sqft_min, sqft_max) VALUES (70, 2, 'A', 1386, 1386), (71, 2, 'B', 1500, 1500), (72, 2, 'C', 1500, 1500)")
+    conn.execute("INSERT INTO homes (id, community_id, address, sqft, price_basis) VALUES (70, 2, '1 Bay', 1386, 'quick_move_in'), (71, 2, '2 Bay', 1500, 'quick_move_in'), (72, 2, '3 Bay', 999, 'quick_move_in')")
+    got = plan_of_homes(conn, 2)
+    assert got[70] == 70 and 71 not in got and 72 not in got     # 1,500 sq ft fits two plans: don't guess

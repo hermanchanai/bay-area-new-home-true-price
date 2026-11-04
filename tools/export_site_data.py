@@ -20,6 +20,7 @@ import logging
 import os
 import re
 import shutil
+from collections import defaultdict
 from datetime import date
 from pathlib import Path
 
@@ -37,7 +38,7 @@ from tools.agent_tools import (
 )
 from tools.eval_agent import RUNS, cited
 from tools.price_incentives import Assumptions
-from tools.snapshot_prices import community_changes, home_key
+from tools.snapshot_prices import community_changes, home_key, plan_key, plan_timeline
 
 ASSUME = Assumptions()
 
@@ -116,9 +117,24 @@ def history_meta(conn) -> dict:
     return out
 
 
+def plan_of_homes(conn, cid: int) -> dict[int, int]:
+    """home id -> plan id: as loaded, else the one plan of the home's exact size. Two plans that size: no guess."""
+    by_size = defaultdict(list)
+    for r in conn.execute("SELECT id, sqft_min FROM plans WHERE community_id = ? AND sqft_min = sqft_max", (cid,)):
+        by_size[r[1]].append(r[0])
+    out = {}
+    for r in conn.execute("SELECT id, plan_id, sqft FROM homes WHERE community_id = ?", (cid,)):
+        if r[1]:
+            out[r[0]] = r[1]
+        elif len(by_size.get(r[2], [])) == 1:
+            out[r[0]] = by_size[r[2]][0]
+    return out
+
+
 def community_detail(conn, cid: int, today: str) -> dict:
     d = get_community(conn, cid, today)
     d["plans"] = [get_plan(conn, p["plan_id"], rooms=True) for p in d["plans"]]
+    d["community_incentives"] = [i for i in d["incentives"] if i["scope"] != "home"]
     for i in d["incentives"]:
         i.pop("fine_print", None)
     offers = {}
@@ -136,6 +152,20 @@ def community_detail(conn, cid: int, today: str) -> dict:
             "SELECT snapshot_date, asking, true_high FROM price_history WHERE home_key = ? AND carried = 0 "
             "ORDER BY snapshot_date",
             (home_key(builder_id, url, h.get("address"), h.get("lot")),))]
+    timeline = plan_timeline([(r[0], json.loads(r[1]) if r[1] else None) for r in conn.execute(
+        "SELECT snapshot_date, plans FROM community_history WHERE community_url = ? AND carried = 0 ORDER BY snapshot_date",
+        (url,))])
+    for p in d["plans"]:
+        t = timeline.get(plan_key(p["name"]), {})
+        p["price_as_of"], p["price_since"], p["price_changes"] = t.get("as_of"), t.get("first"), t.get("changes", [])
+    plan_of = plan_of_homes(conn, cid)
+    offers_by_plan = defaultdict(list)
+    for r in conn.execute("SELECT h.id, i.label, h.address, h.lot FROM incentives i JOIN homes h ON h.id = i.scope_id "
+                          "WHERE i.scope = 'home' AND h.community_id = ? ORDER BY i.amount_usd DESC", (cid,)):
+        if r[0] in plan_of:
+            offers_by_plan[plan_of[r[0]]].append({"label": r[1], "address": r[2] or r[3]})
+    for p in d["plans"]:
+        p["home_offers"] = offers_by_plan[p["plan_id"]]
     h = _history(conn, url)
     d["series"], d["offers_seen"] = h.get("series", []), h.get("offers_seen", [])
     d["archive_copies"] = [{"date": r[0], "url": r[1]} for r in conn.execute(

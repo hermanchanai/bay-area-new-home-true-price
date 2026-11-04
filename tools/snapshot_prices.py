@@ -14,6 +14,7 @@ amount or a rate are compared from day to day: banners with neither come and go 
 import argparse
 import csv
 import json
+import re
 from pathlib import Path
 
 from tools import db
@@ -73,6 +74,27 @@ def advertised_price(record: dict) -> int | None:
     return min(prices) if prices else plan_price((record.get("community") or {}).get("price_from"))
 
 
+def plan_prices(record: dict) -> dict[str, int]:
+    return {pl["name"]: p for pl in record.get("plans") or [] if pl.get("name") and (p := plan_price(pl.get("from_price")))}
+
+
+def plan_key(name: str) -> str:
+    """'Plan 1 (Apex)' and 'Plan 1 Apex' are one plan, spelled two ways on different days."""
+    return re.sub(r"[^a-z0-9]", "", name.lower())
+
+
+def plan_timeline(rows: list[tuple]) -> dict[str, dict]:
+    """rows: (date, {plan name: price}), oldest first. plan_key -> first and latest date read, and each price change."""
+    out = {}
+    for day, prices in rows:
+        for name, price in (prices or {}).items():
+            t = out.setdefault(plan_key(name), {"as_of": day, "first": day, "changes": [], "price": price})
+            if price != t["price"]:
+                t["changes"].append({"date": day, "was": t["price"], "now": price})
+            t["as_of"], t["price"] = day, price
+    return {k: {x: t[x] for x in ("as_of", "first", "changes")} for k, t in out.items()}
+
+
 def lowest_still_advertised(read: int | None, previous: int | None, page: str) -> int | None:
     """A plan price we failed to read today isn't a rise: the old price stands while the page still shows it."""
     if previous and (read is None or read > previous) and (f"{previous:,}" in page or str(previous) in page):
@@ -94,11 +116,11 @@ def snapshot_communities(conn, date: str, raw: Path = RAW) -> int:
         offers = [{k: i.get(k) for k in ("label", "kind", "amount_usd", "amount_is_up_to", "rate", "apr", "expires")}
                   for i in p["record"].get("incentives") or [] if i.get("scope") != "home"]
         rows.append((date, p["url"], lowest_still_advertised(advertised_price(p["record"]), last[0] if last else None, page),
-                     json.dumps(offers), int(p["page"] in carried)))
+                     json.dumps(offers), int(p["page"] in carried), json.dumps(plan_prices(p["record"]))))
     with conn:
         conn.execute("DELETE FROM community_history WHERE snapshot_date = ?", (date,))
         conn.executemany("INSERT OR REPLACE INTO community_history (snapshot_date, community_url, from_price, incentives, "
-                         "carried) VALUES (?,?,?,?,?)", rows)
+                         "carried, plans) VALUES (?,?,?,?,?,?)", rows)
     return len(rows)
 
 
