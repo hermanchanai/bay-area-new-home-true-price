@@ -60,7 +60,7 @@ $1.04). Against Muse Spark contributor on the same pages ([report](eval/reports/
 | Plan beds | 100% | 95.1% |
 | Pages failed | 0 of 43 | 1 of 43 (output ran on to the 32k-token limit) |
 
-The buyer agent on Muse Spark Open passes 18 of the same 20 hand-checked questions, with every dollar
+The buyer agent on Muse Spark Open passes all 20 of the same hand-checked questions, after the ranking fix above, with every dollar
 figure traced to a tool result ([report](eval/reports/2026-11-04__agent__agent_live.md);
 `python -m tools.eval_agent --purpose agent_live`). The site shows the tool calls behind every answer. The eval runs on a frozen copy of the 11-03 data, so the
 daily refresh can't move its answers; `python -m tools.derive_agent_truth --freeze` rebuilds the key from
