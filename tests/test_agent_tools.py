@@ -267,10 +267,10 @@ def test_a_shortened_list_still_says_which_communities_hold_every_match(conn):
 
 def test_compare_returns_the_differences_so_the_model_does_no_arithmetic(conn):
     # 2026-11-03 eval q15: "~$17K more asking" was right but the model's own sum, which the trace check fails.
+    # Unsigned, with the dearer home named: a buyer-facing "$16,709 more" must match a tool figure, and sign can't be misread.
     first, second = search_homes(conn, today=TODAY)["homes"][:2]
+    assert first["asking"] != second["asking"]
     got = compare(conn, [first["home_id"], second["home_id"]], today=TODAY)
-    assert got["differences"] == [{
-        "home_id": second["home_id"], "vs_home_id": first["home_id"],
-        "asking": second["asking"] - first["asking"],
-        "true_price_high": second["true_price_high"] - first["true_price_high"],
-        "sqft": second["sqft"] - first["sqft"]}]
+    dearer = max(first, second, key=lambda h: h["asking"])
+    assert got["differences"][0]["asking"] == {"higher_home_id": dearer["home_id"], "by": abs(first["asking"] - second["asking"])}
+    assert got["differences"][0]["sqft"]["by"] == abs(first["sqft"] - second["sqft"])

@@ -168,14 +168,14 @@ async function initMap() {
 // Communities with floor plans but nothing ready to move into: listed so they can be found, never counted as homes.
 function noHomes() {
   const county = $("#f-county").value;
-  const rows = S.site.communities.filter((c) => !c.homes && (!county || c.county === county))
+  const rows = S.site.communities.filter((c) => c.list_without_homes && (!county || c.county === county))
     .sort((a, b) => `${a.county} ${a.city} ${a.name}`.localeCompare(`${b.county} ${b.city} ${b.name}`));
   $("#no-homes").classList.toggle("hidden", !rows.length);
-  $("#no-homes").innerHTML = `<h2 class="font-semibold text-slate-800">Also selling, no move-in-ready home listed right now (${rows.length})</h2>
+  $("#no-homes").innerHTML = `<h2 class="font-semibold text-slate-800">Selling or coming soon, no move-in-ready home listed right now (${rows.length})</h2>
     <p class="text-xs text-slate-500 mb-2">These communities show floor plans on the builder's site but no specific home we can price yet.</p>
     <ul class="grid sm:grid-cols-2 lg:grid-cols-3 gap-x-4 gap-y-1 max-h-64 overflow-y-auto">${rows.map((c) =>
       `<li class="min-w-0"><a class="text-sky-700" href="#c/${c.id}">${esc(c.name)}</a>
-        <span class="text-xs text-slate-500">${esc(c.city)}, ${esc(c.county)} · ${esc(c.builder)}</span></li>`).join("")}</ul>`;
+        <span class="text-xs text-slate-500">${esc(c.city)}, ${esc(c.county)} · ${esc(c.builder)}${c.status === "coming_soon" ? " · coming soon" : ""}</span></li>`).join("")}</ul>`;
 }
 
 function render() {

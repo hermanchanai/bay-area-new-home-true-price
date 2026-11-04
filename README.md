@@ -17,8 +17,8 @@ Built for the Meta Global AI Developer Hackathon (Indie track, "Build for Your W
 
 ## In numbers (data read 2026-11-03; refreshed every morning)
 
-- 532 move-in-ready homes in 138 communities from 16 builders; every home has a street address or lot. Another 86 communities
-  show floor plans with nothing ready to move into, and are listed but not counted.
+- 532 move-in-ready homes in 138 communities from 16 builders; every home has a street address or lot. Another 81 communities
+  (19 of them coming soon) show floor plans with nothing ready to move into, and are listed but not counted. Sold-out ones are left off.
 - 521 homes priced: incentives cut the asking price by 4.1% guaranteed, up to 4.7% at most, at a 7.24%
   market rate. Savings a builder already shows in the price are never counted twice.
 - 37 communities show 453 earlier homes' county records (assessed value as published, no estimates); 27 of them
@@ -26,8 +26,8 @@ Built for the Meta Global AI Developer Hackathon (Indie track, "Build for Your W
 - Extraction accuracy on 43 hand-checked pages: home recall 99.3%; price, beds and sq ft 100%.
   Hold-out builder (never tuned on): 151/151 homes.
 - Agent, on frozen 11-03 data: Muse Spark 20/20 hand-checked questions, Muse Spark Open (the live model) 19/20. Its one
-  miss correctly answered "none" but also named the nearest home over budget, which the check doesn't allow.
-- Total Meta model spend for the whole build, daily price checks included: about $9.
+  miss listed the right homes but cited their communities instead of each home, which the check doesn't allow.
+- Total Meta model spend for the whole build, daily price checks included: about $10.
 
 ## Meta models used
 
@@ -38,8 +38,8 @@ Spend from the build's own ledger (`llm_calls`, repeat calls served from cache c
 | Extract homes, plans and incentives from ~340 builder pages, one extractor for every site, plus daily re-reads of changed pages | Muse Spark 1.3, contributor | 1,141 | $5.04 |
 | Re-extract pages that fail validation | Muse Spark 1.3, standard | 43 | $1.93 |
 | Extraction eval on open weights | Muse Spark Open | 43 | $1.04 |
-| Buyer agent with 7 read-only database tools (native tool calls), eval runs | Muse Spark Open | 478 | $1.01 |
-| Same agent, eval runs | Muse Spark 1.3, contributor | 645 | $0.13 |
+| Buyer agent with 7 read-only database tools (native tool calls), eval runs | Muse Spark Open | 588 | $1.35 |
+| Same agent, eval runs | Muse Spark 1.3, contributor | 797 | $0.16 |
 | Read room labels off floor-plan images (vision) | Muse Spark 1.3, contributor | 432 | $0.10 |
 
 Contributor mode lets Meta train on the request and is about 12× cheaper. It only ever sees public
@@ -265,3 +265,7 @@ building period.
     Later that day: added San Mateo, Solano, Sonoma and Napa with FHFA's 2026 loan limits (and San Joaquin's, blank until now), K. Hovnanian
     and Brookfield's East Bay page, a list of communities with no move-in-ready homes, and a Google base map. 532 homes, Muse Spark 20/20,
     Muse Spark Open 19/20 on the re-frozen data.
+    Last changes that evening: each home shows its sum (asking minus offer = true price). After a live answer called all 10 San Mateo homes one
+    community because it saw only 5, the search tool reports every match by community; `compare` now returns the differences so the model adds nothing up.
+    A Codex review found sold-out communities in the no-homes list; they're gone and coming-soon ones are labelled. KB's FHA ARM is disclosed under Limits.
+    Same frozen data: Muse Spark 20/20, Muse Spark Open 19/20, with a different miss from the earlier run.

@@ -76,7 +76,8 @@ def summarize(conn, today: str) -> list[dict]:
              "min_asking": r["min_asking"], "min_true_price": r["min_true"],
              "max_discount_pct": round(100 * r["dlo"], 1) if r["dlo"] is not None else None,
              "max_discount_pct_best": round(100 * r["dhi"], 1) if r["dhi"] is not None else None,
-             "has_past_sales": r["past_n"] is not None} for r in rows]
+             "has_past_sales": r["past_n"] is not None,
+             "list_without_homes": not r["n"] and r["status"] != "sold_out"} for r in rows]
 
 
 def _why(method: str, flags: str | None) -> str | None:

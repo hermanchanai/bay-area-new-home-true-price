@@ -108,3 +108,13 @@ def test_a_day_with_only_carried_homes_is_not_a_check(conn):
         conn.execute("UPDATE homes SET source_page = 'b/p' || id")
     snapshot(conn, "2026-10-29", carried=[f"b/p{i}" for i in range(1, 6)])
     assert history_meta(conn)["checks"] == 1
+
+
+def test_a_sold_out_community_is_not_listed_as_still_selling(conn):
+    # Codex, 2026-11-03: "Also selling" showed five sold-out communities, because it only checked for no homes.
+    for cid, status in ((81, "sold_out"), (82, "coming_soon"), (83, "selling")):
+        conn.execute("INSERT INTO communities (id, builder_id, name, county_fips, url, status, fetched_at) VALUES "
+                     "(?, 1, ?, '06081', ?, ?, '2026-11-03')", (cid, status, f"https://b.example/{cid}", status))
+        conn.execute("INSERT INTO plans (community_id, name) VALUES (?, 'Plan 1')", (cid,))
+    got = {c["id"]: c["list_without_homes"] for c in summarize(conn, TODAY) if c["id"] in (81, 82, 83)}
+    assert got == {81: False, 82: True, 83: True}
