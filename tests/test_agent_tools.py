@@ -134,7 +134,7 @@ def test_past_sales_with_under_five_records_lists_them_with_no_median(conn):
     got = call(conn, "past_sales", {"community_id": 2})
     assert got["past_sales"] == "records_only" and got["n"] == 2 and "median_value" not in got
     assert got["records"][0]["address"] == "9 Oak Ct" and "too few" in got["reason"]
-    assert "assessed value" in got["method"] and "not a sale price" in got["caveat"]
+    assert "assessed value" in got["method"] and "isn't a recorded price" in got["caveat"]
 
 
 def test_steps_say_what_each_tool_call_did_in_plain_words():

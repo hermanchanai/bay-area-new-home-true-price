@@ -405,7 +405,7 @@ function drawerHTML(d) {
           <th class="py-1 font-normal">Sold</th><th class="py-1 font-normal text-right">Sq ft</th>
           ${hasRecorded ? `<th class="py-1 font-normal text-right">Recorded sale price</th>` : ""}</tr></thead>
           <tbody>${recs}</tbody></table></div>
-        <p class="text-[11px] text-slate-400 mt-1">Assessed value: land + improvements on the county's ${esc((ps.records || [])[0]?.roll_year ?? "")} roll, as published; not a sale price.${hasRecorded ? " Recorded sale prices come from Alameda's transfer list." : ""}</p></details>`;
+        <p class="text-[11px] text-slate-400 mt-1">Assessed value: land + improvements on the county's ${esc((ps.records || [])[0]?.roll_year ?? "")} roll, as published. On a fully assessed new home that's usually the sale price.${hasRecorded ? " Recorded sale prices come from Alameda's transfer list." : ""}</p></details>`;
   const summary = ps.past_sales === "found"
     ? `<div class="grid grid-cols-2 sm:grid-cols-3 gap-3 num">
         <div><div class="text-xs text-slate-500">Median assessed value</div><div class="text-lg font-semibold">${usd(ps.median_value)}</div></div>

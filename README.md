@@ -95,7 +95,7 @@ https://bay-area-true-price.netlify.app/data/price_history.csv
 - Only derived facts and a source link are stored. Raw pages, photos and floor-plan images never
   leave the build machine, and incentive fine print is linked, not copied.
 - Earlier homes show their county records as published: the assessed value (land + improvements) once it has
-  been reset to the last sale, and Alameda's recorded sale price where there is one. Nothing is estimated. A value
+  been reset to the last sale. Nothing is estimated. A value
   under 60% of its community's median per sq ft is withheld as possibly part-built, and the page says so (7 today).
 - robots.txt honoured. Builders behind a bot challenge or JavaScript-only data were skipped and logged.
 
@@ -108,7 +108,7 @@ https://bay-area-true-price.netlify.app/data/price_history.csv
 - Some builders aren't covered: FCB, D.R. Horton and Richmond American need JavaScript or show a bot challenge, and a few small
   builders (Landsea, Integral and others) weren't added. Most Alameda communities selling now
   have no closed sales on the roll yet, and Alameda's transfer list ends 3/2025.
-- An assessed value is not a sale price. San Joaquin publishes no sale dates, so its homes count once built
+- An assessed value on a fully assessed new home is usually the sale price, but it's the county's figure: we have no recorded sale prices today. San Joaquin publishes no sale dates, so its homes count once built
   before the roll's lien date; a builder still owning a finished home would show its construction value.
 - "Up to" incentives may pay $0, so rankings count them at $0.
 - A lower rate is valued at what it would cost to buy: one point (1% of the loan) per 0.25% below the no-points rate. That rate
