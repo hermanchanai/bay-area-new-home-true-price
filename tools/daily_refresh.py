@@ -39,7 +39,7 @@ from pathlib import Path
 
 import yaml
 
-from tools import db
+from tools import db, plan_links
 from tools.fetch_builder_pages import floor_ok, page_filename
 from tools.extract_listing import OUT as EXTRACT
 from tools.preprocess_page import PRE, RAW
@@ -271,6 +271,10 @@ def run(day: str, deploy: bool, fetch: bool = True) -> dict:
     py("tools.geocode_communities")
     n = snapshot(conn, day, carried=stale)
     snapshot_communities(conn, day)
+    try:
+        log.info("linked %d floor plans", plan_links.apply(conn, plan_links.saved_pages(RAW)))
+    except Exception:           # links are a convenience: never stop the day's prices over them
+        log.exception("floor plan links not updated")
     rows = write_csv(conn, HISTORY_CSV)
     py("tools.export_site_data")
     if deploy:

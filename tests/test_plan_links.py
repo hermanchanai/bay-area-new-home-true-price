@@ -272,3 +272,19 @@ def test_no_links_and_no_names():
     assert plan_links("<html></html>", PAGE, ["Plan 1"]) == {}
     assert plan_links(card(f"{BASE}/plan-1", "Plan 1"), PAGE, []) == {}
     assert plan_links("", PAGE, []) == {}
+
+
+def test_apply_saves_each_plans_own_link_and_clears_a_link_that_went_away(tmp_path):
+    from tools import db
+    from tools.agent_tools import get_plan
+    from tools.plan_links import apply
+    conn = db.connect(":memory:")
+    conn.execute("INSERT INTO builders (id, name, site) VALUES (1, 'B', 'https://b.example')")
+    conn.execute("INSERT INTO communities (id, builder_id, name, url) VALUES (1, 1, 'Oak', 'https://b.example/oak/')")
+    conn.execute("INSERT INTO plans (id, community_id, name, url) VALUES (1, 1, 'Plan 1', 'https://b.example/old')")
+    conn.execute("INSERT INTO plans (id, community_id, name, url) VALUES (2, 1, 'Plan 2', 'https://b.example/old2')")
+    page = tmp_path / "oak.html"
+    page.write_text('<a href="/oak/plan-1">Plan 1</a>')
+    assert apply(conn, {"https://b.example/oak/": ("b", page)}) == 1
+    assert get_plan(conn, 1, rooms=False)["url"] == "https://b.example/oak/plan-1"
+    assert get_plan(conn, 2, rooms=False)["url"] is None

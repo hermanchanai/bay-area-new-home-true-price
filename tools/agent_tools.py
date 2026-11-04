@@ -283,7 +283,7 @@ def get_plan(conn, plan_id: int, rooms: bool = True) -> dict:
     lay = _layout(p)
     out = {"plan_id": p["id"], "community_id": p["community_id"], "name": p["name"], "beds_min": p["beds_min"],
            "beds_max": p["beds_max"], "baths": p["baths"], "sqft_min": p["sqft_min"], "sqft_max": p["sqft_max"],
-           "stories": p["stories"], "garage": p["garage"], "from_price": p["from_price"],
+           "stories": p["stories"], "garage": p["garage"], "from_price": p["from_price"], "url": p["url"],
            "layout_read_from_image": bool(lay)}
     for k in ("downstairs_bedroom", "primary_floor", "loft", "flex_room", "garage_bays"):
         if k in lay:

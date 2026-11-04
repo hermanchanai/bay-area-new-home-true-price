@@ -243,6 +243,21 @@ def saved_pages(raw: Path) -> dict[str, tuple[str, Path]]:
     return out
 
 
+def apply(conn, pages: dict[str, tuple[str, Path]]) -> int:
+    """Save each plan's link from its community page; a link no longer printed is cleared. Returns plans linked."""
+    linked = 0
+    with conn:
+        for c in conn.execute("SELECT id, url FROM communities").fetchall():
+            if c[1] not in pages:
+                continue
+            plans = [r[0] for r in conn.execute("SELECT name FROM plans WHERE community_id = ?", (c[0],))]
+            links = plan_links(pages[c[1]][1].read_text(errors="ignore"), c[1], plans) if plans else {}
+            for name in plans:
+                conn.execute("UPDATE plans SET url = ? WHERE community_id = ? AND name = ?", (links.get(name), c[0], name))
+            linked += len(links)
+    return linked
+
+
 def measure(raw: Path, db: Path) -> dict[str, dict]:
     pages = saved_pages(raw)
     conn = sqlite3.connect(f"file:{db}?mode=ro", uri=True)
