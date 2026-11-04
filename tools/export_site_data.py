@@ -20,6 +20,7 @@ import logging
 import os
 import re
 import shutil
+from collections import defaultdict
 from datetime import date
 from pathlib import Path
 
@@ -36,7 +37,7 @@ from tools.agent_tools import (
     get_plan,
 )
 from tools.eval_agent import RUNS, cited
-from tools.snapshot_prices import home_key
+from tools.snapshot_prices import community_changes, home_key
 
 ROOT = Path(__file__).resolve().parent.parent
 WEB = ROOT / "web" / "data"
@@ -68,6 +69,11 @@ def summarize(conn, today: str) -> list[dict]:
         "LEFT JOIN true_prices t ON t.home_id = h.id LEFT JOIN past_sales ps ON ps.community_id = c.id "
         "GROUP BY c.id HAVING COUNT(h.id) > 0 OR c.lat IS NOT NULL "
         "OR EXISTS (SELECT 1 FROM plans p WHERE p.community_id = c.id) ORDER BY c.id").fetchall()
+    beds = dict(conn.execute("SELECT community_id, MAX(beds_max) FROM plans GROUP BY community_id").fetchall())
+    history = defaultdict(list)
+    for r in conn.execute("SELECT community_url, snapshot_date, from_price, incentives FROM community_history "
+                          "WHERE carried = 0 ORDER BY snapshot_date"):
+        history[r[0]].append((r[1], r[2], json.loads(r[3])))
     return [{"id": r["id"], "name": r["name"], "builder": r["builder"],
              "city": re.sub(r",\s*CA$", "", r["city"] or ""), "county": _county_name(r["county_fips"]),
              "lat": r["lat"], "lng": r["lng"], "geo_method": r["geo_method"], "product": r["product"],
@@ -77,7 +83,8 @@ def summarize(conn, today: str) -> list[dict]:
              "max_discount_pct": round(100 * r["dlo"], 1) if r["dlo"] is not None else None,
              "max_discount_pct_best": round(100 * r["dhi"], 1) if r["dhi"] is not None else None,
              "has_past_sales": r["past_n"] is not None,
-             "list_without_homes": not r["n"] and r["status"] != "sold_out"} for r in rows]
+             "list_without_homes": not r["n"] and r["status"] != "sold_out", "plan_beds_max": beds.get(r["id"]),
+             **community_changes(history[r["url"]])} for r in rows]
 
 
 def _why(method: str, flags: str | None) -> str | None:

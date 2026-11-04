@@ -1,4 +1,4 @@
-"""Map pins for communities link_parcels couldn't place (new streets not on the assessor roll yet).
+"""Map pins for communities link_parcels couldn't place (new streets not on the assessor roll yet, or no homes to match).
 
     python -m tools.geocode_communities
 
@@ -36,6 +36,7 @@ OWN_PIN = (
     r'"dynamicDirections":\w+,"latitude":' + LAT + r',"longitude":' + LNG,                           # Lennar, community
     r'maps\.google\.com/maps\?q=' + LAT + "," + LNG,                                                 # DeNova
     r'data-oi-map-autoload="single"[^>]*?data-latitude="' + LAT + r'"\s*data-longitude="' + LNG + '"',  # Trumark
+    r'"@type":"GeoCoordinates","latitude":' + LAT + r',"longitude":' + LNG,                           # Toll Brothers
 )
 log = logging.getLogger(__name__)
 
@@ -92,10 +93,16 @@ def osm_street(street: str, city: str) -> tuple[float, float] | None:
     return (float(hits[0]["lat"]), float(hits[0]["lon"])) if hits else None
 
 
+def to_place(conn) -> list:
+    """Every community still selling or coming soon that has no pin; its map pin doesn't wait for a priced home."""
+    return conn.execute("SELECT id, name, city, url FROM communities c WHERE lat IS NULL AND status IS NOT 'sold_out' AND "
+                        "(EXISTS (SELECT 1 FROM homes h WHERE h.community_id = c.id) OR "
+                        "EXISTS (SELECT 1 FROM plans p WHERE p.community_id = c.id)) ORDER BY id").fetchall()
+
+
 def run(conn) -> dict:
     pins, pages = page_pins(), latest_pages()
-    todo = conn.execute("SELECT id, name, city, url FROM communities c WHERE lat IS NULL AND EXISTS "
-                        "(SELECT 1 FROM homes h WHERE h.community_id = c.id) ORDER BY id").fetchall()
+    todo = to_place(conn)
     placed, missed = {}, []
     for c in todo:
         city = re.sub(r",\s*CA$", "", c["city"] or "")

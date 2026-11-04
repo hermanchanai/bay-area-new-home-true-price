@@ -17,4 +17,8 @@ under 70% of the previous day's homes; geocode; snapshot; export; deploy Netlify
   That is how the Meritage ARM was caught on 2026-11-03. New rate offers with no loan named show as "term not stated";
   add the builder's real terms to `config/rate_terms.yaml` when its terms page has them.
 
+- `community_history` records each community's lowest advertised price and page offers daily, homes or no homes
+  (backfill: `python -m tools.snapshot_prices --communities`, from saved extractions). A rise is recorded only once the old
+  price has left the page; only offers with an amount or rate are compared.
+
 **Not run daily:** assessor pulls and `link_parcels`, so county records change only when those are rerun.

@@ -57,3 +57,9 @@ def test_pick_uses_the_builders_own_record_before_guessing_from_street_names():
     osm_wrong_town = lambda: [(37.630775, -122.4504566)]
     assert pick(set(), osm_wrong_town, own) == ((37.53592, -122.32453), "page_pin")
     assert pick({(37.7087, -121.8637)}, osm_wrong_town, own) == ((37.7087, -121.8637), "page_pin")
+
+
+def test_own_pins_reads_toll_brothers_sales_office_coordinates():
+    from tools.geocode_communities import own_pins
+    toll = '"telephone":"650","geo":{"@type":"GeoCoordinates","latitude":37.61328167329737,"longitude":-122.42706910000001},'
+    assert own_pins(toll, "Crestmoor Estates") == {(37.61328167329737, -122.42706910000001)}

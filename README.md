@@ -270,3 +270,4 @@ building period.
     A Codex review found sold-out communities in the no-homes list; they're gone and coming-soon ones are labelled. KB's FHA ARM is disclosed under Limits.
     Same frozen data: Muse Spark 20/20, Muse Spark Open 19/20, with a different miss from the earlier run.
     14 communities with homes had no map pin although their builders' pages say where they are; the geocoder now reads those records. 137 of 138 are on the map; Woodside Estates' page gives no location.
+    Every community now gets a pin, not just those with a priced home: 215 of 219 communities still selling or coming soon (hollow pin = floor plans only). Each shows its lowest advertised price and how that and its priced offers have moved, from `community_history`, backfilled to Oct 27 from saved readings (Nov 3 for the four newest counties). Older prices aren't on record. Lennar's 555,555 placeholder on 40 plans no longer shows as a price.

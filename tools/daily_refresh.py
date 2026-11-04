@@ -43,7 +43,7 @@ from tools import db
 from tools.fetch_builder_pages import floor_ok, page_filename
 from tools.extract_listing import OUT as EXTRACT
 from tools.preprocess_page import PRE, RAW
-from tools.snapshot_prices import carried_pages, snapshot, write_csv
+from tools.snapshot_prices import carried_pages, snapshot, snapshot_communities, write_csv
 
 ROOT = Path(__file__).resolve().parent.parent
 LOGS = ROOT / ".tmp" / "logs"
@@ -270,6 +270,7 @@ def run(day: str, deploy: bool, fetch: bool = True) -> dict:
                          "nothing published")
     py("tools.geocode_communities")
     n = snapshot(conn, day, carried=stale)
+    snapshot_communities(conn, day)
     rows = write_csv(conn, HISTORY_CSV)
     py("tools.export_site_data")
     if deploy:

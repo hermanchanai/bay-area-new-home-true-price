@@ -56,6 +56,7 @@ async function boot() {
   examples();
   await initMap();
   ["#f-county", "#f-max", "#f-beds", "#f-product", "#f-now"].forEach((id) => $(id).addEventListener("change", () => { S.shown = 30; render(); }));
+  $("#f-county").addEventListener("change", fitCounty);
   render();
   window.addEventListener("hashchange", route);
   $("#backdrop").addEventListener("click", () => (location.hash = ""));
@@ -93,9 +94,10 @@ function leafletMap(pts) {
   if (pts.length) map.fitBounds(pts, { padding: [20, 20], maxZoom: 12 });
   return {
     clear: () => layer.clearLayers(),
-    pin: (lat, lng, radius, color, html) => L.circleMarker([lat, lng], { radius, color: "#0f172a", weight: 1,
-      fillColor: color, fillOpacity: 0.9 }).bindPopup(html).addTo(layer),
+    pin: (lat, lng, radius, color, html, hollow) => L.circleMarker([lat, lng], { radius, color: hollow ? "#475569" : "#0f172a",
+      weight: hollow ? 2 : 1, fillColor: hollow ? "#ffffff" : color, fillOpacity: 0.9 }).bindPopup(html).addTo(layer),
     focus: (lat, lng) => map.setView([lat, lng], Math.max(map.getZoom(), 12)),
+    fit: (points) => map.fitBounds(points, { padding: [20, 20], maxZoom: 12 }),
   };
 }
 
@@ -112,29 +114,32 @@ async function googleMap(key, pts) {
   const { Marker } = await google.maps.importLibrary("marker");
   const map = new Map($("#map"), { center: { lat: 37.6, lng: -121.8 }, zoom: 9, gestureHandling: "cooperative",
     mapTypeControl: false, streetViewControl: false, clickableIcons: false });
-  if (pts.length) {
+  const fit = (points) => {
     const b = new google.maps.LatLngBounds();
-    pts.forEach(([lat, lng]) => b.extend({ lat, lng }));
+    points.forEach(([lat, lng]) => b.extend({ lat, lng }));
     map.fitBounds(b, 20);
     google.maps.event.addListenerOnce(map, "idle", () => map.getZoom() > 12 && map.setZoom(12));
-  }
+  };
+  if (pts.length) fit(pts);
   const info = new InfoWindow();
   let pins = [];
   return {
     clear: () => { pins.forEach((m) => m.setMap(null)); pins = []; },
-    pin: (lat, lng, radius, color, html) => {
+    pin: (lat, lng, radius, color, html, hollow) => {
       const m = new Marker({ map, position: { lat, lng }, icon: { path: google.maps.SymbolPath.CIRCLE, scale: radius,
-        fillColor: color, fillOpacity: 0.9, strokeColor: "#0f172a", strokeWeight: 1 } });
+        fillColor: hollow ? "#ffffff" : color, fillOpacity: 0.9, strokeColor: hollow ? "#475569" : "#0f172a", strokeWeight: hollow ? 2 : 1 } });
       m.addListener("click", () => { info.setContent(html); info.open({ anchor: m, map }); });
       pins.push(m);
     },
     focus: (lat, lng) => { map.setCenter({ lat, lng }); map.setZoom(Math.max(map.getZoom(), 12)); },
+    fit,
   };
 }
 
 async function initMap() {
   $("#legend").innerHTML = `<span class="font-medium">Incentives worth up to (share of asking):</span>` +
-    BINS.map(([, c, l]) => `<span class="flex items-center gap-1"><span class="inline-block w-3 h-3 rounded-full" style="background:${c}"></span>${l}</span>`).join("");
+    BINS.map(([, c, l]) => `<span class="flex items-center gap-1"><span class="inline-block w-3 h-3 rounded-full" style="background:${c}"></span>${l}</span>`).join("") +
+    `<span class="flex items-center gap-1"><span class="inline-block w-3 h-3 rounded-full bg-white border-2 border-slate-600"></span>floor plans only, no priced home</span>`;
   const pts = S.site.communities.filter((c) => c.lat != null).map((c) => [c.lat, c.lng]);
   if (window.GMAPS_KEY) {
     const useOsm = (why) => {
@@ -165,6 +170,35 @@ async function initMap() {
   S.map = leafletMap(pts);
 }
 
+// Choosing a county brings its pins into view.
+function fitCounty() {
+  const county = $("#f-county").value;
+  const pts = S.site.communities.filter((c) => c.lat != null && (c.homes || c.list_without_homes) && (!county || c.county === county))
+    .map((c) => [c.lat, c.lng]);
+  if (pts.length) S.map.fit(pts);
+}
+
+const shortDate = (d) => new Date(`${d}T12:00:00`).toLocaleDateString("en-US", { month: "short", day: "numeric" });
+
+// Communities with plans but no priced home that pass the filters. A price or bedroom filter can't vouch for one it knows nothing about.
+function plansOnly() {
+  const county = $("#f-county").value, max = +$("#f-max").value || null, minBeds = +$("#f-beds").value || null;
+  const product = $("#f-product").value;
+  if ($("#f-now").checked) return [];
+  return S.site.communities.filter((c) => c.list_without_homes && c.lat != null && (!county || c.county === county) &&
+    (!max || (c.advertised_from != null && c.advertised_from <= max)) && (!minBeds || (c.plan_beds_max ?? 0) >= minBeds) &&
+    (!product || c.product === product));
+}
+
+// The builder's advertised price and how it and the offers have moved since we started checking. Prices and offers only as read.
+function advertisedHTML(c) {
+  if (!c.tracked_since) return "";
+  const moved = c.price_changes.at(-1);
+  return `<div class="mt-1 text-xs num">${c.advertised_from ? `Advertised from <b>${short(c.advertised_from)}</b>` : "No advertised price"}${moved ? `, was ${short(moved.was)} until ${shortDate(moved.date)}` : ""}</div>
+    ${c.incentives_added.slice(0, 2).map((i) => `<div class="text-xs text-emerald-700">New ${shortDate(i.date)}: ${esc(i.label)}</div>`).join("")}
+    ${c.incentives_ended.slice(0, 2).map((i) => `<div class="text-xs text-slate-500">Gone after ${shortDate(i.last_seen)}: ${esc(i.label)}</div>`).join("")}`;
+}
+
 // Communities with floor plans but nothing ready to move into: listed so they can be found, never counted as homes.
 function noHomes() {
   const county = $("#f-county").value;
@@ -175,7 +209,7 @@ function noHomes() {
     <p class="text-xs text-slate-500 mb-2">These communities show floor plans on the builder's site but no specific home we can price yet.</p>
     <ul class="grid sm:grid-cols-2 lg:grid-cols-3 gap-x-4 gap-y-1 max-h-64 overflow-y-auto">${rows.map((c) =>
       `<li class="min-w-0"><a class="text-sky-700" href="#c/${c.id}">${esc(c.name)}</a>
-        <span class="text-xs text-slate-500">${esc(c.city)}, ${esc(c.county)} · ${esc(c.builder)}${c.status === "coming_soon" ? " · coming soon" : ""}</span></li>`).join("")}</ul>`;
+        <span class="text-xs text-slate-500">${esc(c.city)}, ${esc(c.county)} · ${esc(c.builder)}${c.status === "coming_soon" ? " · coming soon" : ""}${c.advertised_from ? ` · from ${short(c.advertised_from)}` : ""}</span></li>`).join("")}</ul>`;
 }
 
 function render() {
@@ -185,6 +219,11 @@ function render() {
   $("#count").textContent = `${homes.length} homes in ${Object.keys(byComm).length} communities`;
 
   S.map.clear();
+  plansOnly().forEach((c) => S.map.pin(c.lat, c.lng, 5, "", `<div class="text-sm"><div class="font-semibold">${esc(c.name)}</div>
+      <div class="text-xs text-slate-500">${esc(c.builder)} · ${esc(c.city)}</div>
+      <div class="mt-1 text-xs">${c.status === "coming_soon" ? "Coming soon. " : ""}Floor plans only, no priced home right now.</div>
+      ${advertisedHTML(c)}
+      <a href="#c/${c.id}" class="inline-block mt-2 text-sky-700 font-medium">Open community →</a></div>`, true));
   const unmapped = [];
   Object.entries(byComm).forEach(([id, hs]) => {
     const c = S.comms[id];
@@ -194,6 +233,7 @@ function render() {
       <div class="text-xs text-slate-500">${esc(c.builder)} · ${esc(c.city)}</div>
       <div class="mt-1 num">${hs.length} home${hs.length > 1 ? "s" : ""} match · true price from <b>${short(cheapest.true_price_high ?? cheapest.asking)}</b></div>
       <div class="text-xs num">Incentives worth up to ${c.max_discount_pct_best ?? 0}% of asking (${c.max_discount_pct ?? 0}% guaranteed)</div>
+      ${advertisedHTML(c)}
       <a href="#c/${c.id}" class="inline-block mt-2 text-sky-700 font-medium">Open community →</a></div>`);
   });
   noHomes();
@@ -336,6 +376,18 @@ function drawerHTML(d) {
       <a href="${esc(i.source_url)}" target="_blank" rel="noopener" class="text-xs text-sky-700">Builder's terms ↗</a></li>`).join("")
     : `<li class="text-sm text-slate-500">No incentives listed on the builder's site.</li>`;
 
+  const moves = c.tracked_since ? [
+    ...c.price_changes.map((m) => `<li>${shortDate(m.date)}: advertised price went from ${usd(m.was)} to ${usd(m.now)}</li>`),
+    ...c.incentives_added.map((i) => `<li>${shortDate(i.date)}: new offer, ${esc(i.label)}</li>`),
+    ...c.incentives_ended.map((i) => `<li>Last seen ${shortDate(i.last_seen)}: ${esc(i.label)}</li>`)].join("") : "";
+  const pageOffers = (c.incentives || []).map((i) => `<li class="py-1 border-t border-slate-100 text-sm">${esc(i.label || KIND[i.kind])}${i.expires ? ` <span class="text-xs text-slate-500">(ends ${esc(i.expires)})</span>` : ""}</li>`).join("");
+  const advertised = c.tracked_since ? `<section><h3 class="font-semibold mb-1">What the builder advertises</h3>
+      <p class="text-sm num">${c.advertised_from ? `From <b>${usd(c.advertised_from)}</b>, the lowest price on the builder's page.` : "No price on the builder's page."}</p>
+      ${moves ? `<ul class="text-xs text-slate-700 mt-1 flex flex-col gap-0.5">${moves}</ul>`
+        : `<p class="text-xs text-slate-500 mt-1">No change in price or priced offers since we started checking this community on ${shortDate(c.tracked_since)}.</p>`}
+      ${homes || !pageOffers ? "" : `<h4 class="text-xs font-medium text-slate-600 mt-2">Offers on the page (not priced: no specific home to price them on)</h4><ul>${pageOffers}</ul>`}
+      <p class="text-[11px] text-slate-400 mt-1">Checked daily since ${shortDate(c.tracked_since)}; older prices aren't on record.</p></section>` : "";
+
   const plans = d.plans.map((p) => {
     const facts = [p.downstairs_bedroom === true && "bedroom downstairs", p.downstairs_bedroom === false && "no bedroom downstairs",
       p.primary_floor && `owner's suite on floor ${p.primary_floor}`, p.loft && "loft", p.flex_room && "flex room",
@@ -358,6 +410,7 @@ function drawerHTML(d) {
         <span class="text-xs text-slate-400"> read ${esc(c.fetched || "")}</span></div>
       <button id="close" class="text-slate-500 hover:text-slate-800 text-2xl leading-none px-2" aria-label="Close">×</button></div>
     <div class="px-5 py-4 flex flex-col gap-6">
+      ${advertised}
       ${homes ? `<section><div class="flex flex-wrap items-center justify-between gap-2 mb-2">
           <h3 class="font-semibold">Homes for sale</h3>
           <label class="text-xs text-slate-600 flex items-center gap-2">Down payment
@@ -367,9 +420,9 @@ function drawerHTML(d) {
           <th class="py-1 font-normal">Home</th><th class="py-1 font-normal text-right">Asking</th><th class="py-1 font-normal text-right">True price</th></tr></thead>
           <tbody>${homes}</tbody></table></div></section>`
       : `<section><h3 class="font-semibold mb-1">Homes for sale</h3><p class="text-sm text-slate-500">No move-in-ready home listed right now.</p></section>`}
-      <section><h3 class="font-semibold mb-1">Incentives, in dollars</h3>
+      ${!homes && pageOffers ? "" : `<section><h3 class="font-semibold mb-1">Incentives, in dollars</h3>
         <p class="text-xs text-slate-500 mb-1">Ranges run from the guaranteed value to the best case. Offers don't stack unless their terms say so.</p>
-        <ul>${incs}</ul></section>
+        <ul>${incs}</ul></section>`}
       <section><h3 class="font-semibold mb-2">Earlier homes: county records</h3>${past}</section>
       <section><h3 class="font-semibold mb-1">Floor plans</h3><ul>${plans || `<li class="text-sm text-slate-500">No plans listed.</li>`}</ul></section>
     </div>`;

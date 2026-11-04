@@ -62,6 +62,14 @@ def _community_for(home_page: dict, communities: list[dict]) -> dict | None:
     return max(hits, key=lambda c: len(_name(c["record"]["community"]["name"])), default=None)
 
 
+PLACEHOLDER_PRICE = 555555
+
+
+def plan_price(price: int | None) -> int | None:
+    """Lennar puts 555,555 on plans with no price yet."""
+    return None if price == PLACEHOLDER_PRICE else price
+
+
 def assign_homes(pages: list[dict]) -> list[dict]:
     communities = [p for p in pages if p["kind"] == "community"]
     best: dict[tuple, dict] = {}
@@ -262,7 +270,7 @@ def load(date: str, conn) -> dict:
                              "from_price=excluded.from_price",
                              (row[0], pl["name"], pl.get("beds_min"), pl.get("beds_max"), pl.get("baths_max"),
                               pl.get("sqft_min"), pl.get("sqft_max"), pl.get("stories"), pl.get("garage"),
-                              pl.get("from_price")))
+                              plan_price(pl.get("from_price"))))
 
         inc_ids = {}
         for a in assign_homes(pages):

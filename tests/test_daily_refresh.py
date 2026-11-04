@@ -117,7 +117,7 @@ def test_one_builder_failing_its_floor_does_not_stop_the_day(monkeypatch):
 
     monkeypatch.setattr(dr.subprocess, "run", fake_run)
     for name, value in {"reuse_unchanged": [], "carry_forward": [], "carry_unfetched": [], "drop_carried": [],
-                        "snapshot": 5, "write_csv": 5, "enough_homes": (True, 5, 5), "expected_communities": {}}.items():
+                        "snapshot": 5, "snapshot_communities": 5, "write_csv": 5, "enough_homes": (True, 5, 5), "expected_communities": {}}.items():
         monkeypatch.setattr(dr, name, lambda *a, _v=value, **k: _v, raising=False)
     monkeypatch.setattr(dr.db, "connect", lambda: None)
     out = dr.run("2026-10-29", deploy=False)
@@ -138,7 +138,7 @@ def stub_run(monkeypatch, fetch_code):
 
     monkeypatch.setattr(dr.subprocess, "run", fake_run)
     for name, value in {"reuse_unchanged": [], "carry_forward": [], "carry_unfetched": [], "drop_carried": [],
-                        "snapshot": 5, "write_csv": 5, "enough_homes": (True, 5, 5), "expected_communities": {}}.items():
+                        "snapshot": 5, "snapshot_communities": 5, "write_csv": 5, "enough_homes": (True, 5, 5), "expected_communities": {}}.items():
         monkeypatch.setattr(dr, name, lambda *a, _v=value, **k: _v, raising=False)
     monkeypatch.setattr(dr.db, "connect", lambda: None)
     return ran
