@@ -271,6 +271,20 @@ function historyHTML(h) {
     <ul class="pl-4 mt-1 num">${rows}</ul></details>`;
 }
 
+// One home's math in plain sums. The guaranteed and best-case ends can come from different offers.
+function priceSums(asking, valueLow, valueHigh, offers) {
+  if (!valueHigh) return "";
+  const named = (value, pick) => offers.find((o) => pick(o) === value)?.label || "offers";
+  const low = (o) => o.value_low, high = (o) => o.value_high;
+  const lowName = named(valueLow, low), highName = named(valueHigh, high);
+  const sum = (value, name) => `${usd(asking)} − ${usd(value)}${name ? ` (${esc(name)})` : ""} = <b>${usd(asking - value)}</b>`;
+  if (valueLow === valueHigh) return `<div>${sum(valueHigh, highName)}</div>`;
+  const same = valueLow && lowName === highName;
+  return `${same ? `<div>${esc(highName)}</div>` : ""}
+    <div>Guaranteed: ${valueLow ? sum(valueLow, same ? "" : lowName) : `<b>${usd(asking)}</b>, because an "up to" offer may pay $0`}</div>
+    <div>Best case: ${sum(valueHigh, same ? "" : highName)}</div>`;
+}
+
 const WHY = { eligibility_limited: "some buyers only, not counted", conditional: "paid only if the builder misses its date, not counted" };
 
 function drawerHTML(d) {
@@ -285,7 +299,9 @@ function drawerHTML(d) {
         ${historyHTML(h)}
         ${offers ? `<details class="text-xs mt-1"><summary class="cursor-pointer text-sky-700">${h.offers.length} offer${h.offers.length > 1 ? "s" : ""} (pick one)</summary><ul class="list-disc pl-4 mt-1">${offers}</ul></details>` : ""}</td>
       <td class="py-2 pr-2 text-right num">${usd(h.asking)}</td>
-      <td class="py-2 text-right num font-semibold" data-true="${h.home_id}">${range(h.true_price_low, h.true_price_high)}</td></tr>`;
+      <td class="py-2 text-right num font-semibold" data-true="${h.home_id}">${range(h.true_price_low, h.true_price_high)}</td></tr>
+      <tr><td colspan="3" class="pb-2 text-xs num text-slate-600" data-sums="${h.home_id}">${h.asking && h.true_price_high != null ? priceSums(h.asking, h.asking - h.true_price_high, h.asking - h.true_price_low,
+        h.offers.filter((o) => o.counted).map((o) => ({ ...o, label: inc[o.incentive_id]?.label }))) : ""}</td></tr>`;
   }).join("");
 
   const ps = d.past_sales;
@@ -315,7 +331,7 @@ function drawerHTML(d) {
 
   const incs = d.incentives.length ? d.incentives.map((i) => `<li class="py-2 border-t border-slate-100">
       <div class="flex justify-between gap-3"><div><div class="font-medium">${esc(i.label || KIND[i.kind])}</div>
-        <div class="text-xs text-slate-500">${i.structure === "term not stated" ? "Rate offer: the builder's page doesn't say how long it lasts, so it's valued for 5 years" : KIND[i.kind] || esc(i.kind)}${i.amount_is_up_to ? " · up to: may pay less, or nothing" : ""}${i.lender ? " · with " + esc(i.lender) : ""}${i.expires ? " · ends " + esc(i.expires) : ""}${i.eligibility ? " · " + esc(i.eligibility) : ""}${i.included_in_price ? " · already in the asking price" : ""}</div></div>
+        <div class="text-xs text-slate-500">${i.structure === "term not stated" ? "Rate offer: the builder's page doesn't say how long it lasts, so it's valued for 5 years" : KIND[i.kind] || esc(i.kind)}${i.amount_is_up_to ? " · up to: may pay less, or nothing" : ""}${/\bFHA\b/.test(i.label || "") ? " · FHA loan: its mortgage insurance isn't counted" : ""}${i.lender ? " · with " + esc(i.lender) : ""}${i.expires ? " · ends " + esc(i.expires) : ""}${i.eligibility ? " · " + esc(i.eligibility) : ""}${i.included_in_price ? " · already in the asking price" : ""}</div></div>
         <div class="text-right num text-sm shrink-0">${i.included_in_price ? "in the price" : i.value_high != null ? range(i.value_low, i.value_high) : "not priced"}${i.homes_priced > 1 ? `<div class="text-[11px] text-slate-400">across ${i.homes_priced} homes</div>` : ""}</div></div>
       <a href="${esc(i.source_url)}" target="_blank" rel="noopener" class="text-xs text-sky-700">Builder's terms ↗</a></li>`).join("")
     : `<li class="text-sm text-slate-500">No incentives listed on the builder's site.</li>`;
@@ -346,7 +362,7 @@ function drawerHTML(d) {
           <h3 class="font-semibold">Homes for sale</h3>
           <label class="text-xs text-slate-600 flex items-center gap-2">Down payment
             <select id="down" class="border border-slate-300 rounded px-1.5 py-1" ${S.api ? "" : "disabled title='Needs the live server'"}>${downs}</select></label></div>
-        <p id="down-note" class="text-xs text-slate-500 mb-2">True price at 20% down: guaranteed – best case.${S.api ? "" : " (Changing the down payment needs the live server.)"}</p>
+        <p id="down-note" class="text-xs text-slate-500 mb-2">True price at 20% down: best case – guaranteed.${S.api ? "" : " (Changing the down payment needs the live server.)"}</p>
         <div class="overflow-x-auto"><table class="w-full text-sm"><thead><tr class="text-xs text-slate-500 text-left">
           <th class="py-1 font-normal">Home</th><th class="py-1 font-normal text-right">Asking</th><th class="py-1 font-normal text-right">True price</th></tr></thead>
           <tbody>${homes}</tbody></table></div></section>`
@@ -367,8 +383,10 @@ async function reprice(d, down) {
     out.forEach((r) => {
       const cell = document.querySelector(`[data-true="${r.home_id}"]`);
       if (cell) cell.textContent = range(r.true_price_low, r.true_price_high);
+      const sums = document.querySelector(`[data-sums="${r.home_id}"]`);
+      if (sums) sums.innerHTML = priceSums(r.asking, r.incentive_value_low, r.incentive_value_high, r.incentives);
     });
-    $("#down-note").textContent = `True price at ${down}% down: guaranteed – best case. Homes without offers are unchanged.`;
+    $("#down-note").textContent = `True price at ${down}% down: best case – guaranteed. Homes without offers are unchanged.`;
   } catch (e) {
     $("#down-note").textContent = `Couldn't recalculate: ${e.message}`;
   }

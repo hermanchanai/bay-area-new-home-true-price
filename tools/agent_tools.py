@@ -6,6 +6,7 @@ Tool specs (OpenAI function format, which the Meta Model API accepts) are in TOO
 import calendar
 import json
 import re
+from collections import Counter
 from datetime import date
 from pathlib import Path
 from statistics import median
@@ -175,7 +176,9 @@ def search_homes(conn, county: str | list | None = None, city: str | None = None
         rows = [h for h in rows if h["downstairs_bedroom"] is downstairs_bedroom]
         notes.insert(0, "Only homes whose floor plan image was read can be checked for a downstairs bedroom "
                         "(Lennar plans so far); other homes may also have one.")
+    held = Counter((h["community_id"], h["community"]) for h in rows)
     return {"total_matching": len(rows), "homes": rows[:min(int(limit), MAX_ROWS)], "note": " ".join(notes) or None,
+            "by_community": [{"community_id": i, "community": n, "homes": k} for (i, n), k in held.most_common()],
             "true_price_basis": "asking minus incentives at 20% down, 30-year fixed, FRED market rate. "
                                 "true_price_high = guaranteed (sorted and filtered on this); true_price_low = "
                                 "best case, if every 'up to' offer pays in full"}
@@ -347,7 +350,12 @@ def compare(conn, home_ids: list[int], today: str | None = None) -> dict:
             "SELECT i.label, v.value_low, v.value_high, v.flags FROM incentive_values v JOIN incentives i ON "
             "i.id = v.incentive_id WHERE v.home_id = ? ORDER BY v.value_high DESC", (i,))]
         out.append(h)
-    return {"homes": out, "offers_note": "A home's offers don't stack unless the fine print says they combine: the "
+    gap = lambda h, key: None if h[key] is None or out[0][key] is None else h[key] - out[0][key]  # noqa: E731
+    return {"homes": out, "differences": [{"home_id": h["home_id"], "vs_home_id": out[0]["home_id"], "asking": gap(h, "asking"),
+                                           "true_price_high": gap(h, "true_price_high"), "sqft": gap(h, "sqft")}
+                                          for h in out[1:]],
+            "differences_note": "Each figure is home_id minus vs_home_id; true_price_high is the guaranteed end.",
+            "offers_note": "A home's offers don't stack unless the fine print says they combine: the "
                                          "buyer picks one (write 'or', not '+'). The true price range already "
                                          "reflects that."}
 

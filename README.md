@@ -113,7 +113,8 @@ https://bay-area-true-price.netlify.app/data/price_history.csv
 - "Up to" incentives may pay $0, so rankings use the guaranteed end of the range.
 - A rate offer is only counted for 30 years when the builder says it's fixed. Meritage's terms page confirms its
   4.99% is a 7/6 ARM, so it's valued that way. Trumark's 5.25% (5.993% APR) names no loan on any page we read, so it's
-  marked "term not stated" and valued for 5 years; that may be too low. True prices in the history before 11-03 used
+  marked "term not stated" and valued for 5 years; that may be too low. KB's 4.99% is an FHA 5/1 ARM and its terms page gives
+  no conventional rate, so it's valued like any loan at 20% down; that leaves out FHA mortgage insurance and may be too high. True prices in the history before 11-03 used
   the older reading of these offers.
 - Not financial advice. The builder's own page is the source of truth; every figure links to it.
 

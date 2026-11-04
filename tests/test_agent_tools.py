@@ -4,7 +4,7 @@ import json
 import pytest
 
 from tools import db
-from tools.agent_tools import call, ready_month, reprice_home, search_homes
+from tools.agent_tools import call, compare, ready_month, reprice_home, search_homes
 
 TODAY = "2026-10-27"
 
@@ -254,3 +254,23 @@ def test_check_claims_flags_a_figure_no_longer_in_the_document(conn, capsys):
     assert check("doc", " ".join(want for _, want in claims), claims) == 0
     assert check("doc", "stale text", claims) == len(claims)
     assert "MISSING" in capsys.readouterr().out
+
+
+def test_a_shortened_list_still_says_which_communities_hold_every_match(conn):
+    # 2026-11-03, live: limit 5 of 10 San Mateo homes showed one community, so the agent said all 10 were there.
+    got = search_homes(conn, limit=1, today=TODAY)
+    assert len(got["homes"]) == 1 and got["total_matching"] == 5
+    assert sum(c["homes"] for c in got["by_community"]) == 5
+    assert len(got["by_community"]) > 1
+    assert got["by_community"][0]["homes"] >= got["by_community"][-1]["homes"]
+
+
+def test_compare_returns_the_differences_so_the_model_does_no_arithmetic(conn):
+    # 2026-11-03 eval q15: "~$17K more asking" was right but the model's own sum, which the trace check fails.
+    first, second = search_homes(conn, today=TODAY)["homes"][:2]
+    got = compare(conn, [first["home_id"], second["home_id"]], today=TODAY)
+    assert got["differences"] == [{
+        "home_id": second["home_id"], "vs_home_id": first["home_id"],
+        "asking": second["asking"] - first["asking"],
+        "true_price_high": second["true_price_high"] - first["true_price_high"],
+        "sqft": second["sqft"] - first["sqft"]}]
