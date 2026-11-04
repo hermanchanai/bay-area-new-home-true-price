@@ -63,11 +63,11 @@ purposes:
     model: accounts/fireworks/models/muse-spark-open
     reasoning_effort: low
     max_completion_tokens: 6000
-  agent_live:       # visitors' questions on the live site: Muse Spark Open (open weights) on Fireworks, which
-                    # doesn't log or store prompts for open models (docs.fireworks.ai data handling, read 2026-10-28).
-                    # 20/20 on the agent eval (eval/reports/2026-10-28__agent__agent_open.md).
-    provider: fireworks
-    model: accounts/fireworks/models/muse-spark-open
+  agent_live:       # visitors' questions on the live site: Muse Spark Open (open weights) on Baseten, which
+                    # doesn't store model inputs or outputs by default (docs.baseten.co security page, read 2026-11-04).
+                    # Moved from Fireworks 2026-11-04: its serverless took 133 s on a one-word call, past Netlify's ~28 s proxy limit.
+    provider: baseten
+    model: meta-models/muse-spark-open-1026
     reasoning_effort: low
     max_completion_tokens: 6000
   ping:

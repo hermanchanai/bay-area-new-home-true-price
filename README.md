@@ -25,9 +25,10 @@ Built for the Meta Global AI Developer Hackathon (Indie track, "Build for Your W
   have enough for a median.
 - Extraction accuracy on 43 hand-checked pages: home recall 99.3%; price, beds and sq ft 100%.
   Hold-out builder (never tuned on): 151/151 homes.
-- Agent, on frozen 11-03 data: Muse Spark 20/20 hand-checked questions, Muse Spark Open (the live model) 18/20. Its two
-  misses: asked for the biggest discount, it ranked by share of the price (9.2%), while the key ranks by dollars; and it
-  correctly said no homes matched but offered to re-check at $1.5M, a figure no tool returned.
+- Agent, on frozen 11-03 data: Muse Spark 20/20 hand-checked questions, Muse Spark Open (the live model, on Baseten) 18/20. Its two
+  misses: asked for the biggest discount, it named a home outside the key's top 3; and it correctly said no homes
+  matched but cited a home id that doesn't exist. On Fireworks the same model also scored 18/20, with different misses
+  ([report](eval/reports/2026-11-04__agent__agent_open.md)).
 - Total Meta model spend for the whole build, daily price checks included: about $11.
 
 ## Meta models used
@@ -58,12 +59,13 @@ $1.04). Against Muse Spark contributor on the same pages ([report](eval/reports/
 | Plan beds | 100% | 95.1% |
 | Pages failed | 0 of 43 | 1 of 43 (output ran on to the 32k-token limit) |
 
-The buyer agent on Muse Spark Open passes 19 of the same 20 hand-checked questions, with every dollar
-figure traced to a tool result ([report](eval/reports/2026-11-03__agent__agent_open.md);
-`python -m tools.eval_agent --purpose agent_open`). The site shows the tool calls behind every answer. The eval runs on a frozen copy of the 11-03 data, so the
+The buyer agent on Muse Spark Open passes 18 of the same 20 hand-checked questions, with every dollar
+figure traced to a tool result ([report](eval/reports/2026-11-04__agent__agent_live.md);
+`python -m tools.eval_agent --purpose agent_live`). The site shows the tool calls behind every answer. The eval runs on a frozen copy of the 11-03 data, so the
 daily refresh can't move its answers; `python -m tools.derive_agent_truth --freeze` rebuilds the key from
 newer data with SQL written apart from the agent's tools. **Since 2026-10-28 the live site's agent runs on Muse Spark
-Open** via Fireworks, which doesn't store prompts for open models; `/api/health` names the model.
+Open**, on Baseten since 2026-11-04, which doesn't store model inputs or outputs by default; `/api/health` names the model.
+It moved from Fireworks that morning, when a one-word call took 133 seconds there and new questions timed out.
 Visitor questions are capped at $2/day.
 
 Every model call in the product goes to a Meta model. The code itself was written with Claude Code.
@@ -285,3 +287,4 @@ building period.
     Internet Archive copies of 56 of 219 community pages, from Aug 2 to Oct 21, were read with the same extractor into `community_history` ($0.20), so those communities' history starts earlier than our Oct 27 first check. A price counts only if the copy prints it, a copy with no priced offers says nothing about offers, and a move between readings far apart shows as a range of dates. Lennar, Trumark and Tri Pointe are mostly not archived.
     Added Seeno Homes (7 communities listed, 30 homes) and K. Hovnanian's San Joaquin communities (Manteca, Lathrop, Lodi; 15 homes) from a city-by-city coverage search, on Herman's say. 581 homes, 225 of 229 communities on the map. Seeno's site states no ready dates, so its homes show no "ready now".
     The agent now says once that an assessed value on a fully assessed new home is usually the sale price. Same frozen data, no re-rolls: Muse Spark 20/20, Muse Spark Open 18/20.
+- **2026-11-04:** New questions on the live site were timing out: Fireworks took 133 seconds on a one-word call, past Netlify's roughly 28-second proxy limit. The live agent moved to Muse Spark Open on Baseten, where fresh questions answered in about 3 seconds. Same frozen data, one run, no re-rolls: 18/20, with different misses from the Fireworks run.
