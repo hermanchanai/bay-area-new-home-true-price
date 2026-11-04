@@ -225,3 +225,19 @@ def test_filling_in_the_loan_keeps_the_fine_print_that_lets_offers_combine():
     assert all("https://b.example/promo" in i["fine_print"] for i in got)
     counted, _ = pricing_set(got, "home1")
     assert all(i["pool_id"] is None for i in counted)
+
+
+def test_a_plan_the_latest_reading_no_longer_lists_is_removed():
+    from tools import db
+    from tools.load_records import prune_plans
+    conn = db.connect(":memory:")
+    conn.execute("INSERT INTO builders (id, name, site) VALUES (1, 'B', 'https://b.example')")
+    conn.execute("INSERT INTO communities (id, builder_id, name, url) VALUES (1, 1, 'Oak', 'https://b.example/oak')")
+    conn.executemany("INSERT INTO plans (id, community_id, name, layout_json) VALUES (?, 1, ?, ?)",
+                     [(1, "Plan 1 Apex", None), (2, "Plan 1 (Apex)", None), (3, "Plan 9", '{"loft": true}'), (4, "Plan 8", None)])
+    conn.execute("INSERT INTO homes (community_id, plan_id, address, price_basis) VALUES (1, 4, '1 Oak St', 'quick_move_in')")
+    names = lambda: {r[0] for r in conn.execute("SELECT name FROM plans")}
+    prune_plans(conn, 1, [])                                     # a reading with no plans says nothing: keep them all
+    assert names() == {"Plan 1 Apex", "Plan 1 (Apex)", "Plan 9", "Plan 8"}
+    prune_plans(conn, 1, ["Plan 1 Apex"])
+    assert names() == {"Plan 1 Apex", "Plan 9", "Plan 8"}        # a floor-plan read or a home still using it stays

@@ -70,6 +70,15 @@ def plan_price(price: int | None) -> int | None:
     return None if price == PLACEHOLDER_PRICE else price
 
 
+def prune_plans(conn, community_id: int, listed: list[str]) -> None:
+    """Drop plans the page's latest reading no longer lists: old spellings of a plan, or plans it stopped selling.
+    A reading with no plans says nothing, and a floor-plan read or a home using the plan keeps it."""
+    if listed:
+        conn.execute(f"DELETE FROM plans WHERE community_id = ? AND name NOT IN ({','.join('?' * len(listed))}) "
+                     "AND layout_json IS NULL AND id NOT IN (SELECT plan_id FROM homes WHERE plan_id IS NOT NULL)",
+                     [community_id, *listed])
+
+
 def assign_homes(pages: list[dict]) -> list[dict]:
     communities = [p for p in pages if p["kind"] == "community"]
     best: dict[tuple, dict] = {}
@@ -338,6 +347,9 @@ def load(date: str, conn) -> dict:
         conn.execute("UPDATE incentives SET included_in_price = NOT EXISTS (SELECT 1 FROM incentive_values v "
                      "WHERE v.incentive_id = incentives.id AND v.method != 'in_asking_price') "
                      "AND EXISTS (SELECT 1 FROM incentive_values v WHERE v.incentive_id = incentives.id)")
+        for p in pages:
+            if p["kind"] == "community":
+                prune_plans(conn, cid[p["page"]], [pl["name"] for pl in p["record"].get("plans") or []])
     stats["market_rate"] = f"{market}% ({rate_date})"
     return stats
 
