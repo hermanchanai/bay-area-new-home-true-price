@@ -62,7 +62,7 @@ def _pct(part, whole):
 
 
 def _history(conn, url: str) -> dict:
-    return community_changes([(r[0], r[1], json.loads(r[2])) for r in conn.execute(
+    return community_changes([(r[0], r[1], json.loads(r[2]) if r[2] else None) for r in conn.execute(
         "SELECT snapshot_date, from_price, incentives FROM community_history WHERE community_url = ? AND carried = 0 "
         "ORDER BY snapshot_date", (url,))])
 
@@ -138,6 +138,9 @@ def community_detail(conn, cid: int, today: str) -> dict:
             (home_key(builder_id, url, h.get("address"), h.get("lot")),))]
     h = _history(conn, url)
     d["series"], d["offers_seen"] = h.get("series", []), h.get("offers_seen", [])
+    d["archive_copies"] = [{"date": r[0], "url": r[1]} for r in conn.execute(
+        "SELECT snapshot_date, source_url FROM community_history WHERE community_url = ? AND source_url IS NOT NULL "
+        "ORDER BY snapshot_date", (url,))]
     return d
 
 

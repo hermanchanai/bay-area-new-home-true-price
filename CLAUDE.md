@@ -11,7 +11,7 @@ for earlier homes. The build plan is kept outside the repo.
   2026-10-26 probes) is cited, not copied.
 - **Runtime AI is Meta models only** (Muse Spark via the Meta Model API; Muse Spark Open via
   Baseten/Modal). Claude may write the code; the product never calls a non-Meta model.
-- **Public data only**: builders' own public pages, county assessor open data, FRED. No employer
+- **Public data only**: builders' own public pages (and Internet Archive copies of them, Herman's OK 2026-11-03), county assessor open data, FRED. No employer
   data, no employer branding anywhere (names, copy, commits).
 - **Data rights**: commit derived facts plus a source link only. Raw builder HTML, photos and
   floor-plan images stay in gitignored `.tmp/` / `data/raw/`. Earlier homes ship as county records

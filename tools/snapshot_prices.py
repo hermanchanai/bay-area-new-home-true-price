@@ -104,8 +104,8 @@ def snapshot_communities(conn, date: str, raw: Path = RAW) -> int:
 
 def community_changes(rows: list[tuple]) -> dict:
     """rows: (date, from_price, offers), oldest first, carried days left out. An offer is new from the first day it was
-    seen, if that's after the first check, and ended after the last, if that's before the latest; a day it was missed
-    in between changes nothing."""
+    seen, if that's after the first day offers were read, and ended after the last, if that's before the latest; a day
+    it was missed in between changes nothing. offers None = this copy can't say (fetch_wayback.capture_row)."""
     if not rows:
         return {}
     seen, moves, series, price = {}, [], [], None
@@ -115,14 +115,15 @@ def community_changes(rows: list[tuple]) -> dict:
         price = from_price or price
         if from_price:
             series.append([day, from_price])
-        for i in offers:
+        for i in offers or []:
             if i.get("amount_usd") or i.get("rate"):
                 key = (i["kind"], float(i.get("amount_usd") or 0), i.get("rate"))
                 seen.setdefault(key, {"first": day, "label": i["label"]})["last"] = day
     first, latest = rows[0][0], rows[-1][0]
+    offers_from = next((r[0] for r in rows if r[2] is not None), first)
     return {"tracked_since": first, "last_checked": latest, "advertised_from": price, "price_changes": moves,
-            "incentives": rows[-1][2],
-            "incentives_added": [{"date": s["first"], "label": s["label"]} for s in seen.values() if s["first"] > first],
+            "incentives": rows[-1][2] or [],
+            "incentives_added": [{"date": s["first"], "label": s["label"]} for s in seen.values() if s["first"] > offers_from],
             "incentives_ended": [{"last_seen": s["last"], "label": s["label"]} for s in seen.values() if s["last"] < latest],
             "series": series,
             "offers_seen": [{"label": s["label"], "first_seen": s["first"], "last_seen": s["last"], "active": s["last"] == latest}

@@ -441,7 +441,7 @@ function drawerHTML(d) {
     <section><h3 class="font-semibold">Incentives over time</h3>
       ${offerRows ? `<div class="overflow-x-auto"><table class="w-full text-sm mt-1"><thead><tr class="text-xs text-slate-500 text-left"><th class="py-1 font-normal">Incentive with an amount or rate</th><th class="py-1 font-normal">First seen</th><th class="py-1 font-normal">Last seen</th></tr></thead><tbody>${offerRows}</tbody></table></div>`
         : `<p class="text-sm text-slate-500 mt-1">No incentive with an amount or rate on record.</p>`}
-      <p class="text-[11px] text-slate-400 mt-1">First reading ${day(c.tracked_since)}; older prices aren't on record. Checked daily from Oct 27.</p></section>` : "";
+      <p class="text-[11px] text-slate-400 mt-1">First reading ${day(c.tracked_since)}${(d.archive_copies || []).length ? ` (<a class="underline" href="${esc(d.archive_copies[0].url.replace("id_/", "/"))}" target="_blank" rel="noopener">Internet Archive copy of the builder's page</a>)` : ""}; older prices aren't on record. Checked daily from Oct 27.</p></section>` : "";
 
   const plans = d.plans.map((p) => {
     const facts = [p.downstairs_bedroom === true && "bedroom downstairs", p.downstairs_bedroom === false && "no bedroom downstairs",
