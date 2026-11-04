@@ -104,7 +104,7 @@ def test_call_dispatches_and_reports_bad_arguments_instead_of_raising(conn):
     assert got["median_value"] == 870_000 and "assessed value" in got["method"]
     assert not [k for k in got if "est" in k]                                 # records, never estimates (11-03)
     assert got["records"][0] == {"address": "4 Elm St", "assessed_value": 820_000, "roll_year": 2026,
-                                 "sale_date": "2023", "living_sqft": 1_700, "beds": 3, "recorded_price": None}
+                                 "year_built": "2023", "living_sqft": 1_700, "beds": 3, "recorded_price": None}
     assert got["withheld"] == 1
     assert call(conn, "past_sales", {"community_id": 2})["past_sales"] is None
     assert "error" in call(conn, "search_homes", {"county": "Fresno"})
@@ -267,3 +267,36 @@ def test_compare_returns_the_differences_so_the_model_does_no_arithmetic(conn):
     dearer = max(first, second, key=lambda h: h["asking"])
     assert got["differences"][0]["asking"] == {"higher_home_id": dearer["home_id"], "by": abs(first["asking"] - second["asking"])}
     assert got["differences"][0]["sqft"]["by"] == abs(first["sqft"] - second["sqft"])
+
+
+def test_savings_sort_ranks_by_dollars_with_up_to_offers_at_zero(conn):
+    # Review 2026-11-04: "biggest savings" ranked by percentage, so a cheaper home beat the largest dollar saving.
+    conn.execute("UPDATE true_prices SET value_low = 40000, value_high = 40000, true_low = 360000, true_high = 360000, "
+                 "asking = 400000 WHERE home_id = 2")                  # 10%: the biggest share
+    conn.execute("UPDATE true_prices SET value_low = 60000, value_high = 60000, true_low = 890000, true_high = 890000 "
+                 "WHERE home_id = 3")                                  # 6.3%: the most dollars for certain
+    got = search_homes(conn, county="San Joaquin", sort="savings", today=TODAY)["homes"]
+    # home 5's "up to $300K" counts as its $10,000 floor; home 1 has $20,000
+    assert [h["home_id"] for h in got] == [3, 2, 1, 5]
+    assert [h["home_id"] for h in search_homes(conn, county="San Joaquin", sort="discount_pct", today=TODAY)["homes"]][:2] == [5, 2]
+
+
+def test_the_search_tool_tells_the_model_which_sort_means_biggest_discount():
+    from tools.agent_tools import TOOLS
+    sort = next(t for t in TOOLS if t["function"]["name"] == "search_homes")["function"]["parameters"]["properties"]["sort"]
+    assert set(sort["enum"]) == {"true_price", "asking", "savings", "discount_pct"}
+    assert "biggest discount" in sort["description"] and "dollars" in sort["description"]
+
+
+def test_a_county_with_no_sale_dates_reports_years_built_not_sale_dates(conn):
+    # Review 2026-11-04: the Cairnway answer said "43 earlier sales from 2024 to 2025"; San Joaquin publishes no sale dates.
+    got = call(conn, "past_sales", {"community_id": 1})
+    assert got["built_period"] == "2024-01 to 2025-09" and "period" not in got
+    assert got["records"][0]["year_built"] == "2023" and "sale_date" not in got["records"][0]
+    assert "no sale dates" in got["method"] and "'sold'" not in got["method"]
+
+
+def test_a_county_with_sale_dates_keeps_them(conn):
+    conn.execute("UPDATE communities SET county_fips = '06013' WHERE id = 1")
+    got = call(conn, "past_sales", {"community_id": 1})
+    assert got["period"] == "2024-01 to 2025-09" and got["records"][0]["sale_date"] == "2023"

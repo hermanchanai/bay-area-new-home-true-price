@@ -199,7 +199,7 @@ def derive(conn, today: str) -> tuple[dict, list[str]]:
                            "ON c.id = ps.community_id WHERE c.name = ? AND c.city = ?", name, city)
         notes.append(f"{qid} {name} median assessed value ${med:,} (n {n}); an answer must call it an assessed "
                      "value, not a sale price or an estimate.")
-        e[qid] = ({"must_mention": [str(med)[:3], "asking", "assessed"]} if qid == "q10"
+        e[qid] = ({"must_mention": [str(med)[:3], "asking", "assessed"], "must_not_mention": ["earlier sales", "sales from"]} if qid == "q10"
                   else {"must_mention": [[f"{med / 1e6:.2f}", f"{med // 1000:,}"], "assessed"]})
     e["q12"] = {"must_mention": ["Santa Clara"]}
 

@@ -23,7 +23,8 @@ MAX_ROWS = 25
 # True price ranks and budgets use true_high, which counts an "up to $250K" offer as $0: it may pay nothing.
 SORTS = {"true_price": "COALESCE(t.true_high, h.price) IS NULL, COALESCE(t.true_high, h.price)",
          "asking": "h.price IS NULL, h.price",
-         "discount": "COALESCE(1.0 * t.value_high / t.asking, 0) DESC"}
+         "savings": "COALESCE(t.value_low, 0) DESC",     # dollars, "up to" offers at $0
+         "discount_pct": "COALESCE(1.0 * t.value_high / t.asking, 0) DESC"}
 
 
 def _counties() -> list[dict]:
@@ -241,10 +242,14 @@ def past_sales(conn, community_id: int) -> dict:
     records = [dict(x) for x in conn.execute(
         "SELECT address, assessed_value, roll_year, sale_date, living_sqft, beds, recorded_price FROM past_records "
         "WHERE community_id = ? ORDER BY sale_date, address", (community_id,))]
-    found = {"n": r["n"], "period": r["period"], "withheld": r["withheld"],
+    no_sale_dates = c["county_fips"] == "06077"
+    if no_sale_dates:
+        records = [{("year_built" if k == "sale_date" else k): v for k, v in x.items()} for x in records]
+    found = {"n": r["n"], ("built_period" if no_sale_dates else "period"): r["period"], "withheld": r["withheld"],
              "method": ("the assessed value as published on the county roll (land + improvements), for homes finished "
-                        "before the roll's lien date; the county publishes no sale dates, so 'sold' is the year built"
-                        if c["county_fips"] == "06077" else
+                        "before the roll's lien date. The county publishes no sale dates; the years shown are when the "
+                        "homes were built"
+                        if no_sale_dates else
                         "the assessed value as published on the county roll (land + improvements), for homes whose value "
                         "has been reset to their last sale (deed on or before the lien date)"),
              "caveat": "County records, not appraisals. On a fully assessed new home the assessed value is usually the sale price, but it isn't a recorded price.",
@@ -382,7 +387,11 @@ TOOLS = [
             "ready_by": {"type": "string", "description": "YYYY-MM: ready on or before this month"},
             "move_in_now": {"type": "boolean"}, "builder": {"type": "string"},
             "age_restricted": {"type": "boolean", "description": "true = 55+ communities only, false = none"},
-            "sort": {"type": "string", "enum": list(SORTS)}, "limit": {"type": "integer"}}),
+            "sort": {"type": "string", "enum": list(SORTS),
+                     "description": "savings = biggest discount or savings in dollars, 'up to' offers at $0 (the "
+                                    "default for 'biggest discount'); discount_pct = largest share of asking, only "
+                                    "when the buyer asks for a percentage"},
+            "limit": {"type": "integer"}}),
     _fn("find_communities", "Look up communities by (part of) name, county or city.", {
         "name": {"type": "string"}, "county": {"type": "string"}, "city": {"type": "string"}}),
     _fn("get_community", "One community: its homes, floor plans, incentives with dollar values, and past sales.",

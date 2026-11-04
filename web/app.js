@@ -398,14 +398,14 @@ function drawerHTML(d) {
   const recs = (ps.records || []).map((r) => `<tr class="border-t border-slate-100">
       <td class="py-1.5 pr-2">${esc(r.address)}</td>
       <td class="py-1.5 pr-2 text-right num">${r.assessed_value != null ? usd(r.assessed_value) : "not reset yet"}</td>
-      <td class="py-1.5 pr-2 num">${esc(/^\d{4}$/.test(r.sale_date || "") ? "built " + r.sale_date : r.sale_date)}</td>
+      <td class="py-1.5 pr-2 num">${esc(r.year_built || r.sale_date)}</td>
       <td class="py-1.5 pr-2 text-right num">${r.living_sqft ? r.living_sqft.toLocaleString("en-US") : "—"}</td>
       ${hasRecorded ? `<td class="py-1.5 text-right num">${r.recorded_price != null ? usd(r.recorded_price) : "—"}</td>` : ""}</tr>`).join("");
   const heldBack = ps.withheld ? ` ${ps.withheld === 1 ? "1 value" : ps.withheld + " values"} not shown: under 60% of this community's median per sq ft, so possibly a home still being built when assessed.` : "";
   const recordsTable = `<details class="mt-2"><summary class="text-sm text-sky-700 cursor-pointer">Each home's county record (${(ps.records || []).length})</summary>
         <div class="overflow-x-auto mt-1"><table class="w-full text-xs"><thead><tr class="text-slate-500 text-left">
           <th class="py-1 font-normal">Address</th><th class="py-1 font-normal text-right">Assessed value</th>
-          <th class="py-1 font-normal">Sold</th><th class="py-1 font-normal text-right">Sq ft</th>
+          <th class="py-1 font-normal">${ps.built_period ? "Built" : "Sold"}</th><th class="py-1 font-normal text-right">Sq ft</th>
           ${hasRecorded ? `<th class="py-1 font-normal text-right">Recorded sale price</th>` : ""}</tr></thead>
           <tbody>${recs}</tbody></table></div>
         <p class="text-[11px] text-slate-400 mt-1">Assessed value: land + improvements on the county's ${esc((ps.records || [])[0]?.roll_year ?? "")} roll, as published. On a fully assessed new home that's usually the sale price.${hasRecorded ? " Recorded sale prices come from Alameda's transfer list." : ""}</p></details>`;
@@ -414,14 +414,14 @@ function drawerHTML(d) {
         <div><div class="text-xs text-slate-500">Median assessed value</div><div class="text-lg font-semibold">${usd(ps.median_value)}</div></div>
         <div><div class="text-xs text-slate-500">Middle half</div><div>${short(ps.p25)} – ${short(ps.p75)}</div></div>
         <div><div class="text-xs text-slate-500">Median asking today</div><div>${usd(ps.median_asking_now)}</div></div></div>
-       <p class="text-xs text-slate-500 mt-2">${ps.n} homes, ${/^\d{4} to \d{4}$/.test(ps.period) ? "built" : "sold"} ${esc(ps.period)}; ${esc(ps.method)}. ${esc(ps.caveat)}</p>`
+       <p class="text-xs text-slate-500 mt-2">${ps.n} homes, ${ps.built_period ? "built " + esc(ps.built_period) : "sold " + esc(ps.period)}; ${esc(ps.method)}. ${esc(ps.caveat)}</p>`
     : `<p class="text-sm text-slate-500">${esc(ps.reason)}</p>${ps.past_sales ? `<p class="text-xs text-slate-500 mt-2">Records show ${esc(ps.method)}. ${esc(ps.caveat)}</p>` : ""}`;
   const past = ps.past_sales ? `${summary}${heldBack ? `<p class="text-xs text-slate-500 mt-1">${heldBack}</p>` : ""}${recordsTable}` : summary;
 
   const communityOffers = d.community_incentives || d.incentives;
   const incs = communityOffers.length ? communityOffers.map((i) => `<li class="py-2 border-t border-slate-100">
       <div class="flex justify-between gap-3"><div><div class="font-medium">${esc(i.label || KIND[i.kind])}</div>
-        <div class="text-xs text-slate-500">${i.structure === "term not stated" ? "Rate offer: the builder's page doesn't say how long it lasts, so it's valued for 5 years" : KIND[i.kind] || esc(i.kind)}${i.amount_is_up_to ? " · up to: may pay less, or nothing" : ""}${/\bFHA\b/.test(i.label || "") ? " · FHA loan: its mortgage insurance isn't counted" : ""}${i.lender ? " · with " + esc(i.lender) : ""}${i.expires ? " · ends " + esc(i.expires) : ""}${i.eligibility ? " · " + esc(i.eligibility) : ""}${i.included_in_price ? " · already in the asking price" : ""}</div></div>
+        <div class="text-xs text-slate-500">${i.rate ? `${i.rate}% rate${i.apr ? `, ${i.apr}% APR` : ""} · ` : ""}${i.structure === "term not stated" ? "Rate offer: the builder's page doesn't say how long it lasts, so it's valued for 5 years" : KIND[i.kind] || esc(i.kind)}${i.amount_is_up_to ? " · up to: may pay less, or nothing" : ""}${/\bFHA\b/.test(i.label || "") ? " · FHA loan: its mortgage insurance isn't counted" : ""}${i.lender ? " · with " + esc(i.lender) : ""}${i.expires ? " · ends " + esc(i.expires) : ""}${i.eligibility ? " · " + esc(i.eligibility) : ""}${i.included_in_price ? " · already in the asking price" : ""}</div></div>
         <div class="text-right num text-sm shrink-0">${i.included_in_price ? "in the price" : i.value_high != null ? range(i.value_low, i.value_high) : "not priced"}${i.homes_priced > 1 ? `<div class="text-[11px] text-slate-400">across ${i.homes_priced} homes</div>` : ""}</div></div>
       <a href="${esc(i.source_url)}" target="_blank" rel="noopener" class="text-xs text-sky-700">Builder's terms ↗</a></li>`).join("")
     : `<li class="text-sm text-slate-500">No incentives listed on the builder's site.</li>`;

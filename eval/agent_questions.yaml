@@ -432,6 +432,9 @@ questions:
     - '820'
     - asking
     - assessed
+    must_not_mention:
+    - earlier sales
+    - sales from
 - id: q11
   question: What did buyers pay for homes at Orchard Grove in Brentwood?
   expect:

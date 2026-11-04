@@ -1,7 +1,7 @@
 # CLAUDE.md — Bay Area New-Home True Price
 
 Hackathon entry (Meta Global AI Developer Hackathon, Indie track, "Build for Your World"; building
-period after the 2026-10-26 kickoff to 2026-11-04 9 PM ET). For every production-builder community
+period after the 2026-10-26 kickoff to 2026-11-04 9 PM ET). For production-builder communities
 in Contra Costa, Alameda, Santa Clara, San Mateo, Solano, Sonoma, Napa and San Joaquin counties: move-in-ready homes with addresses,
 floor plans, incentives priced in dollars, a true-price range, and, in the counties we pulled, assessor records
 for earlier homes. The build plan is kept outside the repo.

@@ -25,9 +25,10 @@ Built for the Meta Global AI Developer Hackathon (Indie track, "Build for Your W
   have enough for a median.
 - Extraction accuracy on 43 hand-checked pages: home recall 99.3%; price, beds and sq ft 100%.
   Hold-out builder (never tuned on): 151/151 homes.
-- Agent, on frozen 11-03 data: Muse Spark 20/20 hand-checked questions, Muse Spark Open (the live model, on Baseten) 18/20. Its two
-  misses: asked for the biggest discount, it named a home outside the key's top 3; and it correctly said no homes
-  matched but cited a home id that doesn't exist. On Fireworks the same model also scored 18/20, with different misses
+- Agent, on frozen 11-03 data: Muse Spark 20/20 hand-checked questions, Muse Spark Open (the live model, on Baseten) 20/20
+  ([report](eval/reports/2026-11-04__agent__agent_live.md)). It scored 18/20 until a review caught "biggest discount" ranking by
+  percentage; the 20/20 comes after that fix, so it isn't a blind score. The other miss, a citation to a home id that doesn't exist,
+  didn't recur, which may be chance. Fireworks' 18/20 for the same model predates the fix and wasn't rerun
   ([report](eval/reports/2026-11-04__agent__agent_open.md)).
 - Total Meta model spend for the whole build, daily price checks included: about $11.
 
@@ -288,3 +289,4 @@ building period.
     Added Seeno Homes (7 communities listed, 30 homes) and K. Hovnanian's San Joaquin communities (Manteca, Lathrop, Lodi; 15 homes) from a city-by-city coverage search, on Herman's say. 581 homes, 225 of 229 communities on the map. Seeno's site states no ready dates, so its homes show no "ready now".
     The agent now says once that an assessed value on a fully assessed new home is usually the sale price. Same frozen data, no re-rolls: Muse Spark 20/20, Muse Spark Open 18/20.
 - **2026-11-04:** New questions on the live site were timing out: Fireworks took 133 seconds on a one-word call, past Netlify's roughly 28-second proxy limit. The live agent moved to Muse Spark Open on Baseten, where fresh questions answered in about 3 seconds. Same frozen data, one run, no re-rolls: 18/20, with different misses from the Fireworks run.
+  A review of the live site found three faults, fixed the same day. "Biggest discount" ranked by percentage, so the agent missed the three largest dollar savings in San Joaquin; search now has a dollar sort with "up to" offers at $0. San Joaquin's county records have no sale dates but read as "earlier sales"; they now say years built, and the eval fails an answer that says otherwise. Rate offers now show their rate on the community page. Evals after the fixes: Muse Spark 20/20, Muse Spark Open on Baseten 20/20.
