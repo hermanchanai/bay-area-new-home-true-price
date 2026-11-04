@@ -15,19 +15,20 @@ Built for the Meta Global AI Developer Hackathon (Indie track, "Build for Your W
 **Live: https://bay-area-true-price.netlify.app**: map, community pages and an agent you can ask
 ("cheapest 4-bed in Contra Costa after incentives, ready now?").
 
-## In numbers (data read 2026-11-03; refreshed every morning)
+## In numbers (data read 2026-11-04; refreshed every morning)
 
-- 532 move-in-ready homes in 138 communities from 16 builders; every home has a street address or lot. Another 81 communities
-  (19 of them coming soon) show floor plans with nothing ready to move into, and are listed but not counted. Sold-out ones are left off.
-- 521 homes priced: incentives cut the asking price by 2.8% with "up to" offers at $0, 3.0% with them in full, at a 7.24%
+- 581 move-in-ready homes in 146 communities from 17 builders; every home has a street address or lot. Another 83 communities
+  (20 of them coming soon) show floor plans with nothing ready to move into, and are listed but not counted. Sold-out ones are left off.
+- 570 homes priced: incentives cut the asking price by 2.7% with "up to" offers at $0, 2.9% with them in full, at a 7.24%
   market rate. Savings a builder already shows in the price are never counted twice.
 - 37 communities show 453 earlier homes' county records (assessed value as published, no estimates); 27 of them
   have enough for a median.
 - Extraction accuracy on 43 hand-checked pages: home recall 99.3%; price, beds and sq ft 100%.
   Hold-out builder (never tuned on): 151/151 homes.
-- Agent, on frozen 11-03 data: Muse Spark 20/20 hand-checked questions, Muse Spark Open (the live model) 19/20. Its one
-  miss: asked for the biggest discount, it ranked by share of the price (9.2%), while the key ranks by dollars.
-- Total Meta model spend for the whole build, daily price checks included: about $10.
+- Agent, on frozen 11-03 data: Muse Spark 20/20 hand-checked questions, Muse Spark Open (the live model) 18/20. Its two
+  misses: asked for the biggest discount, it ranked by share of the price (9.2%), while the key ranks by dollars; and it
+  correctly said no homes matched but offered to re-check at $1.5M, a figure no tool returned.
+- Total Meta model spend for the whole build, daily price checks included: about $11.
 
 ## Meta models used
 
@@ -282,3 +283,5 @@ building period.
     867 of 1,005 floor plans now link to their own page on the builder's site, read from the community page with no model calls; a plan with no certain link shows none. Meritage, SummerHill, Signature and Ponderosa print no plan links, and old plan spellings the latest reading no longer lists are now removed each day. One sampled link per builder opened (16 of 16 returned 200).
     Each floor plan's price now carries its date and is recorded daily (backfilled to Oct 27 for what the saved readings show), so a plan's price history builds from here. Offers tied to one home sit under that home's floor plan; the incentives section is community-wide only.
     Internet Archive copies of 56 of 219 community pages, from Aug 2 to Oct 21, were read with the same extractor into `community_history` ($0.20), so those communities' history starts earlier than our Oct 27 first check. A price counts only if the copy prints it, a copy with no priced offers says nothing about offers, and a move between readings far apart shows as a range of dates. Lennar, Trumark and Tri Pointe are mostly not archived.
+    Added Seeno Homes (7 communities listed, 30 homes) and K. Hovnanian's San Joaquin communities (Manteca, Lathrop, Lodi; 15 homes) from a city-by-city coverage search, on Herman's say. 581 homes, 225 of 229 communities on the map. Seeno's site states no ready dates, so its homes show no "ready now".
+    The agent now says once that an assessed value on a fully assessed new home is usually the sale price. Same frozen data, no re-rolls: Muse Spark 20/20, Muse Spark Open 18/20.

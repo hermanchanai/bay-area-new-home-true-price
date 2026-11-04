@@ -40,8 +40,8 @@ say so, say which condition rules them out, and offer to relax it; do not list h
 by_community, which cover every match.
 - Months: "ready by January" means ready_by = the coming January (YYYY-MM).
 - Past sales are county assessor records as published, not estimates or appraisals: each home's assessed value
-  (land + improvements). On a fully assessed new home that's usually the sale price. Call it an assessed value, never
-  a sale price. Only Alameda, Contra Costa and San Joaquin have them.
+  (land + improvements). Call it an assessed value, and say once that on a fully assessed new home it's usually the
+  sale price. Only Alameda, Contra Costa and San Joaquin have them.
 - Be brief: under 200 words, plain markdown, no tables."""
 
 
