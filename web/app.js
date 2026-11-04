@@ -437,7 +437,7 @@ function drawerHTML(d) {
   const offerCount = communityOffers.length || (c.incentives || []).length;
   const extra = start ? `${usd(0)} to ${usd(Math.round(start * m[1] / 100 / 1000) * 1000)}` : "";
   const trend = c.tracked_since ? `<section><h3 class="font-semibold">Advertised price over time</h3>
-      <p class="text-sm num mt-1">${c.advertised_from ? `Starts at <b>${usd(c.advertised_from)}</b> as of ${day(c.last_checked)}, the lowest price on the builder's page.` : "No price on the builder's page."}
+      <p class="text-sm num mt-1">${c.advertised_from ? `Starts at <b>${usd(c.advertised_from)}</b> as of ${day(c.last_checked)}, the builder's advertised starting price.${c.min_asking && c.min_asking < c.advertised_from ? " Some homes below are listed for less." : ""}` : "No price on the builder's page."}
         ${series.length < 2 ? `Only one reading so far (${day(c.tracked_since)}).` : moves ? "" : `Unchanged since ${day(series[0][0])}.`}</p>
       ${priceChart(series)}
       ${moves ? `<ul class="text-xs text-slate-700 mt-1 flex flex-col gap-0.5">${moves}</ul>` : ""}
